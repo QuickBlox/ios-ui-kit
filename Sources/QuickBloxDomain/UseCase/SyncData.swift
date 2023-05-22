@@ -1,0 +1,309 @@
+//
+//  SyncData.swift
+//  QuickBloxUIKit
+//
+//  Created by Injoit on 20.03.2023.
+//  Copyright © 2023 QuickBlox. All rights reserved.
+//
+
+import Combine
+import UIKit
+import QuickBloxLog
+
+public enum SyncState: Equatable {
+    /// Sync process stages
+    public enum Stage: String {
+        /// The authorization to the remote source could not be completed.
+        case unauthorized
+        /// The connection to the remote source could not be completed.
+        case disconnected
+        /// Connecting to a remote source occurs automatically if you have previously authorized.
+        case connecting
+        /// Obtaining basic information about dialogues, followed by its replacement in the local
+        /// source.
+        case update
+        /// Obtaining additional information such as participants, avatars, etc., followed by its
+        /// replacement in the local source.
+        case details
+    }
+    
+    case syncing(stage: Stage, error: RepositoryException? = nil)
+    case synced
+}
+
+/// This is a use case that describes the rules for synchronizing data between remote and local sources that are related to user dialogs.
+///
+/// During execution, the use case responds to establishing connection and receiving  ``RemoteDialogEvent`` (s) from the server by updating data in the local storage.
+public class SyncData<DialogsRepo: DialogsRepositoryProtocol,
+                      UsersRepo: UsersRepositoryProtocol,
+                      ConnectRepo: ConnectionRepositoryProtocol,
+                      Pagination: PaginationProtocol>
+where Pagination == DialogsRepo.PaginationItem {
+    private let dialogsRepo: DialogsRepo
+    private let usersRepo: UsersRepo
+    private let connectRepo: ConnectRepo
+    
+    public init(dialogsRepo: DialogsRepo,
+                usersRepo: UsersRepo,
+                connectRepo: ConnectRepo) {
+        self.dialogsRepo = dialogsRepo
+        self.usersRepo = usersRepo
+        self.connectRepo = connectRepo
+    }
+    
+    //FIXME: make a private
+    let stateSubject =
+    CurrentValueSubject<SyncState, Never>(.syncing(stage: .disconnected))
+    
+    private var cancellables: Set<AnyCancellable> = Set<AnyCancellable>()
+    
+    private var taskConnect: Task<Void, Never>?
+    private var taskDisconnect: Task<Void, Never>?
+    private var taskUpdate: Task<Void, Never>?
+    private var taskEvents: Task<Void, Never>?
+    
+    /// Starts the process of synchronizing dialogs and related data between the remote and local sources.
+    ///
+    /// The sync process is divided into the following  stages:
+    ///
+    /// | Stage | Description |
+    /// --- | ---
+    /// `disconnected` | The authorization or connection to the remote source could not be completed.
+    /// `connecting` | Connecting to a remote source occurs automatically if you have previously logged in.
+    /// `update` | Obtaining basic information about dialogues, followed by its replacement in the local source.
+    /// `details` | Obtaining additional information such as participants, avatars, etc., followed by its replacement in the local source.
+    ///
+    /// - Returns: a publisher that transmits a sequence of values representing the sync ``State``
+    /// in real-time.
+    public func execute() -> AnyPublisher<SyncState, Never> {
+        processConnectionStates()
+        
+        processRemoteEvents()
+        
+        processAppStates()
+        
+        connect()
+        
+        print("Sync Data execute()")
+        
+        return stateSubject.eraseToAnyPublisher()
+    }
+}
+
+//MARK: Sync Info
+extension SyncData {
+    private func updateInfo() async {
+        do {
+            var page = Pagination(skip: 0, limit: 100, total: 0)
+            var hasNext = true
+            var syncIds: Set<String> = []
+            repeat {
+                try Task.checkCancellation()
+                let result = try await dialogsRepo.getDialogsFromRemote(for: page)
+                let usersIds = Set(result.usersIds).subtracting(syncIds)
+                try Task.checkCancellation()
+                try await sync(participants: Array(usersIds))
+                syncIds.formUnion(usersIds)
+                for dialog in result.dialogs {
+                    try Task.checkCancellation()
+                    if dialog.type == .public { continue }
+                    try await dialogsRepo.save(dialogToLocal: dialog)
+                    let duration = UInt64(0.01 * 1_000_000_000)
+                    try await Task.sleep(nanoseconds: duration)
+                }
+                
+                var next = result.page
+                next.skip += result.dialogs.count
+                page = next
+                hasNext = result.dialogs.count == page.limit
+            } while hasNext
+            
+            stateSubject.send(.synced)
+        } catch let exeption as RepositoryException {
+            stateSubject.send(.syncing(stage: .update, error: exeption))
+            prettyLog(exeption)
+        } catch {
+            let info = error.localizedDescription
+            let exeption = RepositoryException.unexpected(info)
+            stateSubject.send(.syncing(stage: .update, error: exeption))
+            prettyLog(error)
+        }
+    }
+}
+
+//MARK: Connection
+extension SyncData {
+    private func processConnectionStates() {
+        connectRepo.statePublisher.sink { [weak self] state in
+            switch state {
+            case .unauthorized:
+                prettyLog(state)
+                // cancel all active tasks
+                self?.taskUpdate?.cancel()
+                self?.taskConnect?.cancel()
+                self?.taskDisconnect?.cancel()
+                
+                Task { [weak self] in do {
+                    try await self?.dialogsRepo.cleareAll()
+                } catch { prettyLog(error) } }
+                
+                self?.stateSubject.send(.syncing(stage: .unauthorized))
+            case .authorized:
+                if UIApplication.shared.applicationState == .background {
+                    return
+                }
+                self?.taskDisconnect?.cancel()
+                self?.connect()
+            case .disconnected(let error):
+                self?.taskUpdate?.cancel()
+                self?.stateSubject.send(.syncing(stage: .disconnected,
+                                                 error: error))
+                Task { [weak self] in do {
+                    try await self?.dialogsRepo.cleareAll()
+                } catch { prettyLog(error) } }
+            case .connecting(let error):
+                self?.stateSubject.send(.syncing(stage: .connecting,
+                                                 error: error))
+            case .connected:
+                self?.stateSubject.send(.syncing(stage: .update))
+                self?.taskUpdate = Task { [weak self] in
+                    await self?.updateInfo()
+                    self?.taskUpdate = nil
+                }
+            }
+        }
+        .store(in: &cancellables)
+    }
+    
+    private func processAppStates() {
+        NotificationCenter.default
+            .publisher(for: UIScene.didEnterBackgroundNotification)
+            .sink { [weak self] _ in
+                self?.taskConnect?.cancel()
+                self?.disconnect()
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default
+            .publisher(for: UIScene.willEnterForegroundNotification)
+            .sink { [weak self] _ in
+                self?.taskDisconnect?.cancel()
+                self?.connect()
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func connect() {
+        taskConnect = Task { [weak self] in
+            do {
+                try await self?.connectRepo.checkConnection()
+                if self?.stateSubject.value == .syncing(stage: .disconnected) {
+                    try Task.checkCancellation()
+                    try await self?.connectRepo.connect()
+                }
+            } catch { prettyLog(error) }
+            
+            self?.taskConnect = nil
+        }
+    }
+    
+    private func disconnect() {
+        taskDisconnect = Task { [weak self] in
+            do {
+                if self?.stateSubject.value == .syncing(stage: .unauthorized) ||
+                    self?.stateSubject.value == .syncing(stage: .disconnected) {
+                    return
+                }
+                try await self?.connectRepo.disconnect()
+            } catch { prettyLog(error) }
+            
+            self?.taskDisconnect = nil
+        }
+    }
+}
+
+//MARK: Remote Events
+extension SyncData {
+    private func processRemoteEvents() {
+        taskEvents = Task {  [weak self] in
+            let sub = await self?.dialogsRepo.remoteEventPublisher.sink { event in
+                switch event {
+                case .create(dialogWithId: let id):
+                    Task { [weak self] in do {
+                        try await self?.sync(dialog: id)
+                    } catch { prettyLog(error) } }
+                case .update(dialogWithId: let id):
+                    Task { [weak self] in do {
+                        try await self?.sync(dialog: id)
+                    } catch { prettyLog(error) } }
+                case .leave(let dialogId, let current):
+                    Task { [weak self] in do {
+                        if current {
+                            try await self?.dialogsRepo.delete(dialogFromLocal: dialogId)
+                        }
+                    } catch { prettyLog(error) } }
+                case .newMessage(let message):
+                    Task { [weak self] in do {
+                        try await self?.update(dialog: message)
+                    } catch { prettyLog(error) } }
+                case .history(let dialogId, let messages):
+                    Task { [weak self] in do {
+                        try await self?.update(dialog: dialogId,
+                                               history: messages)
+                    } catch { prettyLog(error) } }
+                }
+            }
+            guard let sub = sub else { return }
+            self?.cancellables.insert(sub)
+        }
+    }
+    
+    typealias DialogItem = DialogsRepo.DialogEntityItem
+    typealias MessageItem = DialogItem.MessageItem
+    
+    func update(dialog dialogId: String, history: [MessageItem]) async throws {
+        var dialog = try await dialogsRepo.get(dialogFromLocal: dialogId)
+        if dialog.lastMessage.id.isEmpty {
+            let messages = history.sorted(by: { $0.date > $1.date })
+            if let last = messages.last {
+                dialog.lastMessage.id = last.id
+                dialog.lastMessage.text = last.text
+                dialog.lastMessage.dateSent = last.date
+                dialog.lastMessage.userId = last.userId
+            }
+        }
+        dialog.messages = history
+        try await dialogsRepo.update(dialogInLocal: dialog)
+    }
+    
+    func update(dialog newMessage: MessageItem) async throws {
+        var dialog = try await dialogsRepo.get(dialogFromLocal: newMessage.dialogId)
+        if dialog.lastMessage.id != newMessage.id,
+            newMessage.isOwnedByCurrentUser == false {
+            dialog.unreadMessagesCount += 1
+        }
+        dialog.lastMessage.id = newMessage.id
+        dialog.lastMessage.text = newMessage.text
+        dialog.lastMessage.dateSent = newMessage.date
+        dialog.lastMessage.userId = newMessage.userId
+        dialog.messages = [newMessage]
+        try await dialogsRepo.update(dialogInLocal: dialog)
+    }
+    
+    func sync(dialog dialogId: String) async throws {
+        let dialog = try await dialogsRepo.get(dialogFromRemote: dialogId)
+        try await sync(participants: dialog.participantsIds)
+        let saved = try? await dialogsRepo.get(dialogFromLocal: dialogId)
+        if saved == nil {
+            try await dialogsRepo.save(dialogToLocal: dialog)
+        } else {
+            try await dialogsRepo.update(dialogInLocal: dialog)
+        }
+    }
+    
+    func sync(participants ids: [String]) async throws {
+        if ids.isEmpty { return }
+        let users = try await usersRepo.get(usersFromRemote: ids)
+        try await usersRepo.save(usersToLocal: users)
+    }
+}
