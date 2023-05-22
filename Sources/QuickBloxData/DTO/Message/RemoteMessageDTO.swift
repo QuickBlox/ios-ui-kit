@@ -1,0 +1,39 @@
+//
+//  RemoteMessageDTO.swift
+//  QuickBloxUIKit
+//
+//  Created by Injoit on 06.02.2023.
+//  Copyright © 2023 Quickblox. All rights reserved.
+//
+
+import QuickBloxDomain
+import Foundation
+
+/// This is a DTO model for interactions with the message model in remote storage.
+public struct RemoteMessageDTO: Equatable {
+    var id = ""
+    var dialogId = ""
+    var text = ""
+    var recipientId = ""
+    var senderId = ""
+    var senderResource = ""
+    var dateSent = Date(timeIntervalSince1970: 0)
+    var customParameters: [String: String] = [:]
+    var filesInfo: [RemoteFileInfoDTO] = []
+    var delayed = false
+    var markable = false
+    var createdAt = Date(timeIntervalSince1970: 0)
+    var updatedAt = Date(timeIntervalSince1970: 0)
+    var deliveredIds: [String] = []
+    var readIds: [String] = []
+    var isOwnedByCurrentUser = false
+    var eventType: MessageEventType = .message
+    var type: MessageType = .chat
+}
+
+public struct RemoteFileInfoDTO: Equatable {
+    var id = ""
+    var name = ""
+    var type = ""
+    var path = ""
+}
