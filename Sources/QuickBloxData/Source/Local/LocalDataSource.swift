@@ -38,7 +38,8 @@ extension LocalDataSource {
 extension LocalDataSource {
     func save(dialog dto: LocalDialogDTO) async throws {
         if dialogs.value.first(where: { $0.id == dto.id }) != nil {
-            throw DataSourceException.alreadyExist()
+            try await update(dialog: dto)
+            return
         }
         var value = dialogs.value
         value.insertElement(dto, withSorting: .orderedDescending)
@@ -164,7 +165,6 @@ extension LocalDataSource {
             throw DataSourceException.notFound(description: info)
         }
         var dialog = dialogs.value[index]
-        
         dialog.messages.insertElement(dto, withSorting: .orderedAscending)
         dialogs.value[index] = dialog
     }

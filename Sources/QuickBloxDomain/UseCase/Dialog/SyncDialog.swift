@@ -40,12 +40,6 @@ where Dialog == DialogsRepo.DialogEntityItem,
         self.messageRepo = messageRepo
     }
     
-    deinit {
-        taskSyncMessages = nil
-        taskSyncUsers = nil
-        taskUpdate = nil
-    }
-    
     public func execute() -> AnyPublisher<Dialog, Never> {
         processDialog()
         syncMessages()
@@ -55,34 +49,45 @@ where Dialog == DialogsRepo.DialogEntityItem,
     }
     
     private func syncUsers() {
-        taskSyncUsers = Task {
+        taskSyncUsers = Task { [weak self] in
             do {
+                guard let dialogId = self?.dialogId  else { return }
+                guard let dialogsRepo = self?.dialogsRepo  else { return }
                 let dialog = try await dialogsRepo.get(dialogFromRemote: dialogId)
                 let ids = dialog.participantsIds
-                if let users = try? await usersRepo.get(usersFromRemote: ids),
+                
+                if let usersRepo = self?.usersRepo,
+                   let users = try? await usersRepo.get(usersFromRemote: ids),
                    users.isEmpty != false {
                     try? await usersRepo.save(usersToLocal: users)
                 }
+                
                 let saved = try? await dialogsRepo.get(dialogFromLocal: dialogId)
                 if saved != nil {
                     try await dialogsRepo.update(dialogInLocal: dialog)
                 } else {
                     try await dialogsRepo.save(dialogToLocal: dialog)
                 }
-                taskSyncUsers = nil
             } catch { prettyLog(error) } }
+        taskSyncUsers = nil
     }
     
     private func syncMessages() {
-        taskSyncMessages = Task {
+        //TODO: Update Pagination logic
+        taskSyncMessages = Task { [weak self] in
             do {
                 var page = Pagination(skip: 100, limit: 100, total: 0)
                 repeat {
-                    page = try await syncMessages(with: page)
+                    try Task.checkCancellation()
+                    guard let newPage = try await self?.syncMessages(with: page) else {
+                        return
+                    }
+                    page = newPage
                 } while page.hasNextPage
-                _ = try await syncMessages(with: Pagination(skip: 0, limit: 100, total: 0))
+                page = Pagination(skip: 0, limit: 100, total: 0)
+                _ = try await self?.syncMessages(with: page)
             } catch { prettyLog(error) }
-            taskSyncMessages = nil
+            self?.taskSyncMessages = nil
         }
     }
     
@@ -103,11 +108,12 @@ where Dialog == DialogsRepo.DialogEntityItem,
     }
     
     private func processDialog() {
-        taskUpdate = Task {
-            await dialogsRepo.localDialogsPublisher
-                .compactMap { $0.first(where: { $0.id == self.dialogId }) }
-                .sink { dialog in self.subject.send(dialog) }
-                .store(in: &cancellables)
+        taskUpdate = Task { [weak self] in
+            let sub = await self?.dialogsRepo.localDialogsPublisher
+                .compactMap { $0.first(where: { $0.id == self?.dialogId }) }
+                .sink { dialog in self?.subject.send(dialog) }
+            guard let sub = sub else { return }
+            self?.cancellables.insert(sub)
         }
     }
 }

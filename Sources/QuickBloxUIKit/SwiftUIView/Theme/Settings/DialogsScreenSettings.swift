@@ -133,7 +133,7 @@ public struct DialogRowSettings {
     public var isShowLastMessage: Bool = true
     public var isShowTime: Bool = true
     public var separatorInset: CGFloat = 88.0
-    
+    public var avatarSize: CGSize = CGSize(width: 56.0, height: 56.0)
     public var height: CGFloat = DialogsScreenSettingsConstant.height
     public var contentHeight: CGFloat = DialogsScreenSettingsConstant.height - DialogsScreenSettingsConstant.verticalPadding * 2
     public var spacing: CGFloat = DialogsScreenSettingsConstant.spacing
@@ -198,7 +198,7 @@ public struct DialogRowSettings {
         public var font: Font
         
         public init(_ theme: ThemeProtocol) {
-            self.foregroundColor = theme.color.system
+            self.foregroundColor = theme.color.mainBackground
             self.backgroundColor = theme.color.mainElements
             self.font = theme.font.caption
         }

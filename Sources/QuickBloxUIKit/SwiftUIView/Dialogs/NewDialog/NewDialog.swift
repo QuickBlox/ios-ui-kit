@@ -46,16 +46,26 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
             .padding(.top)
             
             .mediaAlert(isAlertPresented: $isAlertPresented,
-                        isExistingImage: false,
+                        isExistingImage: viewModel.isExistingImage,
+                        isShowFiles: false,
+                        mediaTypes: [UTType.image.identifier],
                         onRemoveImage: {
                 viewModel.removeExistingImage()
             }, onGetAttachment: { attachmentAsset in
-                viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
+                guard let avatar = attachmentAsset.image?
+                    .cropToRect()
+                    .resize(to: settings.avatarSize)
+                     else { return }
+                var asset = attachmentAsset
+                asset.image = avatar
+                
+                viewModel.handleOnSelect(attachmentAsset: asset)
             })
             
-            .modifier(DialogNameHeader(type: type, disabled: !viewModel.isValidDialogName , onDismiss: {
+            .modifier(DialogNameHeader(type: type, disabled: !viewModel.isValidDialogName || presentCreateDialog == true, onDismiss: {
                 dismiss()
             }, onNext: {
+                presentCreateDialog.toggle()
                 if type == .public {
                     //TODO: createPublicDialog method
                     viewModel.createPublicDialog()

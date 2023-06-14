@@ -17,7 +17,11 @@ where File == Repo.FileEntityItem {
     private let isPublic: Bool
     private let repo: Repo
     
-    public init(data: Data, ext: FileExtension, name: String, isPublic: Bool = false, repo: Repo) {
+    public init(data: Data,
+                ext: FileExtension,
+                name: String,
+                isPublic: Bool = false,
+                repo: Repo) {
         self.data = data
         self.ext = ext
         if let extStr = name.components(separatedBy: ".").last,

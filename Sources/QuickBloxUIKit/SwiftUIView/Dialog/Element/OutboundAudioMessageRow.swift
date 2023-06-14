@@ -20,7 +20,7 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
     
     let onTap: (_ action: MessageAttachmentAction, _ data: Data?, _ url: URL?) -> Void
     
-    @State public var fileTuple: (type: String, data: Data?, url: URL?)? = nil
+    @State public var fileTuple: (type: String, data: Data?, url: URL?, time: TimeInterval)? = nil
     
     public init(message: MessageItem,
                 onTap: @escaping  (_ action: MessageAttachmentAction, _ data: Data?, _ url: URL?) -> Void,
@@ -59,19 +59,24 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Spacer()
                     HStack(alignment: .center, spacing: 8) {
-                        if isPlaying {
-                            settings.pause
-                                .resizable()
-                                .scaledToFit()
-                                .foregroundColor(settings.outboundPlayForeground)
-                                .frame(width: settings.audioPlaySize.width, height: settings.audioPlaySize.height)
-                            
+                        if fileTuple?.url != nil {
+                            if isPlaying {
+                                settings.pause
+                                    .resizable()
+                                    .scaledToFit()
+                                    .foregroundColor(settings.outboundPlayForeground)
+                                    .frame(width: settings.audioPlaySize.width, height: settings.audioPlaySize.height)
+                                
+                            } else {
+                                settings.play
+                                    .resizable()
+                                    .renderingMode(.template)
+                                    .foregroundColor(settings.outboundPlayForeground)
+                                    .scaledToFit()
+                                    .frame(width: settings.audioPlaySize.width, height: settings.audioPlaySize.height)
+                            }
                         } else {
-                            settings.play
-                                .resizable()
-                                .scaledToFit()
-                                .foregroundColor(settings.outboundPlayForeground)
-                                .frame(width: settings.audioPlaySize.width, height: settings.audioPlaySize.height)
+                            ProgressView()
                         }
                         
                         VStack(alignment: .leading, spacing: 3) {
@@ -80,11 +85,10 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
                                 .scaledToFit()
                                 .frame(width: settings.audioImageSize.width, height: settings.audioImageSize.height)
                             
-                            Text("\(message.date, formatter: Date.formatter)")
+                            Text(fileTuple?.time.audioString() ?? "00:00")
                                 .foregroundColor(settings.time.foregroundColor)
                                 .font(settings.time.font)
                         }
-                        
                     }
                     .padding(settings.audioPadding)
                     .frame(height: settings.audioBubbleHeight)
@@ -114,29 +118,28 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
     }
 }
 
-//import QuickBloxData
-//
-//struct OutboundAudioMessageRow_Previews: PreviewProvider {
-//
-//    static var previews: some View {
-//        Group {
-//            OutboundAudioMessageRow(message: Message(id: UUID().uuidString,
-//                                                     dialogId: "1f2f3ds4d5d6d",
-//                                                     text: "[Attachment]",
-//                                                     userId: NSNumber(value: QBSession.current.currentUserID).stringValue,
-//                                                     date: Date()),
-//                                    onTap: { _ in}, playingMessageId: "message.id", isPlaying: true)
-//                .previewDisplayName("Out Message")
-//
-//
-//            OutboundAudioMessageRow(message: Message(id: UUID().uuidString,
-//                                                     dialogId: "1f2f3ds4d5d6d",
-//                                                     text: "[Attachment]",
-//                                                     userId: "2d3d4d5d6d",
-//                                                     date: Date()),
-//                                    onTap: { _ in}, playingMessageId: "message.id", isPlaying: false)
-//                .previewDisplayName("Out Dark Message")
-//                .preferredColorScheme(.dark)
-//        }
-//    }
-//}
+import QuickBloxData
+
+struct OutboundAudioMessageRow_Previews: PreviewProvider {
+    
+    static var previews: some View {
+        Group {
+            OutboundAudioMessageRow(message: Message(id: UUID().uuidString,
+                                                     dialogId: "1f2f3ds4d5d6d",
+                                                     text: "[Attachment]",
+                                                     userId: "2d3d4d5d6d",
+                                                     date: Date()),
+                                    onTap: {(_,_,_) in}, playingMessageId: "message.id", isPlaying: true)
+            .previewDisplayName("Out Message")
+            
+            OutboundAudioMessageRow(message: Message(id: UUID().uuidString,
+                                                     dialogId: "1f2f3ds4d5d6d",
+                                                     text: "[Attachment]",
+                                                     userId: "2d3d4d5d6d",
+                                                     date: Date()),
+                                    onTap: { (_,_,_) in}, playingMessageId: "message.id", isPlaying: false)
+            .previewDisplayName("Out Dark Message")
+            .preferredColorScheme(.dark)
+        }
+    }
+}

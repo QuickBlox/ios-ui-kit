@@ -32,12 +32,6 @@ struct AddMembersHeaderToolbarContent: ToolbarContent {
                 }
             }
         }
-        
-        ToolbarItem(placement: .principal) {
-            Text(header.title.text)
-                .font(header.title.font)
-                .foregroundColor(header.title.color)
-        }
     }
 }
 
@@ -55,6 +49,7 @@ public struct AddMembersHeader: ViewModifier {
         content.toolbar {
             AddMembersHeaderToolbarContent(onDismiss: onDismiss)
         }
+        .navigationTitle(header.title.text)
         .navigationBarTitleDisplayMode(header.displayMode)
         .navigationBarBackButtonHidden(true)
     }

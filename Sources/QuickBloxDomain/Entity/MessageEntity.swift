@@ -12,7 +12,10 @@ public enum MessageEventType: Codable {
     case create
     case update
     case leave
+    case removed
     case message
+    case read
+    case delivered
 }
 
 public enum MessageType: Codable {
@@ -38,6 +41,8 @@ public protocol MessageEntity: Entity {
     var fileInfo: FileInfoItem? { get set }
     var deliveredIds: [String] { get set }
     var readIds: [String] { get set }
+    var isDelivered: Bool { get set }
+    var isRead: Bool { get set }
     var eventType: MessageEventType { get set }
     var type: MessageType { get set }
     
@@ -53,6 +58,8 @@ extension MessageEntity {
                 isOwnedByCurrentUser: Bool = false,
                 deliveredIds: [String] = [],
                 readIds: [String] = [],
+                isDelivered: Bool = false,
+                isRead: Bool = false,
                 eventType: MessageEventType = .message,
                 type: MessageType = .chat,
                 fileInfo: FileInfoItem? = nil) {
@@ -63,6 +70,8 @@ extension MessageEntity {
         self.isOwnedByCurrentUser = isOwnedByCurrentUser
         self.deliveredIds = deliveredIds
         self.readIds = readIds
+        self.isDelivered = isDelivered
+        self.isRead = isRead
         self.eventType = eventType
         self.fileInfo = fileInfo
     }

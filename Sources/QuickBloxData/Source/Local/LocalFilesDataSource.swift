@@ -56,11 +56,6 @@ extension LocalFilesDataSource: LocalFilesDataSourceProtocol {
     func createFile(_ dto: LocalFileDTO) async throws -> LocalFileDTO {
         var url = try fileURL(for: dto)
         url = url.appendingPathExtension(dto.ext.rawValue)
-        if manager.fileExists(atPath: url.path) {
-            let info = "File already exist at path: \(url.path)"
-            throw DataSourceException.alreadyExist(description:info)
-        }
-        
         let encoder = JSONEncoder()
         let encodedData = try encoder.encode(dto)
         

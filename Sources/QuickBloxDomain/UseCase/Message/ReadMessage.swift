@@ -1,15 +1,15 @@
 //
-//  SendMessage.swift.swift
+//  ReadMessage.swift
 //  QuickBloxUIKit
 //
-//  Created by Injoit on 24.04.2023.
+//  Created by Injoit on 12.06.2023.
 //  Copyright © 2023 QuickBlox. All rights reserved.
 //
 
 import Foundation
 import QuickBloxLog
 
-public class SendMessage<Item: MessageEntity ,
+public class ReadMessage<Item: MessageEntity ,
                          Repo: MessagesRepositoryProtocol>
 where Item == Repo.MessageEntityItem {
     private let messageRepo: Repo
@@ -27,6 +27,6 @@ where Item == Repo.MessageEntityItem {
             let info = "Unable to send empty message."
             throw RepositoryException.incorrectData(description: info)
         }
-        try await messageRepo.send(messageToRemote: message)
+        try await messageRepo.read(messageInRemote: message)
     }
 }

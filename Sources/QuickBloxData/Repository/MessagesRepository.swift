@@ -34,6 +34,8 @@ extension LocalMessageDTO {
         isOwnedByCurrentUser = value.isOwnedByCurrentUser
         deliveredIds = value.deliveredIds
         readIds = value.readIds
+        isReaded = value.isRead
+        isDelivered = value.isDelivered
         type = value.type
         eventType = value.eventType
         if let new = value.fileInfo {
@@ -56,6 +58,8 @@ private extension RemoteMessageDTO {
         isOwnedByCurrentUser = value.isOwnedByCurrentUser
         deliveredIds = value.deliveredIds
         readIds = value.readIds
+        isReaded = value.isRead
+        isDelivered = value.isDelivered
         type = value.type
         eventType = value.eventType
         if let file = value.fileInfo {
@@ -78,6 +82,8 @@ extension Message {
         userId = value.senderId
         date = value.dateSent
         isOwnedByCurrentUser = value.isOwnedByCurrentUser
+        isRead = value.isReaded
+        isDelivered = value.isDelivered
         deliveredIds = value.deliveredIds
         readIds = value.readIds
         type = value.type
@@ -111,6 +117,8 @@ extension Message {
         isOwnedByCurrentUser = value.isOwnedByCurrentUser
         deliveredIds = value.deliveredIds
         readIds = value.readIds
+        isRead = value.isReaded
+        isDelivered = value.isDelivered
         type = value.type
         eventType = value.eventType
         if let info = value.fileInfo {
@@ -192,6 +200,22 @@ extension MessagesRepository {
     public func delete(messageFromLocal entity: Message) async throws {
         do {
             try await local.delete(message: LocalMessageDTO(entity))
+        } catch {
+            throw try error.repositoryException
+        }
+    }
+    
+    public func read(messageInRemote entity: Message) async throws {
+        do {
+            try await remote.read(message: RemoteMessageDTO(entity))
+        } catch {
+            throw try error.repositoryException
+        }
+    }
+    
+    public func markAsDelivered(messageInRemote entity: Message) async throws {
+        do {
+            try await remote.delete(message: RemoteMessageDTO(entity))
         } catch {
             throw try error.repositoryException
         }

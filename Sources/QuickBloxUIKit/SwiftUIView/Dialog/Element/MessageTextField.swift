@@ -11,11 +11,13 @@ import SwiftUI
 struct MessageTextField: View {
     var settings = QuickBloxUIKit.settings.dialogScreen.textField
     
-    let onSend: () -> Void
+    let onSend: (_ text: String) -> Void
     let onAttachment: () -> Void
     let onRecord: () -> Void
     let onStopRecord: () -> Void
     let onDeleteRecord: () -> Void
+    
+    @State private var text: String = ""
     
     @State var isRecordState: Bool = false
     @State var isRecording: Bool = false
@@ -24,7 +26,7 @@ struct MessageTextField: View {
     
     @ObservedObject var timer = StopWatchTimer()
     
-    @Binding var text: String
+//    @Binding var text: String
     
     var body: some View {
         
@@ -64,7 +66,7 @@ struct MessageTextField: View {
                         view.overlay() {
                             HStack {
                                 settings.timer.image.foregroundColor(settings.timer.imageColor)
-                                Text(timer.counter.convertToString())
+                                Text(timer.counter.toString())
                                     .foregroundColor(settings.timer.foregroundColor)
                                     .font(settings.timer.font)
                                 Spacer()
@@ -90,7 +92,8 @@ struct MessageTextField: View {
                     isRecordState = false
                     isHasMessage = false
                     timer.reset()
-                    onSend()
+                    onSend(text)
+                    text = ""
                 }
             }) {
                 if text.isEmpty, isHasMessage == false {
@@ -110,7 +113,7 @@ struct MessageTextField: View {
 struct MessageTextField_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            MessageTextField(onSend: {
+            MessageTextField(onSend: { _ in
                 
             }, onAttachment: {
                 
@@ -120,9 +123,9 @@ struct MessageTextField_Previews: PreviewProvider {
                 
             }, onDeleteRecord: {
                 
-            }, text: Binding.constant(""))
+            })
             
-            MessageTextField(onSend: {
+            MessageTextField(onSend: { _ in
                 
             }, onAttachment: {
                 
@@ -132,7 +135,7 @@ struct MessageTextField_Previews: PreviewProvider {
                 
             }, onDeleteRecord: {
                 
-            }, text: Binding.constant(""))
+            })
             .previewSettings(scheme: .dark, name: "Dark mode")
             
         }
@@ -159,11 +162,23 @@ open class StopWatchTimer: ObservableObject {
     }
 }
 
-private extension TimeInterval {
-    func convertToString() -> String {
-        let hours = String(format: "%02d",  Int(self / 3600))
-        let minutes = String(format: "%02d", Int(self / 60))
-        let seconds = String(format: "%02d", Int(self) % 60)
-        return hours + " : " + minutes + " : " + seconds
+extension TimeInterval {
+    func hours() -> String {
+        return String(format: "%02d",  Int(self / 3600))
+    }
+    func minutes() -> String {
+        return String(format: "%02d", Int(self / 60))
+    }
+    func seconds() -> String {
+        return String(format: "%02d", Int(self) % 60)
+    }
+    func toString() -> String {
+        return hours() + " : " + minutes() + " : " + seconds()
+    }
+    func audioString() -> String {
+        if hours() != "00" {
+            return hours() + " : " + minutes() + " : " + seconds()
+        }
+        return minutes() + " : " + seconds()
     }
 }

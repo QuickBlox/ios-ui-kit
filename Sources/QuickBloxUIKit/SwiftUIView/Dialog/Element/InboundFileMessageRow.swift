@@ -42,7 +42,8 @@ public struct InboundFileMessageRow<MessageItem: MessageEntity>: View {
                                height: settings.avatar.height,
                                isShow: settings.isShowAvatar)
                     .task {
-                        do { avatar = try await message.avatar } catch { prettyLog(error) }
+                        do { avatar = try await message.avatar(size: CGSizeMake(settings.avatar.height,
+                                                                                settings.avatar.height)) } catch { prettyLog(error) }
                     }
                 }.padding(.leading)
             }
@@ -60,48 +61,38 @@ public struct InboundFileMessageRow<MessageItem: MessageEntity>: View {
                         }
                 }
                 
-                VStack(alignment: .leading, spacing: settings.infoSpacing) {
-                    
+                HStack(alignment: .center, spacing: 8) {
                     Button {
                         if let url = fileTuple?.url {
                             onTap(.save, nil, url)
                         }
                     } label: {
-                        
+                    
                         HStack(alignment: .center, spacing: 8) {
-                            HStack(alignment: .center, spacing: 8) {
-                                
-                                if let image = fileTuple?.image {
-                                    image
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: settings.fileSize.width,
-                                               height: settings.fileSize.height)
-                                        .cornerRadius(settings.attachmentRadius)
-                                    
-                                    Text(message.text)
-                                        .foregroundColor(settings.message.foregroundColor)
-                                        .font(settings.message.font)
-                                    
-                                } else {
-                                    
-                                    InboundFilePlaceholder()
-                                    
-                                    Text(message.text)
-                                        .foregroundColor(settings.message.foregroundColor)
-                                        .font(settings.message.font)
-                                }
+                            if fileTuple?.url != nil {
+                                InboundFilePlaceholder()
+                            } else {
+                                ProgressView()
                             }
-                            .padding(settings.filePadding)
-                            .frame(height: settings.fileBubbleHeight)
-                            .background(settings.inboundBackground)
-                            .cornerRadius(settings.bubbleRadius, corners: settings.inboundCorners)
-                            .padding(settings.inboundPadding(showName: settings.isShowName))
+                            if let ext = fileTuple?.url?.pathExtension {
+                                Text(settings.fileTitle + "." + ext)
+                                    .foregroundColor(settings.message.foregroundColor)
+                                    .font(settings.message.font)
+                            } else {
+                                Text(settings.fileTitle)
+                                    .foregroundColor(settings.message.foregroundColor)
+                                    .font(settings.message.font)
+                            }
                         }
+                        .padding(settings.filePadding)
+                        .frame(height: settings.fileBubbleHeight)
+                        .background(settings.inboundBackground)
+                        .cornerRadius(settings.bubbleRadius, corners: settings.inboundCorners)
+                        .padding(settings.inboundPadding(showName: settings.isShowName))
                     }
                     .disabled(fileTuple?.url == nil)
                     .task {
-                        do { fileTuple = try await message.file } catch { prettyLog(error)}
+                        do { fileTuple = try await message.file(size: nil) } catch { prettyLog(error)}
                     }
                     
                     if settings.isShowTime == true {
@@ -144,29 +135,29 @@ private struct InboundFilePlaceholder: View {
     }
 }
 
-//import QuickBloxData
-//
-//struct InboundFileMessageRow_Previews: PreviewProvider {
-//
-//    static var previews: some View {
-//        Group {
-//            InboundFileMessageRow(message: Message(id: UUID().uuidString,
-//                                                   dialogId: "1f2f3ds4d5d6d",
-//                                                   text: "[Attachment]",
-//                                                   userId: NSNumber(value: QBSession.current.currentUserID).stringValue,
-//                                                   date: Date()),
-//                                  onTap: { _ in})
-//            .previewDisplayName("Out Message")
-//
-//
-//            InboundFileMessageRow(message: Message(id: UUID().uuidString,
-//                                                   dialogId: "1f2f3ds4d5d6d",
-//                                                   text: "[Attachment]",
-//                                                   userId: "2d3d4d5d6d",
-//                                                   date: Date()),
-//                                  onTap: { _ in})
-//            .previewDisplayName("Out Dark Message")
-//            .preferredColorScheme(.dark)
-//        }
-//    }
-//}
+import QuickBloxData
+
+struct InboundFileMessageRow_Previews: PreviewProvider {
+    
+    static var previews: some View {
+        Group {
+            InboundFileMessageRow(message: Message(id: UUID().uuidString,
+                                                   dialogId: "1f2f3ds4d5d6d",
+                                                   text: "[Attachment]",
+                                                   userId: "2d3d4d5d6d",
+                                                   date: Date()),
+                                  onTap: { (_,_,_) in})
+            .previewDisplayName("Out Message")
+            
+            
+            InboundFileMessageRow(message: Message(id: UUID().uuidString,
+                                                   dialogId: "1f2f3ds4d5d6d",
+                                                   text: "[Attachment]",
+                                                   userId: "2d3d4d5d6d",
+                                                   date: Date()),
+                                  onTap: { (_,_,_) in})
+            .previewDisplayName("Out Dark Message")
+            .preferredColorScheme(.dark)
+        }
+    }
+}

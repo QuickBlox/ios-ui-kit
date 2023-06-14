@@ -35,7 +35,7 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                                height: settings.avatar.height,
                                isShow: settings.isShowAvatar)
                     .task {
-                        do { avatar = try await message.avatar } catch { prettyLog(error) }
+                        do { avatar = try await message.avatar(size: CGSizeMake(settings.avatar.height, settings.avatar.height)) } catch { prettyLog(error) }
                     }
                 }.padding(.leading)
             }

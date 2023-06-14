@@ -20,6 +20,7 @@ public class DialogNameScreenSettings {
     public var textfieldPrompt: String = "Enter name"
     public var mediaAlert: MediaAlert = MediaAlert()
     public var regexDialogName = "^(?=.{3,60}$)(?!.*([\\s])\\1{2})[\\w\\s]+$"
+    public var avatarSize: CGSize = CGSize(width: 80.0, height: 80.0)
     
     public init(_ theme: ThemeProtocol) {
         self.header = DialogNameHeaderSettings(theme)
@@ -35,6 +36,7 @@ public struct MediaAlert {
     public var camera: String = "Camera"
     public var gallery: String = "Gallery"
     public var cancel: String = "Cancel"
+    public var file: String = "File"
     public var blurRadius:CGFloat = 12.0
 }
 

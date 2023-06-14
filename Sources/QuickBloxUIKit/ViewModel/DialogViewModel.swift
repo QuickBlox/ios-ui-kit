@@ -14,10 +14,10 @@ import Photos
 import QuickBloxLog
 
 public struct AttachmentAsset {
+    var name: String
     var image: UIImage?
     var data: Data?
-    var type: FileType?
-    var ext: FileExtension?
+    var ext: FileExtension
     var url: URL?
     var size: Double
 }
@@ -27,9 +27,9 @@ public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel {
     
     var audioPlayer: AudioPlayer { get set }
     var targetMessage: DialogItem.MessageItem? { get set }
-    var text: String { get set }
     var typing: String { get set }
     var dialog: DialogItem { get set }
+    var avatar: Image? { get set }
     var withAnimation: Bool { get set }
     
     func saveImage(_ image: Image)
@@ -37,19 +37,25 @@ public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel {
     func startRecording()
     func stopRecording()
     func deleteRecording()
-    func sendMessage()
+    func sendMessage(_ text: String)
     func handleOnSelect(attachment: AttachmentAsset)
+    func handleOnAppear(_ message: DialogItem.MessageItem)
     func playAudio(_ audioData: Data, action: MessageAttachmentAction)
 }
 
 open class DialogViewModel: DialogViewModelProtocol {
     @Published public var dialog: Dialog
+    @Published public var avatar: Image? = nil
     @Published public var targetMessage: Message?
-    @Published public var text: String = ""
     @Published public var audioPlayer = AudioPlayer()
     @Published public var typing: String = ""
     
     @Published public var deleteDialog: Bool = false
+    
+    private var isExistingImage: Bool {
+        if dialog.photo == "null" { return false }
+        return dialog.photo.isEmpty == false
+    }
     
     var audioRecorder: AudioRecorder = AudioRecorder()
     
@@ -57,8 +63,16 @@ open class DialogViewModel: DialogViewModelProtocol {
     
     @Published public var isLoading = CurrentValueSubject<Bool, Never>(false)
     
+    private var syncDialog: SyncDialog<Dialog,
+                                       DialogsRepository,
+                                       UsersRepository,
+                                       MessagesRepository,
+                                       Pagination>?
+    
     public var cancellables = Set<AnyCancellable>()
     public var tasks = Set<Task<Void, Never>>()
+    
+    private var displayed: [String] = []
     
     init(dialog: Dialog) {
         self.dialog = dialog
@@ -68,50 +82,29 @@ open class DialogViewModel: DialogViewModelProtocol {
             .sink { [weak self] (_) in
                 self?.objectWillChange.send()
             }.store(in: &cancellables)
+        
+        getAvatar()
     }
     
     public func sync() {
-        let syncDialog = SyncDialog(dialogId: dialog.id,
-                                    dialogsRepo: RepositoriesFabric.dialogs,
-                                    usersRepo: RepositoriesFabric.users,
-                                    messageRepo: RepositoriesFabric.messages)
-        syncDialog.execute()
+        syncDialog = SyncDialog(dialogId: dialog.id,
+                                dialogsRepo: RepositoriesFabric.dialogs,
+                                usersRepo: RepositoriesFabric.users,
+                                messageRepo: RepositoriesFabric.messages)
+        syncDialog?.execute()
             .receive(on: RunLoop.main)
-            .sink { dialog in
-                self.dialog = dialog
-                self.targetMessage = dialog.messages.last
+            .sink { [weak self] dialog in
+                self?.dialog = dialog
+                self?.getAvatar()
+                self?.targetMessage = dialog.messages.last
             }
             .store(in: &cancellables)
     }
     
     
     public func handleOnSelect(attachment: AttachmentAsset) {
-        guard let  attachmentType = attachment.type else {
-            return
-        }
-        
-        if attachmentType == .video,
-           let videoData = attachment.data,
-           let ext = attachment.ext {
-            Task {
-                let uploadFile = UploadFile(data: videoData,
-                                            ext: ext,
-                                            name: "Video.\(ext)",
-                                            repo: RepositoriesFabric.files)
-                let file = try await uploadFile.execute()
-                
-                let message = Message(dialogId: dialog.id,
-                                      text: "[Attachment]",
-                                      type: .chat,
-                                      fileInfo: file.info)
-                let sendMessage = SendMessage(message: message,
-                                              messageRepo: RepositoriesFabric.messages)
-                try await sendMessage.execute()
-            }
-        } else if attachmentType == .image,
-                  let uiImage = attachment.image {
-            
-            let ext = attachment.ext ?? .png
+        if attachment.ext.type == .image,
+           let uiImage = attachment.image {
             
             let newImage = uiImage.fixOrientation()
             
@@ -127,88 +120,58 @@ open class DialogViewModel: DialogViewModelProtocol {
             
             UIGraphicsEndImageContext()
             
-            
             guard let imageData = resizedImage?.pngData() else {
                 return
             }
+            sendAttachment(withData: imageData, ext: attachment.ext, name: attachment.name)
             
-            Task {
-                let uploadFile = UploadFile(data: imageData,
-                                            ext: .png,
-                                            name: "Image.\(ext)",
-                                            repo: RepositoriesFabric.files)
-                let file = try await uploadFile.execute()
-                
-                let message = Message(dialogId: dialog.id,
-                                      text: "[Attachment]",
-                                      type: .chat,
-                                      fileInfo: file.info)
-                let sendMessage = SendMessage(message: message,
-                                              messageRepo: RepositoriesFabric.messages)
-                try await sendMessage.execute()
-            }
-        } else if attachmentType == .file,
-                  let url = attachment.url {
-            let ext = FileExtension(rawValue: url.pathExtension.lowercased()) ?? .pdf
-            var fileData: Data? {
-                didSet {
-                    if let fileData {
-                        Task {
-                            let uploadFile = UploadFile(data: fileData,
-                                                        ext: ext,
-                                                        name: "File.\(ext)",
-                                                        repo: RepositoriesFabric.files)
-                            let file = try await uploadFile.execute()
-                            
-                            let message = Message(dialogId: dialog.id,
-                                                  text: "[Attachment]",
-                                                  type: .chat,
-                                                  fileInfo: file.info)
-                            let sendMessage = SendMessage(message: message,
-                                                          messageRepo: RepositoriesFabric.messages)
-                            try await sendMessage.execute()
-                        }
-                    }
-                }
-            }
-            
-            DispatchQueue.global(qos: .userInitiated).async {
-                do {
-                    let data: Data = try Data(contentsOf: url)
-                    
-                    DispatchQueue.main.async {
-                        fileData = data
-                    }
-                } catch {
-                    print("Unable to load data: \(error)")
-                }
-            }
+        } else if let data = attachment.data {
+            sendAttachment(withData: data, ext: attachment.ext, name: attachment.name)
         }
     }
     
+    private func sendAttachment(withData data: Data, ext: FileExtension, name: String) {
+        Task {
+            let uploadFile = UploadFile(data: data,
+                                        ext: ext,
+                                        name: name,
+                                        repo: RepositoriesFabric.files)
+            let file = try await uploadFile.execute()
+            
+            let message = Message(dialogId: dialog.id,
+                                  text: "[Attachment]",
+                                  type: .chat,
+                                  fileInfo: file.info)
+            let sendMessage = SendMessage(message: message,
+                                          messageRepo: RepositoriesFabric.messages)
+            try await sendMessage.execute()
+        }
+    }
     
     //MARK: - Messages
-    public func sendMessage() {
-        
+    public func sendMessage(_ text: String) {
         if let voiceMessage = audioRecorder.audioRecording {
             let name = "\(voiceMessage.createdAt)"
             
-            Task {
+            Task { [weak self] in
+                guard let dialogId = self?.dialog.id else { return }
+                
                 let data = try Data(contentsOf: voiceMessage.audioURL)
+                //TODO: get extention (.m4a) from the audioRecorder
                 let uploadFile = UploadFile(data: data,
                                             ext: .m4a,
                                             name: name + ".m4a",
                                             repo: RepositoriesFabric.files)
                 let file = try await uploadFile.execute()
                 
-                let message = Message(dialogId: dialog.id,
+                let message = Message(dialogId: dialogId,
                                       text: "[Attachment]",
                                       type: .chat,
                                       fileInfo: file.info)
                 let sendMessage = SendMessage(message: message,
                                               messageRepo: RepositoriesFabric.messages)
                 try await sendMessage.execute()
-                audioRecorder.delete()
+                self?.audioRecorder.delete()
             }
         }
         
@@ -221,14 +184,43 @@ open class DialogViewModel: DialogViewModelProtocol {
                                           messageRepo: RepositoriesFabric.messages)
             
             Task {
-                try await sendMessage.execute()
+                do {
+                    try await sendMessage.execute()
+                } catch { prettyLog(error) }
             }
-            text = ""
+        }
+    }
+    
+    public func handleOnAppear(_ message: Message) {
+        if message.isOwnedByCurrentUser { return }
+        if message.isRead == true { return }
+        if message.isDelivered == true { return }
+        if message.userId.isEmpty == true { return }
+        let readMessage = ReadMessage(message: message,
+                                      messageRepo: RepositoriesFabric.messages)
+        Task {
+            do {
+                try await readMessage.execute()
+            } catch {
+                prettyLog(error)
+            }
         }
     }
     
     public func saveImage(_ image: Image) {
-        
+        //FIXME: empty method
+    }
+    
+    private func getAvatar() {
+        Task { [weak self] in
+            do {
+                let avatar = try await self?.dialog.avatar
+                await MainActor.run { [weak self, avatar] in
+                    guard let self = self else { return }
+                    self.avatar = avatar
+                }
+            } catch { prettyLog(error) }
+        }
     }
 }
 
@@ -247,21 +239,11 @@ public extension DialogViewModel {
     }
     
     func playAudio(_ audioData: Data, action: MessageAttachmentAction) {
-        if action == .play {
-            if audioPlayer.isPlaying == false {
-                audioPlayer.startPlayback(audio: audioData)
-            }
-        } else if action == .stop {
-            if audioPlayer.isPlaying == true {
-                audioPlayer.stopPlayback()
-            }
-        }
+        action == .play ? audioPlayer.play(audio: audioData) : audioPlayer.stop()
     }
     
     func stopPlayng() {
-        if audioPlayer.isPlaying == true {
-            audioPlayer.stopPlayback()
-        }
+        audioPlayer.stop()
     }
 }
 
@@ -300,7 +282,7 @@ extension MessageEntity {
     }
     
     var isChat: Bool {
-        if isNotification == true || type != .divider {
+        if isNotification == true || type == .divider {
             return false
         }
         return true
@@ -311,52 +293,11 @@ extension MessageEntity {
     }
 }
 
-struct Key {
-    static let dialogId = "dialog_id"
-    static let newOccupantsIds = "new_occupants_ids"
-    static let saveToHistory = "save_to_history"
-    static let dateDividerKey = "kQBDateDividerCustomParameterKey"
-    static let forwardedMessage = "origin_sender_name"
-    static let attachmentSize = "size"
-    static let notificationType = "notification_type"
-    static let userID = "user_id"
-    static let today = "Today"
-    static let yesterday = "Yesterday"
-}
-
-enum NotificationType : String {
-    case createGroupDialog = "1"
-    case addUsersToGroupDialog = "2"
-    case leaveGroupDialog = "3"
-    case startConference = "4"
-    case startStream = "5"
-}
-
 extension Date {
-    func hasSame(_ components: Set<Calendar.Component>, as date: Date, using calendar: Calendar = .autoupdatingCurrent) -> Bool {
+    func hasSame(_ components: Set<Calendar.Component>,
+                 as date: Date,
+                 using calendar: Calendar = .autoupdatingCurrent) -> Bool {
         return components.filter { calendar.component($0, from: date) != calendar.component($0, from: self) }.isEmpty
-    }
-    
-    func setupDate() -> String {
-        let formatter = DateFormatter()
-        var dateString = ""
-        if Calendar.current.isDateInToday(self) == true {
-            formatter.dateFormat = "HH:mm"
-            dateString = formatter.string(from: self)
-        } else if Calendar.current.isDateInYesterday(self) == true {
-            dateString = "Yesterday"
-        } else if self.hasSame([.year], as: Date()) == true {
-            formatter.dateFormat = "d MMM"
-            dateString = formatter.string(from: self)
-        } else {
-            formatter.dateFormat = "d.MM.yy"
-            var anotherYearDate = formatter.string(from: self)
-            if (anotherYearDate.hasPrefix("0")) {
-                anotherYearDate.remove(at: anotherYearDate.startIndex)
-            }
-            dateString = anotherYearDate
-        }
-        return dateString
     }
 }
 
@@ -400,7 +341,13 @@ extension UIImage {
         }
         
         guard let cgImage = self.cgImage, let space = cgImage.colorSpace,
-              let context = CGContext(data: nil, width: Int(width), height: Int(height), bitsPerComponent: cgImage.bitsPerComponent, bytesPerRow: 0, space: space, bitmapInfo: cgImage.bitmapInfo.rawValue)  else {
+              let context = CGContext(data: nil,
+                                      width: Int(width),
+                                      height: Int(height),
+                                      bitsPerComponent: cgImage.bitsPerComponent,
+                                      bytesPerRow: 0,
+                                      space: space,
+                                      bitmapInfo: cgImage.bitmapInfo.rawValue)  else {
             return UIImage()
         }
         context.concatenate(transformOrientation)
@@ -421,4 +368,54 @@ extension UIImage {
         
         return image
     }
+    
+    func cropToRect() -> UIImage {
+        let sideLength = min(
+            size.width,
+            size.height
+        )
+        let source = size
+        let xOffset = (source.width - sideLength) / 2.0
+        let yOffset = (source.height - sideLength) / 2.0
+        let cropRect = CGRect(
+            x: xOffset,
+            y: yOffset,
+            width: sideLength,
+            height: sideLength
+        ).integral
+        
+        guard let sourceCGImage = cgImage else {
+            return self
+        }
+        let croppedCGImage = sourceCGImage.cropping(
+            to: cropRect
+        )!
+        let croppedUIImage = UIImage(
+            cgImage: croppedCGImage,
+            scale: imageRendererFormat.scale,
+            orientation: imageOrientation
+        )
+        return croppedUIImage
+    }
+    
+    func resize(to targetSize: CGSize) -> UIImage {
+        let size = self.size
+        let widthRatio  = targetSize.width  / size.width
+        let heightRatio = targetSize.height / size.height
+        let newSize = widthRatio > heightRatio ?
+        CGSize(width: size.width * heightRatio,
+               height: size.height * heightRatio)
+        : CGSize(width: size.width * widthRatio,
+                 height: size.height * widthRatio)
+        let rect = CGRect(x: 0, y: 0, width: newSize.width, height: newSize.height)
+
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+        self.draw(in: rect)
+        guard let resizedImage = UIGraphicsGetImageFromCurrentImageContext() else {
+            return self
+        }
+        UIGraphicsEndImageContext()
+
+        return resizedImage
+      }
 }

@@ -10,6 +10,7 @@ import SwiftUI
 import QuickBloxData
 import QuickBloxDomain
 import QuickBloxLog
+import UniformTypeIdentifiers
 
 public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
     var settings = QuickBloxUIKit.settings.dialogScreen
@@ -28,8 +29,6 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
     @State private var videoUrl: URL? = nil
     
     @State private var tappedMessage: ViewModel.DialogItem.MessageItem? = nil
-    
-    @State public var avatar: Image?
     
     @Binding private var isDialogPresented: Bool
     
@@ -51,7 +50,7 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
                                            playingMessageId: tappedMessage?.id ?? "",
                                            onTap: { action, image, url  in
                                 if message.isImageMessage, let image = image {
-                                    self.presentedImage = image
+                                    presentedImage = image
                                     isImagePresented = true
                                     tappedMessage = message
                                 } else if message.isGIFMessage, let fileURL = url {
@@ -75,14 +74,10 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
                                     }
                                 }
                             })
+                            .onAppear {
+                                viewModel.handleOnAppear(message)
+                            }
                             .transition(.move(edge: .bottom))
-                        }
-                    }
-                    
-                    .onChange(of: isDialogPresented) { newValue in
-                        if newValue == false {
-                            isInfoPresented = false
-                            dismiss()
                         }
                     }
                     
@@ -114,8 +109,8 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
                         }.frame(height: settings.typing.height)
                     }
                     
-                    MessageTextField(onSend: {
-                        viewModel.sendMessage()
+                    MessageTextField(onSend: { text in
+                        viewModel.sendMessage(text)
                     }, onAttachment: {
                         isAlertPresented.toggle()
                     }, onRecord: {
@@ -124,16 +119,17 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
                         viewModel.stopRecording()
                     }, onDeleteRecord: {
                         viewModel.deleteRecording()
-                    }, text: $viewModel.text)
+                    })
                     .background(settings.backgroundColor)
                     
                     .if(isImagePresented, transform: { view in
-                        
                         view.mediaViewerView(isImagePresented: $isImagePresented, image: presentedImage, url: videoUrl ) {
                             if let presentedImage {
                                 viewModel.saveImage(presentedImage)
                             }
                         } onDismiss: {
+                            videoUrl = nil
+                            presentedImage = nil
                             if let tappedMessage {
                                 scrollView.scrollTo(tappedMessage.id)
                                 self.tappedMessage = nil
@@ -145,33 +141,49 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
                 
             }.background(settings.contentBackgroundColor)
             
-            .mediaAlert(isAlertPresented: $isAlertPresented,
-                        isExistingImage: false,
-                        onRemoveImage: {
-                
-            }, onGetAttachment: { attachment in
-                let sizeMB = attachment.size
-                if sizeMB.truncate(to: 2) > settings.maximumMB {
-                    isSizeAlertPresented = true
-                } else {
-                    viewModel.handleOnSelect(attachment: attachment)
+                .mediaAlert(isAlertPresented: $isAlertPresented,
+                            isExistingImage: false,
+                            isShowFiles: true,
+                            mediaTypes: [UTType.movie.identifier, UTType.image.identifier],
+                            onRemoveImage: {
+                    
+                }, onGetAttachment: { attachment in
+                    let sizeMB = attachment.size
+                    if sizeMB.truncate(to: 2) > settings.maximumMB {
+                        isSizeAlertPresented = true
+                    } else {
+                        viewModel.handleOnSelect(attachment: attachment)
+                    }
+                })
+            
+                .largeFileSizeAlert(isPresented: $isSizeAlertPresented)
+            
+                .modifier(DialogHeader(avatar: $viewModel.avatar,
+                                       dialog: viewModel.dialog,
+                                       onDismiss: {
+                    viewModel.stopPlayng()
+                    dismiss()
+                }, onTapInfo: {
+                    viewModel.stopPlayng()
+                    isInfoPresented = true
+                }))
+
+            if isInfoPresented == true {
+                NavigationLink(isActive: $isInfoPresented) {
+                    if let dialog = viewModel.dialog as? Dialog {
+                        if viewModel.dialog.type == .group {
+                            if viewModel.dialog.isOwnedByCurrentUser == true {
+                                GroupDialogInfoView(DialogInfoViewModel(dialog))
+                            } else {
+                                GroupDialogNonEditInfoView(DialogInfoViewModel(dialog))
+                            }
+                        } else {
+                            PrivateDialogInfoView(DialogInfoViewModel(dialog))
+                        }
+                    }
+                } label: {
+                    EmptyView()
                 }
-                
-            })
-            
-            .largeFileSizeAlert(isPresented: $isSizeAlertPresented)
-            
-            .modifier(DialogHeader(avatar: avatar ?? viewModel.dialog.placeholder,
-                                   name: viewModel.dialog.name,
-                                   onDismiss: {
-                viewModel.stopPlayng()
-                dismiss()
-            }, onTapInfo: {
-                viewModel.stopPlayng()
-                isInfoPresented = true
-            }))
-            .task {
-                do { avatar = try await viewModel.dialog.avatar } catch { prettyLog(error) }
             }
         }
     }
@@ -183,15 +195,6 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
             }
             .onDisappear {
                 viewModel.unsync()
-            }
-            .fullScreenCover(isPresented: $isInfoPresented) {
-                if let dialog = viewModel.dialog as? Dialog {
-                    if viewModel.dialog.type == .group {
-                        GroupDialogInfoView(DialogInfoViewModel(dialog))
-                    } else {
-                        PrivateDialogInfoView(DialogInfoViewModel(dialog))
-                    }
-                }
             }
     }
 }

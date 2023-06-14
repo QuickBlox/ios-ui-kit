@@ -22,18 +22,12 @@ where User == Repo.UserEntityItem {
     }
     
     public func execute() async throws -> [User] {
-        do {
-            var users: [User]
-            print("Get Users")
-            if name.isEmpty == false {
-                users = try await repo.get(usersFromRemote: name)
-            } else {
-                users = try await repo.get(usersFromRemote: ids)
-            }
-            return users
-        } catch {
-            prettyLog(error)
-            throw error
+        var users: [User]
+        if name.isEmpty == false {
+            users = try await repo.get(usersFromRemote: name)
+        } else {
+            users = try await repo.get(usersFromRemote: ids)
         }
+        return users
     }
 }

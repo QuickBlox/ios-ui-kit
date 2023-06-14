@@ -31,18 +31,18 @@ public protocol DialogsListProtocol: QuickBloxUIKitViewModel {
 open class DialogsList: DialogsListProtocol {
     @Published public var selectedItem: Dialog? = nil
     @Published public var dialogs: [Dialog] = []
-    @Published public var syncState: SyncState = .syncing(stage: .disconnected)
-
+    @Published public var syncState: SyncState = .synced
+    
     public let dialogsRepo: DialogsRepository
     
     private let leaveDialogObserve: LeaveDialogObserver<Dialog, DialogsRepository>!
     private let createDialogObserve: CreateDialogObserver<Dialog, DialogsRepository>!
     private var dialogsUpdates: DialogsUpdates<DialogsRepository>?
     private var updateDialogs: Task<Void, Never>?
+    private var deleteDialog: Task<Void, Never>?
 
     required public init(dialogsRepo: DialogsRepository) {
         self.dialogsRepo = dialogsRepo
-        prettyLog("DialogsList INIT !!!!!!!!!!!")
         
         createDialogObserve = CreateDialogObserver(repo: dialogsRepo)
         leaveDialogObserve = LeaveDialogObserver(repo: dialogsRepo)
@@ -70,14 +70,18 @@ open class DialogsList: DialogsListProtocol {
             strSelf.dialogsUpdates = DialogsUpdates(repo: strSelf.dialogsRepo)
             await strSelf.dialogsUpdates?.execute()
                 .receive(on: RunLoop.main)
-                .assign(to: \DialogsList.dialogs, on: strSelf)
+                .sink { [weak self] updated in
+                    self?.dialogs = updated
+                }
                 .store(in: &strSelf.cancellables)
             strSelf.updateDialogs = nil
         }
         
         QuickBloxUIKit.syncState
             .receive(on: RunLoop.main)
-            .assign(to: \DialogsList.syncState, on: self)
+            .sink { [weak self] syncState in
+                self?.syncState = syncState
+            }
             .store(in: &cancellables)
     }
     
@@ -97,11 +101,16 @@ extension DialogsList {
         }
         let leaveDialogCase = LeaveDialog(dialog: dialogs[index],
                                           repo: RepositoriesFabric.dialogs)
-        dialogs.remove(at: index)
-        let task = Task { do {
-            try await leaveDialogCase.execute()
-        } catch { prettyLog(error) } }
-        tasks.insert(task)
+        updateDialogs = Task { [weak self] in
+            do {
+                try await leaveDialogCase.execute()
+                await MainActor.run { [weak self] in
+                    guard let strSelf = self else { return }
+                    strSelf.dialogs.remove(at: index)
+                }
+            } catch { prettyLog(error) }
+            self?.updateDialogs = nil
+        }
     }
 }
 

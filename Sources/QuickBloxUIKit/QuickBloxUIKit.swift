@@ -37,17 +37,33 @@ var previewAware: Bool {
 public var settings: ScreensProtocol = ScreenSettings(Theme())
 
 class Sync {
-    let state: AnyPublisher<SyncState, Never>
+    var state: AnyPublisher<SyncState, Never> {
+        return subject.eraseToAnyPublisher()
+    }
+    
+    private var subject: PassthroughSubject<SyncState, Never>
+    = PassthroughSubject<SyncState, Never>()
+    
     private let useCase: SyncData<DialogsRepository,
                                   UsersRepository,
+                                  MessagesRepository,
                                   ConnectionRepository,
                                   Pagination>
     
+    private var cancellables: Set<AnyCancellable> = Set<AnyCancellable>()
+    
     init() {
-        self.useCase = SyncData(dialogsRepo: RepositoriesFabric.dialogs,
-                                usersRepo: RepositoriesFabric.users,
-                                connectRepo: RepositoriesFabric.connection)
-        self.state = useCase.execute()
+        useCase = SyncData(dialogsRepo: RepositoriesFabric.dialogs,
+                           usersRepo: RepositoriesFabric.users,
+                           messagesRepo: RepositoriesFabric.messages,
+                           connectRepo: RepositoriesFabric.connection)
+        useCase.execute()
+            .receive(on: RunLoop.main)
+            .sink(receiveCompletion: { _ in },
+                  receiveValue: { [weak self] state in
+                self?.subject.send(state)
+            })
+            .store(in: &cancellables)
     }
 }
 

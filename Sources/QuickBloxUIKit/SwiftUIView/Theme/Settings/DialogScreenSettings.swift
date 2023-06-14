@@ -30,6 +30,7 @@ public class DialogScreenSettings {
     public var maximumMB: Double = 10
     public var dividerToMB: Double = 1048576
     public var largeSize: String = "The uploaded file exceeds maximum file size (10MB)"
+    public var avatarSize: AvatarSizeSettings = AvatarSizeSettings()
     
     public init(_ theme: ThemeProtocol) {
         self.header = DialogHeaderSettings(theme)
@@ -40,6 +41,12 @@ public class DialogScreenSettings {
         self.backgroundColor = theme.color.mainBackground
         self.contentBackgroundColor = theme.color.secondaryBackground
     }
+}
+
+public struct AvatarSizeSettings {
+    public var avatar1x: CGSize = CGSize(width: 32.0, height: 32.0)
+    public var avatar2x: CGSize = CGSize(width: 56.0, height: 56.0)
+    public var avatar3x: CGSize = CGSize(width: 80.0, height: 80.0)
 }
 
 public struct TypingSettings {
@@ -157,6 +164,7 @@ public struct MessageRowSettings {
     public var name: MessageNameSettings
     public var time: MessageTimeSettings
     public var message: MessageSettings
+    public var progressBar: ProgressBarSettings
     public var inboundForeground: Color
     public var inboundBackground: Color
     public var inboundFont: Font
@@ -181,6 +189,7 @@ public struct MessageRowSettings {
     public var videoPlayForeground: Color
     public var videoPlayBackground: Color
     public var file: Image
+    public var fileTitle: String = "file"
     public var inboundFileForeground: Color
     public var inboundFileBackground: Color
     public var outboundFileForeground: Color
@@ -200,6 +209,7 @@ public struct MessageRowSettings {
     public var isShowName: Bool = true
     public var isShowTime: Bool = true
     public var attachmentSize: CGSize = CGSize(width: 240.0, height: 160.0)
+    public var imageSize: CGSize = CGSize(width: 336.0, height: 224.0)
     public var audioImageSize: CGSize = CGSize(width: 168.0, height: 12.0)
     public var audioPlaySize: CGSize = CGSize(width: 20.0, height: 20.0)
     public var imageIconSize: CGSize = CGSize(width: 44.0, height: 44.0)
@@ -261,12 +271,22 @@ public struct MessageRowSettings {
     public var infoSpacer = Spacer(minLength: 8.0)
     public var infoSpacing: CGFloat = 2.0
     
+    public func progressBarBackground() -> LinearGradient {
+        return LinearGradient(
+            gradient: Gradient(colors: [Color(hex: 0x7D7D7A),
+                                        Color(hex: 0xB3B6B5),
+                                        Color(hex: 0x8E8D8D)]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
     
     public init(_ theme: ThemeProtocol) {
         self.avatar = MessageAvatarSettings(theme)
         self.name = MessageNameSettings(theme)
         self.time = MessageTimeSettings(theme)
         self.message = MessageSettings(theme)
+        self.progressBar = ProgressBarSettings(theme)
         self.inboundBackground = theme.color.incomingBackground
         self.outboundBackground = theme.color.outgoingBackground
         self.inboundForeground = theme.color.mainText
@@ -307,6 +327,21 @@ public struct MessageRowSettings {
             traitCollection.userInterfaceStyle == .dark ? UIColor(theme.color.mainElements)
             : UIColor(theme.color.tertiaryElements)
         })
+    }
+    
+    public struct ProgressBarSettings {
+        public var segments: Int = 8
+        public var segmentColor: Color
+        public var progressSegmentColor: Color
+        public var lineWidth: CGFloat = 2.0
+        public var rotationEffect: Angle = Angle(degrees: -90)
+        public var emptySpaceAngle: Angle = Angle(degrees: 10)
+        public var size: CGSize = CGSize(width: 40.0, height: 40.0)
+        
+        public init(_ theme: ThemeProtocol) {
+            self.segmentColor = theme.color.system
+            self.progressSegmentColor = theme.color.mainElements
+        }
     }
     
     public struct MessageAvatarSettings {
@@ -447,5 +482,15 @@ public struct MessageTextFieldSettings {
             self.keyboardImage = theme.image.keyboard
             self.color = theme.color.secondaryElements
         }
+    }
+}
+
+extension Color {
+    init(hex: UInt, alpha: Double = 1) {
+        self.init( .sRGB,
+                   red: Double((hex >> 16) & 0xff) / 255,
+                   green: Double((hex >> 08) & 0xff) / 255,
+                   blue: Double((hex >> 00) & 0xff) / 255,
+                   opacity: alpha )
     }
 }

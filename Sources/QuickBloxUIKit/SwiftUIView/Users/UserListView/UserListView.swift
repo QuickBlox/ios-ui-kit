@@ -14,7 +14,7 @@ import Combine
 public struct UserListView<ViewModel: CreateDialogProtocol, UserItem: UserEntity, UserView: View> where UserItem == ViewModel.UserItem {
     @Environment(\.isSearching) private var isSearching: Bool
     
-    @ObservedObject public var viewModel: ViewModel
+    @StateObject public var viewModel: ViewModel
     
     let settings = QuickBloxUIKit.settings.createDialogScreen
     
@@ -30,7 +30,7 @@ public struct UserListView<ViewModel: CreateDialogProtocol, UserItem: UserEntity
                 @ViewBuilder content: @escaping (_ item: UserItem,
                                                  _ isSelected: Bool,
                                                  _ onSelect: @escaping (_ user: UserItem) -> Void) -> UserView) {
-        self.viewModel = viewModel
+        _viewModel = StateObject(wrappedValue: viewModel)
         self.content = content
     }
 }

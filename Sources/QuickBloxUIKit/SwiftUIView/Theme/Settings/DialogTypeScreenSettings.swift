@@ -36,7 +36,7 @@ public struct DialogTypeHeaderSettings {
     }
     
     public struct DialogTypeTitle: HeaderTitleSettingsProtocol {
-        public var text: String = "Dialog Type"
+        public var text: String = "Dialog type"
         public var color: Color
         public var font: Font
         

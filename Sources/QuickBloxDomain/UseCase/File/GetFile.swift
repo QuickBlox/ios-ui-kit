@@ -22,21 +22,20 @@ where File == Repo.FileEntityItem {
         do {
             return try await repo.get(fileFromLocal: id)
         } catch RepositoryException.notFound(_) {
-            do {
-                let task: Task<File, Error> = Task(priority: .medium) {
-                    let file = try await repo.get(fileFromRemote: id)
-                    return try await repo.save(file: file)
+            let task: Task<File, Error> = Task { [weak self] in
+                try Task.checkCancellation()
+                guard let self = self else {
+                    throw RepositoryException.unauthorised()
                 }
-                let result = await task.result
-                
-                switch result {
-                    case .success(let file):
-                        return file
-                    case .failure(let error):
-                        throw error
-                }
-            } catch  {
-                prettyLog(error)
+                let file = try await self.repo.get(fileFromRemote: self.id)
+                return try await self.repo.save(file: file)
+            }
+            let result = await task.result
+            
+            switch result {
+            case .success(let file):
+                return file
+            case .failure(let error):
                 throw error
             }
         }

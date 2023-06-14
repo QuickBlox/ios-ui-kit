@@ -8,6 +8,7 @@
 
 import SwiftUI
 import QuickBloxDomain
+import UniformTypeIdentifiers
 
 struct DialogNameHeaderToolbarContent: ToolbarContent {
     
@@ -89,6 +90,7 @@ public struct DialogNameHeader: ViewModifier {
                                            onDismiss: onDismiss,
                                            onNext: onNext)
         }
+        .navigationTitle(header.title.text)
         .navigationBarTitleDisplayMode(header.displayMode)
         .navigationBarBackButtonHidden(true)
     }
@@ -101,7 +103,9 @@ public struct CustomMediaAlert: ViewModifier {
     @State var isImagePickerPresented: Bool = false
     @State var isCameraPresented: Bool = false
     @State var isFilePresented: Bool = false
-    let isExistingImage: Bool
+    var isExistingImage: Bool
+    let isShowFiles: Bool
+    let mediaTypes: [String]
     let onRemoveImage: () -> Void
     let onGetAttachment: (_ attachmentAsset: AttachmentAsset) -> Void
     
@@ -123,9 +127,11 @@ public struct CustomMediaAlert: ViewModifier {
                     Button(settings.gallery, role: .none, action: {
                         isImagePickerPresented = true
                     })
-                    Button("File", role: .none, action: {
-                        isFilePresented = true
-                    })
+                    if isShowFiles == true {
+                        Button(settings.file, role: .none, action: {
+                            isFilePresented = true
+                        })
+                    }
                     Button(settings.cancel, role: .cancel) {
                         defaultState()
                     }
@@ -133,6 +139,7 @@ public struct CustomMediaAlert: ViewModifier {
             
                 .imagePicker(isImagePickerPresented: $isImagePickerPresented,
                              isCameraPresented: $isCameraPresented,
+                             mediaTypes: mediaTypes,
                              onDismiss: {
                     defaultState()
                 }, onGetAttachment: { attachmentAsset in
@@ -140,7 +147,8 @@ public struct CustomMediaAlert: ViewModifier {
                     defaultState()
                 })
             
-                .filePicker(isFilePickerPresented: $isFilePresented, onGetAttachment: onGetAttachment)
+                .filePicker(isFilePickerPresented: $isFilePresented,
+                            onGetAttachment: onGetAttachment)
         }
     }
     
@@ -155,14 +163,48 @@ extension View {
     func mediaAlert(
         isAlertPresented: Binding<Bool>,
         isExistingImage: Bool,
+        isShowFiles: Bool,
+        mediaTypes: [String],
         onRemoveImage: @escaping () -> Void,
         onGetAttachment: @escaping (_ attachmentAsset: AttachmentAsset) -> Void
     ) -> some View {
         self.modifier(CustomMediaAlert(isAlertPresented: isAlertPresented,
                                        isExistingImage: isExistingImage,
+                                       isShowFiles: isShowFiles,
+                                       mediaTypes: mediaTypes,
                                        onRemoveImage: onRemoveImage,
                                        onGetAttachment: onGetAttachment
                                       ))
+    }
+}
+
+public struct ErrorAlert: ViewModifier {
+    public var settings = QuickBloxUIKit.settings.dialogScreen
+    
+    @Binding var error: String
+    @Binding var isPresented: Bool
+    
+    public func body(content: Content) -> some View {
+        ZStack {
+            content.blur(radius: isPresented ? settings.blurRadius : 0.0)
+                .alert("", isPresented: $isPresented) {
+                    Button("Cancel", action: {
+                        error = ""
+                        isPresented = false
+                    })
+                } message: {
+                    Text(error)
+                }
+        }
+    }
+}
+
+extension View {
+    func errorAlert(_ error: Binding<String>,
+                    isPresented: Binding<Bool>
+    ) -> some View {
+        self.modifier(ErrorAlert(error: error,
+                                 isPresented: isPresented))
     }
 }
 
@@ -199,6 +241,7 @@ public struct ImagePicker: ViewModifier {
     @Binding var isImagePickerPresented: Bool
     @Binding var isCameraPresented: Bool
     @State var attachmentAsset: AttachmentAsset? = nil
+    var mediaTypes: [String]
     let onDismiss: () -> Void
     let onGetAttachment: (_ attachmentAsset: AttachmentAsset) -> Void
     
@@ -212,7 +255,8 @@ public struct ImagePicker: ViewModifier {
                         }
                         MediaPickerView(sourceType: isCameraPresented == false ? .photoLibrary : .camera,
                                         attachmentAsset: $attachmentAsset,
-                                        isPresented: $isImagePickerPresented)
+                                        isPresented: $isImagePickerPresented,
+                                        mediaTypes: mediaTypes)
                         .onDisappear {
                             onDismiss()
                             if let attachmentAsset {
@@ -230,18 +274,19 @@ extension View {
     func imagePicker(
         isImagePickerPresented: Binding<Bool>,
         isCameraPresented: Binding<Bool>,
+        mediaTypes: [String],
         onDismiss: @escaping () -> Void,
         onGetAttachment: @escaping (_ attachmentAsset: AttachmentAsset) -> Void
     ) -> some View {
         self.modifier(ImagePicker(isImagePickerPresented: isImagePickerPresented,
                                   isCameraPresented: isCameraPresented,
+                                  mediaTypes: mediaTypes,
                                   onDismiss: onDismiss,
                                   onGetAttachment: onGetAttachment))
     }
 }
 
 public struct FilePickerViewModifier : ViewModifier {
-    
     @Binding var isFilePickerPresented: Bool
     let onGetAttachment: (_ attachmentAsset: AttachmentAsset) -> Void
     
@@ -267,10 +312,11 @@ extension View {
 import UIKit
 
 struct FilePickerView: UIViewControllerRepresentable {
+    let mediaTypes: [UTType] = [.jpeg, .png, .heic, .heif, .gif, .webP, .mpeg4Movie, .mpeg4Audio, .aiff, .wav, .webArchive, .mp3, .pdf, .image, .video, .movie, .audio, .data, .diskImage]
     let onGetAttachment: (_ attachmentAsset: AttachmentAsset) -> Void
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: [.jpeg, .png, .heic, .heif, .gif, .movie, .webP, .mpeg4Movie, .mpeg4Audio, .aiff, .wav, .webArchive, .mp3, .image, .audio, .video, .pdf])
+        let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes:mediaTypes)
         documentPicker.delegate = context.coordinator
         documentPicker.allowsMultipleSelection = false
         documentPicker.shouldShowFileExtensions = true
@@ -296,18 +342,31 @@ struct FilePickerView: UIViewControllerRepresentable {
                 return
             }
             
+            let isAccessing = url.startAccessingSecurityScopedResource()
+            
             defer {
-                url.stopAccessingSecurityScopedResource()
+                if isAccessing {
+                    url.stopAccessingSecurityScopedResource()
+                }
             }
             
-            let filename = url.lastPathComponent
-            print("get file Name = \(filename)") // get file Name
-            if let image = UIImage(contentsOfFile: url.path) {
-                let attachmentAsset = AttachmentAsset(image: image, data: nil, type: .image, url: url, size: url.fileSizeMB)
+            guard let ext = FileExtension(rawValue: url.pathExtension.lowercased()) else { return }
+            let name = url.lastPathComponent
+            
+            if ext.type == .image {
+                let image = UIImage(contentsOfFile: url.path)
+                let attachmentAsset = AttachmentAsset(name: name, image: image, data: nil, ext: ext, url: url, size: url.fileSizeMB)
                 onGetAttachment(attachmentAsset)
             } else {
-                let attachmentAsset = AttachmentAsset(image: nil, data: nil, type: .file, url: url, size: url.fileSizeMB)
-                onGetAttachment(attachmentAsset)}
+                do {
+                    let data = try Data(contentsOf: url)
+                    let attachmentAsset = AttachmentAsset(name: name, image: nil, data: data, ext: ext, url: url, size: url.fileSizeMB)
+                    onGetAttachment(attachmentAsset)
+                } catch let error {
+                    print(error.localizedDescription)
+                    return
+                }
+            }
         }
     }
 }

@@ -20,7 +20,7 @@ public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
     
     let onTap: (_ action: MessageAttachmentAction, _ data: Data?, _ url: URL?) -> Void
     
-    @State public var fileTuple: (type: String, data: Data?, url: URL?)? = nil
+    @State public var fileTuple: (type: String, data: Data?, url: URL?, time: TimeInterval)? = nil
     
     @State public var avatar: Image =
     QuickBloxUIKit.settings.dialogScreen.messageRow.avatar.placeholder
@@ -47,7 +47,7 @@ public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
                                height: settings.avatar.height,
                                isShow: settings.isShowAvatar)
                     .task {
-                        do { avatar = try await message.avatar } catch { prettyLog(error) }
+                        do { avatar = try await message.avatar(size: CGSizeMake(settings.avatar.height, settings.avatar.height)) } catch { prettyLog(error) }
                     }
                 }.padding(.leading)
             }
@@ -66,28 +66,33 @@ public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
                 }
                 
                     VStack(alignment: .leading, spacing: settings.infoSpacing) {
-                                 
+                        HStack(alignment: .center, spacing: 8) {
                         Button {
                             play()
                             
                         } label: {
                             
-                            HStack(alignment: .center, spacing: 8) {
+                            
                                 HStack(alignment: .center, spacing: 8) {
-                                    
-                                    if isPlaying {
-                                        settings.pause
-                                            .resizable()
-                                            .scaledToFit()
-                                            .foregroundColor(settings.playForeground)
-                                            .frame(width: settings.audioPlaySize.width, height: settings.audioPlaySize.height)
-                                        
+                                    if fileTuple?.url != nil {
+                                        if isPlaying {
+                                            settings.pause
+                                                .resizable()
+                                                .scaledToFit()
+                                                .foregroundColor(settings.playForeground)
+                                                .frame(width: settings.audioPlaySize.width, height: settings.audioPlaySize.height)
+                                                .padding(.leading, -6)
+                                            
+                                        } else {
+                                            settings.play
+                                                .resizable()
+                                                .scaledToFit()
+                                                .foregroundColor(settings.playForeground)
+                                                .frame(width: settings.audioPlaySize.width, height: settings.audioPlaySize.height)
+                                                .padding(.leading, -6)
+                                        }
                                     } else {
-                                        settings.play
-                                            .resizable()
-                                            .scaledToFit()
-                                            .foregroundColor(settings.playForeground)
-                                            .frame(width: settings.audioPlaySize.width, height: settings.audioPlaySize.height)
+                                        ProgressView().padding(.leading, -6)
                                     }
                                     
                                     VStack(alignment: .leading, spacing: settings.infoSpacing) {
@@ -96,7 +101,7 @@ public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
                                             .scaledToFill()
                                             .frame(width: settings.audioImageSize.width, height: settings.audioImageSize.height)
                                         
-                                        Text("\(message.date, formatter: Date.formatter)")
+                                        Text(fileTuple?.time.audioString() ?? "00:00")
                                             .foregroundColor(settings.time.foregroundColor)
                                             .font(settings.time.font)
                                     }
@@ -107,21 +112,23 @@ public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
                                 .cornerRadius(settings.bubbleRadius, corners: settings.inboundCorners)
                                 .padding(settings.inboundPadding(showName: settings.isShowName))
                             }
-                        }
                         .disabled(fileTuple?.url == nil)
                         .task {
                             do { fileTuple = try await message.audioFile } catch { prettyLog(error)}
                         }
-                        
-                        if settings.isShowTime == true {
-                            VStack {
-                                Spacer()
-                                Text("\(message.date, formatter: Date.formatter)")
-                                    .foregroundColor(settings.time.foregroundColor)
-                                    .font(settings.time.font)
-                                    .padding(.bottom, settings.infoSpacing)
+                            if settings.isShowTime == true {
+                                VStack {
+                                    Spacer()
+                                    Text("\(message.date, formatter: Date.formatter)")
+                                        .foregroundColor(settings.time.foregroundColor)
+                                        .font(settings.time.font)
+                                        .padding(.bottom, settings.infoSpacing)
+                                }
                             }
                         }
+                        
+                        
+                        
                 }
             }
             Spacer(minLength: settings.inboundSpacer)
@@ -141,29 +148,29 @@ public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
     }
 }
 
-//import QuickBloxData
-//
-//struct InboundAudioMessageRow_Previews: PreviewProvider {
-//
-//    static var previews: some View {
-//        Group {
-//            InboundAudioMessageRow(message: Message(id: UUID().uuidString,
-//                                                    dialogId: "1f2f3ds4d5d6d",
-//                                                    text: "[Attachment]",
-//                                                    userId: NSNumber(value: QBSession.current.currentUserID).stringValue,
-//                                                    date: Date()),
-//                                   onTap: { _ in}, playingMessageId: "message.id", isPlaying: true)
-//            .previewDisplayName("Out Message")
-//
-//
-//            InboundAudioMessageRow(message: Message(id: UUID().uuidString,
-//                                                    dialogId: "1f2f3ds4d5d6d",
-//                                                    text: "[Attachment]",
-//                                                    userId: "2d3d4d5d6d",
-//                                                    date: Date()),
-//                                   onTap: { _ in}, playingMessageId: "message.id", isPlaying: false)
-//            .previewDisplayName("Out Dark Message")
-//            .preferredColorScheme(.dark)
-//        }
-//    }
-//}
+import QuickBloxData
+
+struct InboundAudioMessageRow_Previews: PreviewProvider {
+
+    static var previews: some View {
+        Group {
+            InboundAudioMessageRow(message: Message(id: UUID().uuidString,
+                                                    dialogId: "1f2f3ds4d5d6d",
+                                                    text: "[Attachment]",
+                                                    userId: "2d3d4d5d6d",
+                                                    date: Date()),
+                                   onTap: { (_,_,_) in}, playingMessageId: "message.id", isPlaying: true)
+            .previewDisplayName("Out Message")
+
+
+            InboundAudioMessageRow(message: Message(id: UUID().uuidString,
+                                                    dialogId: "1f2f3ds4d5d6d",
+                                                    text: "[Attachment]",
+                                                    userId: "2d3d4d5d6d",
+                                                    date: Date()),
+                                   onTap: { (_,_,_) in}, playingMessageId: "message.id", isPlaying: false)
+            .previewDisplayName("Out Dark Message")
+            .preferredColorScheme(.dark)
+        }
+    }
+}

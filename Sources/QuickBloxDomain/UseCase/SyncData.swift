@@ -36,18 +36,22 @@ public enum SyncState: Equatable {
 /// During execution, the use case responds to establishing connection and receiving  ``RemoteDialogEvent`` (s) from the server by updating data in the local storage.
 public class SyncData<DialogsRepo: DialogsRepositoryProtocol,
                       UsersRepo: UsersRepositoryProtocol,
+                      MessagesRepo: MessagesRepositoryProtocol,
                       ConnectRepo: ConnectionRepositoryProtocol,
                       Pagination: PaginationProtocol>
 where Pagination == DialogsRepo.PaginationItem {
     private let dialogsRepo: DialogsRepo
     private let usersRepo: UsersRepo
+    private let messagesRepo: MessagesRepo
     private let connectRepo: ConnectRepo
     
     public init(dialogsRepo: DialogsRepo,
                 usersRepo: UsersRepo,
+                messagesRepo: MessagesRepo,
                 connectRepo: ConnectRepo) {
         self.dialogsRepo = dialogsRepo
         self.usersRepo = usersRepo
+        self.messagesRepo = messagesRepo
         self.connectRepo = connectRepo
     }
     
@@ -83,8 +87,6 @@ where Pagination == DialogsRepo.PaginationItem {
         processAppStates()
         
         connect()
-        
-        print("Sync Data execute()")
         
         return stateSubject.eraseToAnyPublisher()
     }
@@ -242,6 +244,10 @@ extension SyncData {
                             try await self?.dialogsRepo.delete(dialogFromLocal: dialogId)
                         }
                     } catch { prettyLog(error) } }
+                case .removed(let dialogId):
+                    Task { [weak self] in do {
+                        try await self?.dialogsRepo.delete(dialogFromLocal: dialogId)
+                    } catch { prettyLog(error) } }
                 case .newMessage(let message):
                     Task { [weak self] in do {
                         try await self?.update(dialog: message)
@@ -251,10 +257,20 @@ extension SyncData {
                         try await self?.update(dialog: dialogId,
                                                history: messages)
                     } catch { prettyLog(error) } }
+                case .read(let messageID, let dialogID):
+                    Task { [weak self] in do {
+                        try await self?.update(byRead: messageID, dialogID: dialogID)
+                    } catch { prettyLog(error) } }
+                case .delivered(let messageID, let dialogID):
+                    Task { [weak self] in do {
+                        try await self?.update(byDelivered: messageID, dialogID: dialogID)
+                    } catch { prettyLog(error) } }
                 }
             }
-            guard let sub = sub else { return }
-            self?.cancellables.insert(sub)
+            guard let sub = sub, let self = self else {
+                return
+            }
+            self.cancellables.insert(sub)
         }
     }
     
@@ -287,6 +303,35 @@ extension SyncData {
         dialog.lastMessage.dateSent = newMessage.date
         dialog.lastMessage.userId = newMessage.userId
         dialog.messages = [newMessage]
+        try await dialogsRepo.update(dialogInLocal: dialog)
+    }
+    
+    func update(byRead messageID: String, dialogID: String) async throws {
+        var dialog = try await dialogsRepo.get(dialogFromLocal: dialogID)
+        
+        guard let index = dialog.messages.firstIndex(where: { $0.id == messageID }) else {
+            return
+        }
+        if dialog.messages[index].isRead == true {
+            return
+        }
+        dialog.messages[index].isRead = true
+        if dialog.messages[index].isOwnedByCurrentUser == true {
+            dialog.unreadMessagesCount -= 1
+        }
+        try await dialogsRepo.update(dialogInLocal: dialog)
+    }
+    
+    func update(byDelivered messageID: String, dialogID: String) async throws {
+        var dialog = try await dialogsRepo.get(dialogFromLocal: dialogID)
+        
+        guard let index = dialog.messages.firstIndex(where: { $0.id == messageID }) else {
+            return
+        }
+        if dialog.messages[index].isDelivered == true {
+            return
+        }
+        dialog.messages[index].isDelivered = true
         try await dialogsRepo.update(dialogInLocal: dialog)
     }
     

@@ -11,6 +11,9 @@ public enum RemoteDialogEvent<MessageItem: MessageEntity> {
     case create(_ dialogId: String)
     case update(_ dialogId: String)
     case leave(_ dialogId: String, byUser: Bool)
+    case removed(_ dialogId: String)
     case newMessage(_ message: MessageItem)
     case history(_ dialogId: String, _ messages: [MessageItem])
+    case read( _ messageID: String, dialogID: String)
+    case delivered( _ messageID: String, dialogID: String)
 }

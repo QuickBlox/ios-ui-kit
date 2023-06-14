@@ -1,16 +1,16 @@
 //
-//  PrivateDialogInfoViewModifier.swift
+//  GroupDialogNonEditInfoViewViewModifier.swift
 //  QuickBloxUIKit
 //
-//  Created by Injoit on 26.04.2023.
+//  Created by Injoit on 25.05.2023.
 //  Copyright © 2023 QuickBlox. All rights reserved.
 //
 
 import SwiftUI
 
-struct PrivateDialogInfoHeaderToolbarContent: ToolbarContent {
+struct GroupDialogNonEditInfoHeaderToolbarContent: ToolbarContent {
     
-    private var settings = QuickBloxUIKit.settings.dialogInfoScreen.privateHeader
+    private var settings = QuickBloxUIKit.settings.dialogInfoScreen.nonEditHeader
     let onDismiss: () -> Void
     
     public init(onDismiss: @escaping () -> Void) {
@@ -32,9 +32,9 @@ struct PrivateDialogInfoHeaderToolbarContent: ToolbarContent {
     }
 }
 
-public struct PrivateDialogInfoHeader: ViewModifier {
+public struct GroupDialogNonEditInfoHeader: ViewModifier {
     
-    private var settings = QuickBloxUIKit.settings.dialogInfoScreen.privateHeader
+    private var settings = QuickBloxUIKit.settings.dialogInfoScreen.nonEditHeader
     
     let onDismiss: () -> Void
     
@@ -44,7 +44,7 @@ public struct PrivateDialogInfoHeader: ViewModifier {
     
     public func body(content: Content) -> some View {
         content.toolbar {
-            PrivateDialogInfoHeaderToolbarContent(onDismiss: onDismiss)
+            GroupDialogNonEditInfoHeaderToolbarContent(onDismiss: onDismiss)
         }
         .navigationTitle(settings.title.text)
         .navigationBarTitleDisplayMode(settings.displayMode)

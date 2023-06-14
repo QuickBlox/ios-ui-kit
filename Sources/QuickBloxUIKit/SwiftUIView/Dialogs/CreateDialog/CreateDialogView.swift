@@ -19,6 +19,7 @@ where DialogItem == ViewModel.DialogItem, UserItem == ViewModel.UserItem {
     
     @Environment(\.dismiss) var dismiss
     @Environment(\.isSearching) private var isSearching: Bool
+    @State private var onTapCreate: Bool = false
     
     @StateObject public var viewModel: ViewModel
     
@@ -44,12 +45,13 @@ where DialogItem == ViewModel.DialogItem, UserItem == ViewModel.UserItem {
         .modifier(CreateDialogHeader(onDismiss: {
             dismiss()
         }, onTapCreate: {
+            onTapCreate.toggle()
             if viewModel.modeldDialog.type == .private {
                 viewModel.createPrivateDialog()
             } else {
                 viewModel.createGroupDialog()
             }
-        }, disabled: viewModel.selected.isEmpty))
+        }, disabled: viewModel.selected.isEmpty || onTapCreate == true))
     }
 }
 

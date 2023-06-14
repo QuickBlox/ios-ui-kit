@@ -1,8 +1,8 @@
 //
-//  GroupDialogInfoView.swift
+//  GroupDialogNonEditInfoView.swift
 //  QuickBloxUIKit
 //
-//  Created by Injoit on 20.04.2023.
+//  Created by Injoit on 25.05.2023.
 //  Copyright © 2023 QuickBlox. All rights reserved.
 //
 
@@ -10,15 +10,12 @@ import SwiftUI
 import QuickBloxData
 import QuickBloxDomain
 
-public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
+public struct GroupDialogNonEditInfoView<ViewModel: DialogInfoProtocol>: View {
     let settings = QuickBloxUIKit.settings.dialogInfoScreen
     
     @Environment(\.dismiss) var dismiss
     
     @StateObject public var viewModel: ViewModel
-    
-    @State private var isEditDialogAlertPresented: Bool = false
-    @State private var isEdit: Bool = false
     
     @State private var membersPresented: Bool = false
     @State private var searchPresented: Bool = false
@@ -49,27 +46,6 @@ public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
                 SegmentDivider()
             }
             
-            .editDialogAlert(isPresented: $isEditDialogAlertPresented,
-                             dialogName: $viewModel.dialogName,
-                             isValidDialogName: $viewModel.isValidDialogName,
-                             isExistingImage: viewModel.isExistingImage,
-                             isShowFiles: false,
-                             isEdit: $isEdit,
-                             onRemoveImage: {
-                viewModel.removeExistingImage()
-            }, onGetAttachment: { attachmentAsset in
-                guard let avatar = attachmentAsset.image?
-                    .cropToRect()
-                    .resize(to: settings.avatarSize)
-                     else { return }
-                var asset = attachmentAsset
-                asset.image = avatar
-                viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
-                viewModel.isProcessing.value = true
-            }, onGetName: { name in
-                viewModel.handleOnSelect(newName: name)
-            })
-            
             .onChange(of: viewModel.error, perform: { error in
                 if error.isEmpty { return }
                 errorPresented.toggle()
@@ -77,11 +53,9 @@ public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
             
             .errorAlert($viewModel.error, isPresented: $errorPresented)
             
-            .modifier(DialogInfoHeader(onDismiss: {
+            .modifier(GroupDialogNonEditInfoHeader(onDismiss: {
                 dismiss()
-            }, onTapEdit: {
-                isEditDialogAlertPresented = true
-            }, disabled: isEdit))
+            }))
             
             NavigationLink(isActive: $membersPresented) {
                 if let dialog = viewModel.dialog as? Dialog {
@@ -94,26 +68,17 @@ public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
     }
 }
 
-public struct SegmentDivider: View {
-    let settings = QuickBloxUIKit.settings.dialogInfoScreen
-    
-    public var body: some View {
-        Divider().background(settings.dividerColor.opacity(0.3))
-        Spacer()
-    }
-}
-
-//struct DialogInfoView_Previews: PreviewProvider {
+//struct GroupDialogNonEditInfoView_Previews: PreviewProvider {
 //    static var previews: some View {
 //        Group {
-//            GroupDialogInfoView<Dialog,
+//            GroupDialogNonEditInfoView<Dialog,
 //                                User,
 //                                RemoveUserListView<User>,
 //                                RemoveUserRow>(DialogInfoViewModel<Dialog>(Dialog(id: "dffdfdfdfdf",
 //                                                                                  type: .group,
 //                                                                                  name: "Test Group Light Dialog")))
 //                                .previewDisplayName("Dialog Info View")
-//            GroupDialogInfoView<Dialog,
+//            GroupDialogNonEditInfoView<Dialog,
 //                                User, RemoveUserListView<User>,
 //                                RemoveUserRow>(DialogInfoViewModel<Dialog>(Dialog(id: "dffdfdfdfdf",
 //                                                                                  type: .group,
