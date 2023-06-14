@@ -36,12 +36,6 @@ struct MembersHeaderToolbarContent: ToolbarContent {
             }
         }
         
-        ToolbarItem(placement: .principal) {
-            Text(header.title.text)
-                .font(header.title.font)
-                .foregroundColor(header.title.color)
-        }
-        
         ToolbarItem(placement: .navigationBarTrailing) {
             Button {
                 onAdd()
@@ -75,6 +69,7 @@ public struct MembersHeader: ViewModifier {
             MembersHeaderToolbarContent(onDismiss: onDismiss,
                                         onAdd: onAdd)
         }
+        .navigationTitle(header.title.text)
         .navigationBarTitleDisplayMode(header.displayMode)
         .navigationBarBackButtonHidden(true)
     }

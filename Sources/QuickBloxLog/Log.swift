@@ -45,6 +45,7 @@ public struct Log {
 //MARK: Log Line Wrapping
 public extension Log {
     var nextLine: Log { self.add("\r") }
+    var newLine: Log { self.add("\n") }
     var space: Log { self.add(" ") }
     var tab: Log { self.add("\t")}
     var colon: Log { self.add(": ") }

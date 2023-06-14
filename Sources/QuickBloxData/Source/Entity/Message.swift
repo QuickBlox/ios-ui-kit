@@ -25,6 +25,8 @@ public struct Message: MessageEntity {
     
     public var userId: String = ""
     public var isOwnedByCurrentUser = false
+    public var isRead: Bool = false
+    public var isDelivered = false
     public var date: Date = Date()
     
     public var fileInfo: FileInfo?

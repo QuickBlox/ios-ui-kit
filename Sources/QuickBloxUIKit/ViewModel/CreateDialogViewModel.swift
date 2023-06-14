@@ -49,7 +49,9 @@ open class CreateDialogViewModel: CreateDialogProtocol {
     private var isLoadAll = false
     
     private var taskUsers: Task<Void, Never>?
+    //TODO: tasks is not used
     public var tasks: Set<Task<Void, Never>>
+    private var createTask: Task<Void, Never>?
     
     var isSearchingPublisher: AnyPublisher<Bool, Never> {
         $searchText
@@ -90,8 +92,8 @@ open class CreateDialogViewModel: CreateDialogProtocol {
     }
     
     private func show(users: [User]) {
-        Task {
-            await MainActor.run { [users] in
+        Task { await MainActor.run { [weak self, users] in
+            guard let self = self else { return }
                 self.diaplayed = users
             }
         }
@@ -100,7 +102,7 @@ open class CreateDialogViewModel: CreateDialogProtocol {
     private func showUsers(by name: String = "") {
         taskUsers?.cancel()
         taskUsers = nil
-        taskUsers = Task {
+        taskUsers = Task { [weak self] in
             do {
                 prettyLog(label: "Need show users by name", name)
                 try Task.checkCancellation()
@@ -117,7 +119,8 @@ open class CreateDialogViewModel: CreateDialogProtocol {
                 try Task.checkCancellation()
                 let users = try await getUsers.execute()
                 try Task.checkCancellation()
-                await MainActor.run { [users] in
+                await MainActor.run { [weak self, users] in
+                    guard let self = self else { return }
                     var toDisplay: [User] = []
                     for user in self.selected {
                         toDisplay.append(user)
@@ -157,15 +160,17 @@ open class CreateDialogViewModel: CreateDialogProtocol {
     public func createDialog() {
         isProcessing.value = true
         modeldDialog.participantsIds = selected.map { $0.id }
-        let task = Task {
+        createTask = Task { [weak self] in
             do {
-                let create = CreateDialog(dialog: self.modeldDialog,
-                                          repo: dialogsRepo)
+                guard let dialog = self?.modeldDialog else { return }
+                guard let repo = self?.dialogsRepo else { return }
+                let create = CreateDialog(dialog: dialog,
+                                          repo: repo)
                 try await create.execute()
-                self.isProcessing.value = false
+                self?.isProcessing.value = false
             } catch { prettyLog(error) }
+            self?.createTask = nil
         }
-        tasks.insert(task)
     }
 }
 

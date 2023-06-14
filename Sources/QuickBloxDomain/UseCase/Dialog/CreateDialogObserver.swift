@@ -10,10 +10,8 @@ import Combine
 import QuickBloxLog
 import Dispatch
 
-
-struct DialogQueue {
+private struct DialogQueue {
     static let create = DispatchQueue(label: "com.create.dialog.observer")
-    static let leave = DispatchQueue(label: "com.leave.dialog.observer")
 }
 
 public class CreateDialogObserver<Item: DialogEntity,
@@ -58,8 +56,8 @@ where Item == Repo.DialogEntityItem {
                     self?.ids.remove(dialog.id)
                     self?.subject.send(dialog)
                 }
-            guard let sub = sub else { return }
-            self?.cancellables.insert(sub)
+            guard let sub = sub, let strSelf = self else { return }
+            strSelf.cancellables.insert(sub)
         }
     }
     
@@ -76,50 +74,8 @@ where Item == Repo.DialogEntityItem {
                         break
                     }
                 }
-            guard let sub = sub else { return }
-            self?.cancellables.insert(sub)
-        }
-    }
-}
-
-
-public class LeaveDialogObserver<Item: DialogEntity,
-                                  Repo: DialogsRepositoryProtocol>
-where Item == Repo.DialogEntityItem {
-    private let repo: Repo
-    
-    private let subject = PassthroughSubject<String, Never>()
-    private var cancellables = Set<AnyCancellable>()
-    private var taskLeave: Task<Void, Never>?
-    
-    public init(repo: Repo) {
-        self.repo = repo
-    }
-    
-    deinit {
-        taskLeave?.cancel()
-        taskLeave = nil
-    }
-    
-    public func execute() -> AnyPublisher<String, Never> {
-        processLeaveEvents()
-       return subject.eraseToAnyPublisher()
-    }
-    
-    private func processLeaveEvents() {
-        taskLeave = Task { [weak self] in
-            let sub = await self?.repo.remoteEventPublisher
-                .receive(on: DialogQueue.leave)
-                .sink { [weak self]  event in
-                    switch event {
-                    case .leave(let dialogId, byUser: let isCurrentUser):
-                        if isCurrentUser { self?.subject.send(dialogId) }
-                    default:
-                        break
-                    }
-                }
-            guard let sub = sub else { return }
-            self?.cancellables.insert(sub)
+            guard let sub = sub, let strSelf = self else { return }
+            strSelf.cancellables.insert(sub)
         }
     }
 }

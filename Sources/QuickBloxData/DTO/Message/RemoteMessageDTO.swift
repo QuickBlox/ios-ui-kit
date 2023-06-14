@@ -21,14 +21,17 @@ public struct RemoteMessageDTO: Equatable {
     var customParameters: [String: String] = [:]
     var filesInfo: [RemoteFileInfoDTO] = []
     var delayed = false
-    var markable = false
+    var markable = true
     var createdAt = Date(timeIntervalSince1970: 0)
     var updatedAt = Date(timeIntervalSince1970: 0)
     var deliveredIds: [String] = []
     var readIds: [String] = []
     var isOwnedByCurrentUser = false
+    var isReaded = false
+    var isDelivered = false
     var eventType: MessageEventType = .message
     var type: MessageType = .chat
+    var saveToHistory: Bool = true
 }
 
 public struct RemoteFileInfoDTO: Equatable {

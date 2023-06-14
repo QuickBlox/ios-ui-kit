@@ -18,38 +18,43 @@ public struct PrivateDialogInfoView<ViewModel: DialogInfoProtocol>: View {
     @StateObject public var viewModel: ViewModel
     
     @State private var searchPresented: Bool = false
+    @State private var errorPresented: Bool = false
     
     init(_ viewModel: ViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
     
     public var body: some View {
-        NavigationView {
-            ZStack {
-                settings.backgroundColor.ignoresSafeArea()
-                VStack {
-                    
-                    InfoDialogAvatar(dialog: viewModel.dialog,
-                                     selectedImage: $viewModel.selectedImage,
-                                     selectedName: $viewModel.dialogName)
-                    
-                    ForEach(settings.privateActionSegments, id:\.self) { action in
-                        InfoSegment(dialog: viewModel.dialog, action: action) { action in
-                            switch action {
-                            case .members: break
-                            case .searchInDialog: searchPresented.toggle()
-                            case .leaveDialog: viewModel.deleteDialog()
-                            case .notification: break
-                            }
+        ZStack {
+            settings.backgroundColor.ignoresSafeArea()
+            VStack {
+                
+                InfoDialogAvatar(dialog: viewModel.dialog, isProcessing: $viewModel.isProcessing.value)
+                
+                ForEach(settings.privateActionSegments, id:\.self) { action in
+                    InfoSegment(dialog: viewModel.dialog, action: action) { action in
+                        switch action {
+                        case .members: break
+                        case .searchInDialog: searchPresented.toggle()
+                        case .leaveDialog: viewModel.deleteDialog()
+                        case .notification: break
                         }
                     }
-                    
-                    SegmentDivider()
                 }
-                .privateDialogInfoHeader {
-                    dismiss()
-                }
+                
+                SegmentDivider()
             }
+            
+            .onChange(of: viewModel.error, perform: { error in
+                if error.isEmpty { return }
+                errorPresented.toggle()
+            })
+            
+            .errorAlert($viewModel.error, isPresented: $errorPresented)
+            
+            .modifier(PrivateDialogInfoHeader(onDismiss: {
+                dismiss()
+            }))
         }
     }
 }

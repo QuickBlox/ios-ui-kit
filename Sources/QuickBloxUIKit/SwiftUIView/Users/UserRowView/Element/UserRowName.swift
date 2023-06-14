@@ -45,5 +45,6 @@ public struct RoleUserRowName: View {
         Text(settings.admin)
             .font(font ?? settings.font)
             .foregroundColor(foregroundColor ?? settings.foregroundColor)
+            .frame(width: 41)
     }
 }

@@ -22,6 +22,7 @@ public struct UserRowBuilder<Item: UserEntity> {
                               wiht user: Item,
                               selected: Bool,
                               isAdmin: Bool = false,
+                              ownerId: String = "",
                               onTap: @escaping (_ user: Item) -> Void) ->  some View {
         switch type {
         case .info: UserRow(user,
@@ -31,9 +32,10 @@ public struct UserRowBuilder<Item: UserEntity> {
                               isSelected: selected,
                               onTap: onTap)
         case .remove: RemoveUserRow(user,
+                                    isAdmin: isAdmin,
+                                    ownerId: ownerId,
                                     isSelected: selected,
-                                    onTap: onTap,
-                                    isAdmin: isAdmin)
+                                    onTap: onTap)
         }
     }
 }
@@ -97,6 +99,7 @@ public struct RemoveUserRow<Item: UserEntity>: View  {
     
     public var isSelected: Bool
     public var isAdmin = false
+    public var ownerId: String
     
     public var avatarView: AvatarView?
     public var nameView: UserRowName?
@@ -105,9 +108,13 @@ public struct RemoveUserRow<Item: UserEntity>: View  {
     public var onTap: (Item) -> Void
     
     public init(_ user: Item,
+                isAdmin: Bool,
+                ownerId: String,
                 isSelected: Bool,
                 onTap: @escaping (_ user: Item) -> Void) {
         self.user = user
+        self.isAdmin = isAdmin
+        self.ownerId = ownerId
         self.isSelected = isSelected
         self.onTap = onTap
     }
@@ -123,11 +130,11 @@ public struct RemoveUserRow<Item: UserEntity>: View  {
                                     ? user.name + settings.name.you
                                     : user.name)
             Spacer()
-            if isAdmin {
-                RoleUserRowName()
+            if user.id == ownerId {
+                RoleUserRowName().padding(.trailing, 60)
             }
             
-            if user.isCurrent == false {
+            if isAdmin == true, user.isCurrent == false {
                 removeBoxView ?? RemoveUserButton(onTap: {
                     onTap(user)
                 })
@@ -142,16 +149,6 @@ public struct RemoveUserRow<Item: UserEntity>: View  {
         contentView.task {
             do { avatar = try await user.avatar } catch { prettyLog(error) }
         }
-    }
-}
-
-extension RemoveUserRow {
-    public init(_ user: Item,
-                isSelected: Bool,
-                onTap: @escaping (_ user: Item) -> Void,
-                isAdmin: Bool) {
-        self.init(user, isSelected: isSelected, onTap: onTap)
-        self.isAdmin = isAdmin
     }
 }
 

@@ -9,13 +9,15 @@
 import SwiftUI
 import QuickBloxDomain
 import QuickBloxLog
+import UniformTypeIdentifiers
+import Combine
 
 struct DialogInfoHeaderToolbarContent: ToolbarContent {
     
-    private var settings = QuickBloxUIKit.settings.dialogInfoScreen.header
+    let settings = QuickBloxUIKit.settings.dialogInfoScreen.header
     let onDismiss: () -> Void
     let onTapEdit: () -> Void
-    var disabled: Bool = true
+    var disabled: Bool = false
     
     public init(
         onDismiss: @escaping () -> Void,
@@ -32,17 +34,11 @@ struct DialogInfoHeaderToolbarContent: ToolbarContent {
                 onDismiss()
             } label: {
                 if let title = settings.leftButton.title {
-                    Text(title).foregroundColor(settings.leftButton.color)
+                    Text(title).foregroundColor(settings.leftButton.color.opacity(disabled == true ? settings.opacity : 1.0))
                 } else {
-                    settings.leftButton.image.tint(settings.leftButton.color)
+                    settings.leftButton.image.tint(settings.leftButton.color.opacity(disabled == true ? settings.opacity : 1.0))
                 }
-            }
-        }
-        
-        ToolbarItem(placement: .principal) {
-            Text(settings.title.text)
-                .font(settings.title.font)
-                .foregroundColor(settings.title.color)
+            }.disabled(disabled)
         }
         
         ToolbarItem(placement: .navigationBarTrailing) {
@@ -61,11 +57,11 @@ struct DialogInfoHeaderToolbarContent: ToolbarContent {
 
 public struct DialogInfoHeader: ViewModifier {
     
-    private var settings = QuickBloxUIKit.settings.createDialogScreen.header
+    let settings = QuickBloxUIKit.settings.dialogInfoScreen.header
     
     let onDismiss: () -> Void
     let onTapEdit: () -> Void
-    var disabled: Bool = true
+    var disabled: Bool = false
     
     public init(
         onDismiss: @escaping () -> Void,
@@ -82,18 +78,9 @@ public struct DialogInfoHeader: ViewModifier {
                                            onTapEdit: onTapEdit,
                                            disabled: disabled)
         }
+        .navigationTitle(settings.title.text)
         .navigationBarTitleDisplayMode(settings.displayMode)
         .navigationBarBackButtonHidden(true)
-    }
-}
-
-extension View {
-    func dialogInfoHeader(onDismiss: @escaping () -> Void,
-                          onTapEdit: @escaping () -> Void,
-                          disabled: Bool) -> some View {
-        self.modifier(DialogInfoHeader(onDismiss: onDismiss,
-                                       onTapEdit: onTapEdit,
-                                       disabled: disabled))
     }
 }
 
@@ -101,53 +88,53 @@ public struct InfoDialogAvatar<Item: DialogEntity>: View {
     public var settings = QuickBloxUIKit.settings.dialogInfoScreen.avatar
     
     var dialog: Item
-    @Binding var selectedImage: Image?
-    @Binding var selectedName: String
-    let placeholder = QuickBloxUIKit.settings.dialogsScreen.dialogRow.avatar.groupAvatar
+    @State var avatar: Image? = nil
+    @Binding var isProcessing: Bool
     
-    @State public var avatar: Image? = nil
-    
-    public init(dialog: Item, selectedImage: Binding<Image?>, selectedName: Binding<String>) {
+    public init(dialog: Item, isProcessing: Binding<Bool>) {
         self.dialog = dialog
-        _selectedImage = selectedImage
-        _selectedName = selectedName
+        _isProcessing = isProcessing
     }
     
     public var body: some View {
         VStack(spacing: 8.0) {
-            if let selectedImage {
-                AvatarView(image: (selectedImage),
+            if isProcessing == true {
+                ZStack {
+                    Color.gray
+                        .frame(width: settings.height, height: settings.height)
+                        .clipShape(Circle())
+                    
+                    ProgressView()
+                }
+            } else {
+                AvatarView(image: avatar ?? dialog.placeholder,
                            height: settings.height,
                            isShow: settings.isShow)
-            } else {
-                if dialog.photo.isEmpty == false {
-                    AvatarView(image: (avatar ?? placeholder),
-                               height: settings.height,
-                               isShow: settings.isShow)
-                    .task {
-                        if dialog.photo.isEmpty == false {
-                            do { avatar = try await dialog.avatar } catch { prettyLog(error) }
-                        }
-                    }
-                } else {
-                    AvatarView(image: (placeholder),
-                               height: settings.height,
-                               isShow: settings.isShow)
+                .task {
+                    do { avatar = try await dialog.avatar } catch { prettyLog(error) }
                 }
             }
             
-            if selectedName.isEmpty == false {
-                Text(selectedName)
-                    .font(settings.font)
-                    .foregroundColor(settings.color)
-            } else {
-                Text(dialog.name)
-                    .font(settings.font)
-                    .foregroundColor(settings.color)
-            }
+            Text(dialog.name)
+                .font(settings.font)
+                .foregroundColor(settings.color)
         }
         .frame(height: settings.containerHeight)
         .padding(settings.padding)
+        .onChange(of: dialog.photo) { newValue in
+            if newValue.isEmpty == false, newValue != "null" {
+                Task {
+                    do {
+                        let avatar = try await dialog.avatar
+                        await MainActor.run {
+                            self.avatar = avatar
+                        }
+                    } catch { prettyLog(error) }
+                }
+            } else {
+                avatar = nil
+            }
+        }
     }
 }
 
@@ -196,8 +183,14 @@ public struct InfoSegment<Item: DialogEntity>: View {
                     Spacer()
                     
                 case .leaveDialog:
+                    if #available(iOS 16, *) {
+                        settings.leave.image.foregroundColor(settings.leave.imageColor)
+                    } else {
+                        settings.leave.imagePNG
+                            .renderingMode(.template)
+                            .foregroundColor(settings.leave.imageColor)
+                    }
                     
-                    settings.leave.image.foregroundColor(settings.leave.imageColor)
                     Text(settings.leave.title).foregroundColor(settings.leave.foregroundColor)
                     Spacer()
                     
@@ -215,7 +208,11 @@ public struct EditDialogAlert: ViewModifier {
     @Binding var isPresented: Bool
     @Binding var dialogName: String
     @Binding var isValidDialogName: Bool
+    
     let isExistingImage: Bool
+    let isShowFiles: Bool
+    
+    @Binding var isEdit: Bool
     
     @State var isAlertNamePresented: Bool = false
     @State var isMediaAlertPresented: Bool = false
@@ -226,34 +223,74 @@ public struct EditDialogAlert: ViewModifier {
     
     public func body(content: Content) -> some View {
         ZStack {
-            content
-                .blur(radius: (isPresented || isMediaAlertPresented || isAlertNamePresented) ? settings.blurRadius : 0.0)
+            content.blur(radius: (isPresented || isMediaAlertPresented || isAlertNamePresented) ? settings.blurRadius : 0.0)
+                .disabled(isPresented || isMediaAlertPresented || isAlertNamePresented)
+            
                 .confirmationDialog(settings.title, isPresented: $isPresented, actions: {
                     Button(settings.changeImage, role: .none) {
                         isMediaAlertPresented = true
                     }
                     Button(settings.changeDialogName, role: .none, action: {
+                        if #available(iOS 16, *) {
+                            //No need to disable header buttons
+                        } else {
+                            isEdit = true
+                        }
                         isAlertNamePresented = true
                     })
                     Button(settings.cancel, role: .cancel) {
+                        isEdit = false
+                        isPresented = false
                         isAlertNamePresented = false
                         isMediaAlertPresented = false
                     }
                 })
-                .editNameAlert(isAlertNamePresented: $isAlertNamePresented,
-                               name: $dialogName,
-                               isValidDialogName: $isValidDialogName,
-                               onGetName: { name in
-                    onGetName(name)
-                })
-            
                 .mediaAlert(isAlertPresented: $isMediaAlertPresented,
                             isExistingImage: isExistingImage,
+                            isShowFiles: isShowFiles,
+                            mediaTypes: [UTType.image.identifier],
                             onRemoveImage: {
                     onRemoveImage()
+                    isEdit = false
                 }, onGetAttachment: { attachmentAsset in
                     onGetAttachment(attachmentAsset)
+                    isEdit = false
                 })
+            
+            if #available(iOS 16, *) {
+                content
+                    .disabled(isPresented || isMediaAlertPresented || isAlertNamePresented)
+                    .blur(radius: (isPresented || isMediaAlertPresented || isAlertNamePresented) ? settings.blurRadius : 0.0)
+                
+                    .if(isAlertNamePresented, transform: { view in
+                        view
+                            .editNameAlert(isAlertNamePresented: $isAlertNamePresented,
+                                           name: $dialogName,
+                                           isValidDialogName: $isValidDialogName,
+                                           onGetName: { name in
+                                onGetName(name)
+                                isEdit = false
+                            })
+                    })
+            } else {
+                content
+                    .disabled(isPresented || isMediaAlertPresented || isAlertNamePresented)
+                    .blur(radius: (isPresented || isMediaAlertPresented || isAlertNamePresented) ? settings.blurRadius : 0.0)
+                
+                    .if(isAlertNamePresented, transform: { view in
+                        view
+                            .customTextFieldAlert(isAlertNamePresented: $isAlertNamePresented,
+                                                  name: $dialogName,
+                                                  isValidDialogName: $isValidDialogName,
+                                                  onGetName: { name in
+                                onGetName(name)
+                                isEdit = false
+                            }, onCancel: {
+                                isEdit = false
+                            })
+                    })
+                        
+            }
         }
     }
 }
@@ -264,6 +301,8 @@ extension View {
         dialogName: Binding<String>,
         isValidDialogName: Binding<Bool>,
         isExistingImage: Bool,
+        isShowFiles: Bool,
+        isEdit: Binding<Bool>,
         onRemoveImage: @escaping () -> Void,
         onGetAttachment: @escaping (_ attachmentAsset: AttachmentAsset) -> Void,
         onGetName: @escaping  (_ name: String) -> Void
@@ -272,6 +311,8 @@ extension View {
                                       dialogName: dialogName,
                                       isValidDialogName: isValidDialogName,
                                       isExistingImage: isExistingImage,
+                                      isShowFiles: isShowFiles,
+                                      isEdit: isEdit,
                                       onRemoveImage: onRemoveImage,
                                       onGetAttachment: onGetAttachment,
                                       onGetName: onGetName))
@@ -330,5 +371,116 @@ extension View {
                                     name: name,
                                     isValidDialogName: isValidDialogName,
                                     onGetName: onGetName))
+    }
+}
+
+struct CustomTextFieldAlert: ViewModifier {
+    public var settings = QuickBloxUIKit.settings.dialogInfoScreen.editNameAlert
+    
+    @State var isErrorAlertPresented: Bool = false
+    @Binding var isAlertNamePresented: Bool
+    @Binding var name: String
+    @Binding var isValidDialogName: Bool
+    
+    let onGetName: (_ name: String) -> Void
+    let onCancel: () -> Void
+    
+    func body(content: Content) -> some View {
+        ZStack(alignment: .center) {
+            content.blur(radius: (isAlertNamePresented || isErrorAlertPresented) ? settings.blurRadius : 0.0).background((isAlertNamePresented || isErrorAlertPresented) ? settings.blurBackground : settings.background)
+                .disabled(isAlertNamePresented || isErrorAlertPresented)
+            if isAlertNamePresented {
+                VStack() {
+                    Text(settings.title)
+                        .font(settings.titleFont)
+                        .foregroundColor(settings.titleForeground)
+                        .padding(.top, settings.textfieldPadding)
+                        .padding(.bottom)
+                    
+                    Spacer()
+                    
+                    TextField(settings.textfieldPrompt, text: $name)
+                        .padding(.horizontal, settings.textfieldPadding)
+                        .background(RoundedRectangle(cornerRadius: settings.textfieldRadius)
+                            .fill(settings.textfieldBackground).frame(width: settings.textfieldSize.width, height: settings.textfieldSize.height))
+                        .padding(.bottom, isValidDialogName ? settings.hintPadding : 0)
+                    
+                    if isValidDialogName == false {
+                        withAnimation {
+                            Text(settings.hint)
+                                .font(settings.hintFont)
+                                .foregroundColor(settings.hintForeground)
+                                .multilineTextAlignment(.leading)
+                                .padding(.horizontal)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(spacing: 0) {
+                        Divider().background(settings.divider)
+                        
+                        HStack(spacing: 0) {
+                            Spacer()
+                            Button(role: .cancel) {
+                                onCancel()
+                                withAnimation {
+                                    isAlertNamePresented.toggle()
+                                }
+                            } label: {
+                                Text(settings.cancel)
+                                    .font(settings.cancelFont)
+                                    .foregroundColor(settings.cancelForeground)
+                            }
+                            .frame(width: (settings.size.width / 2) - 3, height: settings.buttonHeight)
+                            Spacer()
+                            
+                            Divider().background(settings.divider).frame(width: 1.0, height: settings.buttonHeight)
+                            
+                            Spacer()
+                            Button() {
+                                if isValidDialogName == true {
+                                    onGetName(name)
+                                    withAnimation {
+                                        isAlertNamePresented.toggle()
+                                    }
+                                } else {
+                                    withAnimation {
+                                        isErrorAlertPresented = true
+                                    }
+                                }
+                                
+                            } label: {
+                                Text(settings.ok)
+                                    .font(settings.okFont)
+                                    .foregroundColor(settings.okForeground)
+                            }
+                            .frame(width: (settings.size.width / 2) - 3, height: settings.buttonHeight)
+                            Spacer()
+                        }
+                        
+                    }
+                }
+                .background(settings.background)
+                .frame(width: settings.size.width, height: isValidDialogName ? settings.size.height : settings.fullHeight)
+                .cornerRadius(settings.cornerRadius)
+            }
+        }
+    }
+}
+
+extension View {
+    public func customTextFieldAlert(
+        isAlertNamePresented: Binding<Bool>,
+        name: Binding<String>,
+        isValidDialogName: Binding<Bool>,
+        onGetName: @escaping  (_ name: String) -> Void,
+        onCancel: @escaping  () -> Void
+    ) -> some View {
+        self.modifier(CustomTextFieldAlert(isAlertNamePresented: isAlertNamePresented,
+                                           name: name,
+                                           isValidDialogName: isValidDialogName,
+                                           onGetName: onGetName,
+                                           onCancel: onCancel))
     }
 }

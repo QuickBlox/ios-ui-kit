@@ -57,24 +57,18 @@ public struct OutboundFileMessageRow<MessageItem: MessageEntity>: View {
                     Spacer()
                     
                     HStack(alignment: .center, spacing: 8) {
+                        if fileTuple?.url != nil {
+                            OutboundFilePlaceholder()
+                        } else {
+                            ProgressView()
+                        }
                         
-                        if let image = fileTuple?.image {
-                            image
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: settings.fileSize.width,
-                                       height: settings.fileSize.height)
-                                .cornerRadius(settings.attachmentRadius)
-                            
-                            Text(message.text)
+                        if let ext = fileTuple?.url?.pathExtension {
+                            Text(settings.fileTitle + "." + ext)
                                 .foregroundColor(settings.message.foregroundColor)
                                 .font(settings.message.font)
-                            
                         } else {
-                            
-                            OutboundFilePlaceholder()
-                            
-                            Text(message.text)
+                            Text(settings.fileTitle)
                                 .foregroundColor(settings.message.foregroundColor)
                                 .font(settings.message.font)
                         }
@@ -88,7 +82,7 @@ public struct OutboundFileMessageRow<MessageItem: MessageEntity>: View {
                 .padding(settings.outboundAudioPadding)
             }.disabled(fileTuple?.url == nil)
                 .task {
-                    do { fileTuple = try await message.file } catch { prettyLog(error)}
+                    do { fileTuple = try await message.file(size: nil) } catch { prettyLog(error)}
                 }
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -117,29 +111,29 @@ private struct OutboundFilePlaceholder: View {
     }
 }
 
-//import QuickBloxData
-//
-//struct OutboundFileMessageRow_Previews: PreviewProvider {
-//
-//    static var previews: some View {
-//        Group {
-//            OutboundFileMessageRow(message: Message(id: UUID().uuidString,
-//                                                     dialogId: "1f2f3ds4d5d6d",
-//                                                     text: "[Attachment]",
-//                                                     userId: NSNumber(value: QBSession.current.currentUserID).stringValue,
-//                                                     date: Date()),
-//                                    onTap: { _ in})
-//                .previewDisplayName("Out Message")
-//
-//
-//            OutboundFileMessageRow(message: Message(id: UUID().uuidString,
-//                                                     dialogId: "1f2f3ds4d5d6d",
-//                                                     text: "[Attachment]",
-//                                                     userId: "2d3d4d5d6d",
-//                                                     date: Date()),
-//                                    onTap: { _ in})
-//                .previewDisplayName("Out Dark Message")
-//                .preferredColorScheme(.dark)
-//        }
-//    }
-//}
+import QuickBloxData
+
+struct OutboundFileMessageRow_Previews: PreviewProvider {
+
+    static var previews: some View {
+        Group {
+            OutboundFileMessageRow(message: Message(id: UUID().uuidString,
+                                                     dialogId: "1f2f3ds4d5d6d",
+                                                     text: "[Attachment]",
+                                                     userId: "2d3d4d5d6d",
+                                                     date: Date()),
+                                   onTap: { (_,_,_) in})
+                .previewDisplayName("Out Message")
+
+
+            OutboundFileMessageRow(message: Message(id: UUID().uuidString,
+                                                     dialogId: "1f2f3ds4d5d6d",
+                                                     text: "[Attachment]",
+                                                     userId: "2d3d4d5d6d",
+                                                     date: Date()),
+                                   onTap: { (_,_,_) in})
+                .previewDisplayName("Out Dark Message")
+                .preferredColorScheme(.dark)
+        }
+    }
+}

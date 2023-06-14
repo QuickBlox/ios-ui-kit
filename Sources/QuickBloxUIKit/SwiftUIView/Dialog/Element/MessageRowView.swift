@@ -59,9 +59,9 @@ public struct MessageRowView<MessageItem: MessageEntity>: View {
 
 extension MessageEntity {
     var status: MessageStatus {
-        if readIds.isEmpty == false {
+        if isRead == true {
             return .read
-        } else if deliveredIds.isEmpty == false {
+        } else if isDelivered == true {
             return .delivered
         } else {
             return .send
@@ -137,8 +137,7 @@ extension MessageEntity {
 extension Date {
     static var formatter: DateFormatter = {
         let formatter = DateFormatter()
-//        formatter.dateFormat = "hh:mm"
-        formatter.dateFormat = "hh:mm:ss"
+        formatter.dateFormat = "hh:mm"
         return formatter
     }()
 }

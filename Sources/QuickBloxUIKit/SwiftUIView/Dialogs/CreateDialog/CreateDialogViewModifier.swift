@@ -37,12 +37,6 @@ struct CreateDialogHeaderToolbarContent: ToolbarContent {
             }
         }
         
-        ToolbarItem(placement: .principal) {
-            Text(settings.title.text)
-                .font(settings.title.font)
-                .foregroundColor(settings.title.color)
-        }
-        
         ToolbarItem(placement: .navigationBarTrailing) {
             Button {
                 onTapCreate()
@@ -80,6 +74,7 @@ public struct CreateDialogHeader: ViewModifier {
                                            onTapCreate: onTapCreate,
                                              disabled: disabled)
         }
+        .navigationTitle(settings.title.text)
         .navigationBarTitleDisplayMode(settings.displayMode)
         .navigationBarBackButtonHidden(true)
     }

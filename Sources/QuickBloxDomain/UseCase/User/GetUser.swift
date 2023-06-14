@@ -26,9 +26,6 @@ where User == Repo.UserEntityItem {
             let user = try await repo.get(userFromRemote: id)
             try await repo.save(userToLocal: user)
             return user
-        } catch {
-            prettyLog(error)
-            throw error
         }
     }
 }

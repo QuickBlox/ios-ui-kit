@@ -32,6 +32,7 @@ private func getFile<T:FileEntity, R:FilesRepositoryProtocol>(useCase: GetFile<T
 
 //MARK: DialogEntity files
 extension DialogEntity {
+    
     var avatar: Image {
         get async throws {
             if QuickBloxUIKit.previewAware {  return placeholder }
@@ -64,71 +65,68 @@ extension DialogEntity {
             try Task.checkCancellation()
             let file = try await getFile(useCase: useCase, priority: .high)
             try Task.checkCancellation()
-            guard let uiImage = UIImage(data: file.data) else {
+            let size = QuickBloxUIKit.settings.dialogScreen.avatarSize.avatar3x
+            guard let uiImage = UIImage(data: file.data)?
+                .cropToRect()
+                .resize(to: size) else {
                 let info = "Dialog avatar image data is incorrect"
                 throw RepositoryException.incorrectData(description: info)
             }
-            return Image(uiImage: uiImage)
+            let image = Image(uiImage: uiImage)
+            return image
         }
     }
     
-    var attachment: (name: String, image: Image?, placeholder: Image)? {
-        get async throws {
-            do {
-                if QuickBloxUIKit.previewAware, id.isEmpty {  return nil }
+    func attachment(size: CGSize) async throws -> (name: String, image: Image?, placeholder: Image)? {
+        do {
+            if QuickBloxUIKit.previewAware, id.isEmpty {  return nil }
 
-                let repo = RepositoriesFabric.messages
+            let repo = RepositoriesFabric.messages
 
-                if lastMessage.id.isEmpty { return nil }
+            if lastMessage.id.isEmpty { return nil }
 
-                var attachmentId: String
-                if let old = messages.last,
-                   old.id == lastMessage.id {
-                    if let id = old.fileInfo?.id {
-                        attachmentId = id
-                    } else { return nil }
-                } else {
-                    try Task.checkCancellation()
-                    let getMessage = GetMessage(id: lastMessage.id, dialogId: id, repo: repo)
-                    let new = try await getMessage.execute()
-                    if let id = new.fileInfo?.id {
-                        attachmentId = id
-                    } else { return nil }
-                }
-                
-                let filesRepo = RepositoriesFabric.files
-                
-                let useCase = GetFile<File, FilesRepository>(id: attachmentId, repo: filesRepo)
+            var attachmentId: String
+            if let old = messages.last,
+               old.id == lastMessage.id {
+                if let id = old.fileInfo?.id {
+                    attachmentId = id
+                } else { return nil }
+            } else {
                 try Task.checkCancellation()
-                let file = try await getFile(useCase: useCase, priority: .low)
-                try Task.checkCancellation()
-                let settings = QuickBloxUIKit.settings.dialogsScreen.dialogRow.lastMessage
-                switch file.info.ext.type {
-                case .audio:
-                    return (file.info.name, nil, settings.audioPlaceholder)
-                case .video:
-                    guard let image = await file.preview else {
-                        return (file.info.name, nil, settings.videoPlaceholder)
-                    }
-                    return (file.info.name, image, settings.videoPlaceholder)
-                   
-                case .image, .gif:
-                    guard let uiImage = UIImage(data: file.data) else {
-                        return (file.info.name, nil, settings.imagePlaceholder)
-                    }
-                    return (file.info.name, Image(uiImage: uiImage), settings.imagePlaceholder)
-                case .file:
-                    if file.info.ext == .pdf {
-                        guard let image = await file.preview else {
-                            return (file.info.name, nil, settings.filePlaceholder)
-                        }
-                        return (file.info.name, image, settings.filePlaceholder)
-                    }
-                    return (file.info.name, nil, settings.filePlaceholder)
+                let getMessage = GetMessage(id: lastMessage.id, dialogId: id, repo: repo)
+                let new = try await getMessage.execute()
+                if let id = new.fileInfo?.id {
+                    attachmentId = id
+                } else { return nil }
+            }
+            
+            let filesRepo = RepositoriesFabric.files
+            
+            let useCase = GetFile<File, FilesRepository>(id: attachmentId, repo: filesRepo)
+            try Task.checkCancellation()
+            let file = try await getFile(useCase: useCase, priority: .low)
+            try Task.checkCancellation()
+            let settings = QuickBloxUIKit.settings.dialogsScreen.dialogRow.lastMessage
+            switch file.info.ext.type {
+            case .audio:
+                return (file.info.name, nil, settings.audioPlaceholder)
+            case .video:
+                let name = "Video." + file.info.ext.rawValue
+                return (name, nil, settings.videoPlaceholder)
+            case .image, .gif:
+                let name = "Image." + file.info.ext.rawValue
+                guard let uiImage = UIImage(data: file.data)?
+                    .cropToRect()
+                    .resize(to: size) else {
+                    return (name, nil, settings.imagePlaceholder)
                 }
-                
-            } catch { return nil }
-        }
+                return (name, Image(uiImage: uiImage), settings.imagePlaceholder)
+            case .file:
+                let name = "File." + file.info.ext.rawValue
+                return (name, nil, settings.filePlaceholder)
+            }
+            
+        } catch { return nil }
     }
     
     var placeholder: Image {
@@ -164,7 +162,7 @@ extension DialogEntity {
                                              type: .divider)
 
             if tempMessages.contains(where: { $0.id == dividerMessage.id }) == false {
-                tempMessages.append(message)
+                tempMessages.append(dividerMessage)
             }
             if tempMessages.contains(where: { $0.id == message.id }) == false {
                 tempMessages.append(message)
@@ -206,77 +204,82 @@ extension MessageEntity {
         }
     }
     
-    var avatar: Image {
-        get async throws {
-            if QuickBloxUIKit.previewAware {  return placeholder }
-            
-            let usersRepo = RepositoriesFabric.users
-            let getUser = GetUser(id: userId, repo: usersRepo)
-            let user = try await getUser.execute()
-            if user.avatarPath.isEmpty { return placeholder }
-            
-            let filesRepo = RepositoriesFabric.files
-            let useCase = GetFile<File, FilesRepository>(id: user.avatarPath,
-                                                         repo: filesRepo)
-            try Task.checkCancellation()
-            let file = try await getFile(useCase: useCase, priority: .high)
-            try Task.checkCancellation()
-            guard let uiImage = UIImage(data: file.data) else {
-                let info = "Dialog avatar image data is incorrect"
-                throw RepositoryException.incorrectData(description: info)
-            }
-            return Image(uiImage: uiImage)
+    func avatar(size: CGSize) async throws -> Image {
+        if QuickBloxUIKit.previewAware {  return placeholder }
+        
+        let usersRepo = RepositoriesFabric.users
+        let getUser = GetUser(id: userId, repo: usersRepo)
+        let user = try await getUser.execute()
+        if user.avatarPath.isEmpty { return placeholder }
+        
+        let filesRepo = RepositoriesFabric.files
+        let useCase = GetFile<File, FilesRepository>(id: user.avatarPath,
+                                                     repo: filesRepo)
+        try Task.checkCancellation()
+        let file = try await getFile(useCase: useCase, priority: .high)
+        try Task.checkCancellation()
+        guard let uiImage = UIImage(data: file.data)?
+            .cropToRect()
+            .resize(to: size) else {
+            let info = "Message avatar image data is incorrect"
+            throw RepositoryException.incorrectData(description: info)
         }
+        return Image(uiImage: uiImage)
     }
     
     var placeholder: Image {
         return QuickBloxUIKit.settings.dialogScreen.messageRow.avatar.placeholder
     }
     
-    var file: (type: String, image: Image?, url: URL?)? {
-        get async throws {
-            do {
-                if QuickBloxUIKit.previewAware, id.isEmpty {  return nil }
-                
-                guard let file = fileInfo else { return nil }
-                
-                let filesRepo = RepositoriesFabric.files
-                
-                let useCase = GetFile<File, FilesRepository>(id: file.id,
-                                                             repo: filesRepo)
-                try Task.checkCancellation()
-                let uploaded = try await getFile(useCase: useCase, priority: .low)
-                try Task.checkCancellation()
-                let settings = QuickBloxUIKit.settings.dialogsScreen.dialogRow.lastMessage
-                switch uploaded.info.ext.type {
-                case .audio:
-                    guard let localURL = uploaded.info.path.localURL else { return nil }
-                    return (uploaded.info.name, nil, localURL)
-                case .video:
-                    guard let localURL = uploaded.info.path.localURL else { return nil }
-                    let image = await uploaded.preview
-                    return (uploaded.info.name, image, localURL)
-                case .image, .gif:
-                    guard let uiImage = UIImage(data: uploaded.data) else {
-                        return (uploaded.info.name, settings.imagePlaceholder, nil)
+    func file(size: CGSize?) async throws -> (type: String, image: Image?, url: URL?)?  {
+        do {
+            if QuickBloxUIKit.previewAware, id.isEmpty {  return nil }
+            
+            guard let file = fileInfo else { return nil }
+            
+            let filesRepo = RepositoriesFabric.files
+            
+            let useCase = GetFile<File, FilesRepository>(id: file.id,
+                                                         repo: filesRepo)
+            try Task.checkCancellation()
+            let uploaded = try await getFile(useCase: useCase, priority: .low)
+            try Task.checkCancellation()
+            let settings = QuickBloxUIKit.settings.dialogsScreen.dialogRow.lastMessage
+            switch uploaded.info.ext.type {
+            case .audio:
+                guard let localURL = uploaded.info.path.localURL else { return nil }
+                return (uploaded.info.name, nil, localURL)
+            case .video:
+                let localURL = uploaded.temporaryUrl
+                var image: Image = settings.videoPlaceholder
+                if let uiImage = await localURL.getThumbnailImage() {
+                    if let size {
+                        let resized = uiImage.resize(to: size)
+                        image = Image(uiImage: resized)
+                    } else {
+                        image = Image(uiImage: uiImage)
                     }
-                    return (uploaded.info.name, Image(uiImage: uiImage) ,nil)
-                case .file:
-                    if uploaded.info.ext == .pdf {
-                        guard let image = await uploaded.preview else {
-                            return (uploaded.info.name, nil, uploaded.info.path.localURL)
-                        }
-                        return (uploaded.info.name, image, uploaded.info.path.localURL)
-                    }
-                    return (uploaded.info.name,
-                            settings.filePlaceholder,
-                            uploaded.info.path.localURL)
                 }
-            } catch { return nil }
-        }
+                return (uploaded.info.name, image, localURL)
+            case .image, .gif:
+                guard let uiImage = UIImage(data: uploaded.data) else {
+                    return (uploaded.info.name, settings.imagePlaceholder, nil)
+                }
+                if let size {
+                    let resized = uiImage.resize(to: size)
+                    return (uploaded.info.name, Image(uiImage: resized) ,nil)
+                }
+                return (uploaded.info.name, Image(uiImage: uiImage) ,nil)
+            case .file:
+                let localURL = uploaded.temporaryUrl
+                return (uploaded.info.name,
+                        settings.filePlaceholder,
+                        localURL)
+            }
+        } catch { return nil }
     }
     
-    var audioFile: (type: String, data: Data?, url: URL?)? {
+    var audioFile: (type: String, data: Data?, url: URL?, time: TimeInterval)? {
         get async throws {
             do {
                 if QuickBloxUIKit.previewAware, id.isEmpty {  return nil }
@@ -293,8 +296,11 @@ extension MessageEntity {
 
                 switch uploaded.info.ext.type {
                 case .audio:
-                    guard let localURL = uploaded.info.path.localURL else { return nil }
-                    return (uploaded.info.name, uploaded.data, localURL)
+                    let localURL = uploaded.temporaryUrl
+                    let asset = AVURLAsset(url: localURL, options: nil)
+                    let duration = try await asset.load(.duration)
+                    let time: TimeInterval = duration.seconds.rounded()
+                    return (uploaded.info.name, uploaded.data, localURL, time)
                 default:
                     return nil
                 }
@@ -303,8 +309,38 @@ extension MessageEntity {
     }
 }
 
+private extension File {
+    var temporaryUrl: URL {
+        let localURL = URL(fileURLWithPath:NSTemporaryDirectory())
+            .appendingPathComponent(info.name)
+            .appendingPathExtension(info.ext.rawValue)
+        let _ = (try? data.write(to: localURL, options: [.atomic])) != nil
+        return localURL
+    }
+}
 
 extension UserEntity {
+    
+    func avatar(size: CGSize) async throws -> Image {
+        if QuickBloxUIKit.previewAware {  return placeholder }
+        
+        if avatarPath.isEmpty { return placeholder }
+        
+        let filesRepo = RepositoriesFabric.files
+        let useCase = GetFile<File, FilesRepository>(id: avatarPath,
+                                                     repo: filesRepo)
+        try Task.checkCancellation()
+        let file = try await getFile(useCase: useCase, priority: .high)
+        try Task.checkCancellation()
+        guard let uiImage = UIImage(data: file.data)?
+            .cropToRect()
+            .resize(to: size) else {
+            let info = "User avatar image data is incorrect"
+            throw RepositoryException.incorrectData(description: info)
+        }
+        return Image(uiImage: uiImage)
+    }
+    
     var avatar: Image {
         get async throws {
             if QuickBloxUIKit.previewAware {  return placeholder }
@@ -317,8 +353,11 @@ extension UserEntity {
             try Task.checkCancellation()
             let file = try await getFile(useCase: useCase, priority: .high)
             try Task.checkCancellation()
-            guard let uiImage = UIImage(data: file.data) else {
-                let info = "Dialog avatar image data is incorrect"
+            let avatarSize = QuickBloxUIKit.settings.dialogNameScreen.avatarSize
+            guard let uiImage = UIImage(data: file.data)?
+                .cropToRect()
+                .resize(to: avatarSize) else {
+                let info = "User avatar image data is incorrect"
                 throw RepositoryException.incorrectData(description: info)
             }
             return Image(uiImage: uiImage)

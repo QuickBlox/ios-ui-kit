@@ -23,6 +23,8 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
     
     @State private var isPlaying: Bool = false
     
+    @State private var progress: CGFloat = 0.5
+    
     public init(message: MessageItem,
                 onTap: @escaping  (_ action: MessageAttachmentAction, _ image: Image?, _ url: URL?) -> Void) {
         self.message = message
@@ -31,14 +33,10 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
     
     public var body: some View {
         
-        Button {
-            play()
-        } label: {
+        HStack {
             
-            HStack {
-                
-                Spacer(minLength: settings.outboundSpacer)
-                
+            Spacer(minLength: settings.outboundSpacer)
+            
                 VStack(alignment: .trailing) {
                     Spacer()
                     HStack(spacing: 3) {
@@ -51,13 +49,17 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
                         Text("\(message.date, formatter: Date.formatter)")
                             .foregroundColor(settings.time.foregroundColor)
                             .font(settings.time.font)
-                    }.padding(.bottom, 2)
+                    }
                 }
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Spacer()
                     
-                    ZStack(alignment: .center) {
+                    Button {
+                        play()
+                    } label: {
+                    
+                    ZStack {
                         
                         if let image = fileTuple?.image {
                             image
@@ -68,12 +70,12 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
                                 .cornerRadius(settings.attachmentRadius,
                                               corners: settings.outboundCorners)
                                 .padding(settings.outboundPadding)
-                            
+
                             settings.videoPlayBackground
                                 .frame(width: settings.imageIconSize.width,
                                        height: settings.imageIconSize.height)
                                 .cornerRadius(6)
-                            
+
                             settings.play
                                 .resizable()
                                 .scaledToFit()
@@ -82,30 +84,48 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
                                 .foregroundColor(settings.videoPlayForeground)
                             
                         } else {
-                            settings.outboundBackground
-                                .frame(width: settings.attachmentSize.width,
-                                       height: settings.attachmentSize.height)
-                                .cornerRadius(settings.attachmentRadius,
-                                              corners: settings.outboundCorners)
-                                .padding(settings.outboundPadding)
                             
-                            settings.play
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: settings.videoIconSize(isImage: false).width,
-                                       height: settings.videoIconSize(isImage: false).height)
-                                .foregroundColor(settings.outboundImageIconForeground)
+                            if progress > 0 {
+                                
+                                settings.progressBarBackground()
+                                    .frame(width: settings.attachmentSize.width,
+                                           height: settings.attachmentSize.height)
+                                    .cornerRadius(settings.attachmentRadius,
+                                                  corners: settings.outboundCorners)
+                                    .padding(settings.outboundPadding)
+                                
+                                SegmentedCircularProgressBar(progress: $progress)
+                                    .padding([.top, .trailing])
+                                
+                            } else {
+                                
+                                settings.outboundBackground
+                                    .frame(width: settings.attachmentSize.width,
+                                           height: settings.attachmentSize.height)
+                                    .cornerRadius(settings.attachmentRadius,
+                                                  corners: settings.outboundCorners)
+                                    .padding(settings.outboundPadding)
+                                
+                                settings.play
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: settings.videoIconSize(isImage: false).width,
+                                           height: settings.videoIconSize(isImage: false).height)
+                                    .foregroundColor(settings.outboundImageIconForeground)
                                 .padding(.top)
+                            }
                         }
                     }
                     .task {
-                        do { fileTuple = try await message.file } catch { prettyLog(error)}
+                        do { fileTuple = try await message.file(size: settings.imageSize) } catch { prettyLog(error)}
                     }
-                }
+                    }.disabled(fileTuple?.url == nil)
+                        
+            }
             }
             .fixedSize(horizontal: false, vertical: true)
             .id(message.id)
-        }.disabled(fileTuple?.url == nil)
+        
     }
     
     private func play() {
@@ -118,47 +138,45 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
     }
 }
 
-//import QuickBloxData
-//
-//struct OutboundVideoMessageRow_Previews: PreviewProvider {
-//
-//    static var previews: some View {
-//        Group {
-//            OutboundVideoMessageRow(message: Message(id: UUID().uuidString,
-//                                                     dialogId: "1f2f3ds4d5d6d",
-//                                                     text: "[Attachment]",
-//                                                     userId: NSNumber(value: QBSession.current.currentUserID).stringValue,
-//                                                     date: Date(),
-//                                                     attachmentImage: Image("attachmentPlaceholder", bundle: .module)),
-//                                    onTap: { _ in})
-//            .previewDisplayName("Video with Thumbnail")
-//
-//            OutboundVideoMessageRow(message: Message(id: UUID().uuidString,
-//                                                     dialogId: "1f2f3ds4d5d6d",
-//                                                     text: "[Attachment]",
-//                                                     userId: NSNumber(value: QBSession.current.currentUserID).stringValue,
-//                                                     date: Date()),
-//                                    onTap: { _ in})
-//            .previewDisplayName("Video without Thumbnail")
-//
-//            OutboundVideoMessageRow(message: Message(id: UUID().uuidString,
-//                                                     dialogId: "1f2f3ds4d5d6d",
-//                                                     text: "[Attachment]",
-//                                                     userId: "2d3d4d5d6d",
-//                                                     date: Date()),
-//                                    onTap: { _ in})
-//            .previewDisplayName("Video without Thumbnail")
-//            .preferredColorScheme(.dark)
-//
-//            OutboundVideoMessageRow(message: Message(id: UUID().uuidString,
-//                                                     dialogId: "1f2f3ds4d5d6d",
-//                                                     text: "[Attachment]",
-//                                                     userId: "2d3d4d5d6d",
-//                                                     date: Date(),
-//                                                     attachmentImage: Image("attachmentPlaceholder", bundle: .module)),
-//                                    onTap: { _ in})
-//            .previewDisplayName("Video with Thumbnail")
-//            .preferredColorScheme(.dark)
-//        }
-//    }
-//}
+import QuickBloxData
+
+struct OutboundVideoMessageRow_Previews: PreviewProvider {
+
+    static var previews: some View {
+        Group {
+            OutboundVideoMessageRow(message: Message(id: UUID().uuidString,
+                                                     dialogId: "1f2f3ds4d5d6d",
+                                                     text: "[Attachment]",
+                                                     userId: "2d3d4d5d6d",
+                                                     date: Date()),
+                                    onTap: { (_,_,_) in})
+            .previewDisplayName("Video with Thumbnail")
+
+            OutboundVideoMessageRow(message: Message(id: UUID().uuidString,
+                                                     dialogId: "1f2f3ds4d5d6d",
+                                                     text: "[Attachment]",
+                                                     userId: "2d3d4d5d6d",
+                                                     date: Date()),
+                                    onTap: { (_,_,_) in})
+            .previewDisplayName("Video without Thumbnail")
+
+            OutboundVideoMessageRow(message: Message(id: UUID().uuidString,
+                                                     dialogId: "1f2f3ds4d5d6d",
+                                                     text: "[Attachment]",
+                                                     userId: "2d3d4d5d6d",
+                                                     date: Date()),
+                                    onTap: { (_,_,_) in})
+            .previewDisplayName("Video without Thumbnail")
+            .preferredColorScheme(.dark)
+
+            OutboundVideoMessageRow(message: Message(id: UUID().uuidString,
+                                                     dialogId: "1f2f3ds4d5d6d",
+                                                     text: "[Attachment]",
+                                                     userId: "2d3d4d5d6d",
+                                                     date: Date()),
+                                    onTap: { (_,_,_) in})
+            .previewDisplayName("Video with Thumbnail")
+            .preferredColorScheme(.dark)
+        }
+    }
+}

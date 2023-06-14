@@ -7,27 +7,29 @@
 //
 
 import SwiftUI
+import QuickBloxLog
+import QuickBloxData
+import QuickBloxDomain
 
 struct DialogHeaderToolbarContent: ToolbarContent {
     
     private var settings = QuickBloxUIKit.settings.dialogScreen.header
     
-    var avatar: Image
-    var name: String
+    var avatar: Image?
+    var dialog: any DialogEntity
     let onDismiss: () -> Void
     let onTapInfo: () -> Void
     
     public init(
-        avatar: Image,
-        name: String,
+        avatar: Image?,
+        dialog: any DialogEntity,
         onDismiss: @escaping () -> Void,
         onTapInfo: @escaping () -> Void
         ) {
             self.avatar = avatar
-            self.name = name
+            self.dialog = dialog
             self.onDismiss = onDismiss
             self.onTapInfo = onTapInfo
-            
         }
     
     public var body: some ToolbarContent {
@@ -45,10 +47,11 @@ struct DialogHeaderToolbarContent: ToolbarContent {
         
         ToolbarItem(placement: .navigationBarLeading) {
             HStack(spacing: 8.0) {
-                AvatarView(image: avatar,
+                AvatarView(image: avatar ?? dialog.placeholder,
                            height: settings.title.avatarHeight,
                            isShow: settings.title.isShowAvatar)
-                Text(name)
+                
+                Text(dialog.name)
                     .font(settings.title.font)
                     .foregroundColor(settings.title.color)
             }
@@ -69,31 +72,29 @@ struct DialogHeaderToolbarContent: ToolbarContent {
 }
 
 public struct DialogHeader: ViewModifier {
-    
     private var settings = QuickBloxUIKit.settings.createDialogScreen.header
     
-    var avatar: Image
-    var name: String
+    var dialog: any DialogEntity
+    @Binding var avatar: Image?
     let onDismiss: () -> Void
     let onTapInfo: () -> Void
     
     public init(
-        avatar: Image,
-        name: String,
+        avatar: Binding<Image?>,
+        dialog: any DialogEntity,
         onDismiss: @escaping () -> Void,
         onTapInfo: @escaping () -> Void
-    ) {
-        self.avatar = avatar
-        self.name = name
-        self.onDismiss = onDismiss
-        self.onTapInfo = onTapInfo
-        
-    }
+        ) {
+            _avatar = avatar
+            self.dialog = dialog
+            self.onDismiss = onDismiss
+            self.onTapInfo = onTapInfo
+        }
     
     public func body(content: Content) -> some View {
         content.toolbar {
             DialogHeaderToolbarContent(avatar: avatar,
-                                       name: name,
+                                       dialog: dialog,
                                        onDismiss: onDismiss,
                                        onTapInfo: onTapInfo)
         }

@@ -20,6 +20,8 @@ public struct LocalMessageDTO: Equatable, Identifiable, Hashable {
     var fileInfo: LocalFileInfoDTO?
     var deliveredIds: [String] = []
     var readIds: [String] = []
+    var isReaded = false
+    var isDelivered = false
     var eventType: MessageEventType = .message
     var type: MessageType = .chat
 }

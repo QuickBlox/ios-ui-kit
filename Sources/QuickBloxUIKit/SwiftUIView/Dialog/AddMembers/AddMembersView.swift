@@ -10,7 +10,7 @@ import SwiftUI
 import QuickBloxDomain
 import QuickBloxData
 
-public struct AddMembersView<ViewModel: MembersDialogProtocol>: View {
+public struct AddMembersView<ViewModel: AddMembersDialogProtocol>: View {
     let settings = QuickBloxUIKit.settings.addMembersScreen
     
     @Environment(\.dismiss) var dismiss
@@ -42,6 +42,9 @@ public struct AddMembersView<ViewModel: MembersDialogProtocol>: View {
             AddUserListView(items: viewModel.displayed, searchText: $viewModel.searchText,
                             onSelect: { item in
                 // action Select Item
+                if viewModel.dialog.participantsIds.contains(where: { $0 == item.id }) == true {
+                    return
+                }
                 viewModel.selectedUser = item
                 isPresented.toggle()
             }, onAppearItem: { itemId in

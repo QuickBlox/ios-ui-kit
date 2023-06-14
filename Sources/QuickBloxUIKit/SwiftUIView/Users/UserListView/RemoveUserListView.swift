@@ -16,6 +16,7 @@ public struct RemoveUserListView<UserItem: UserEntity> where UserItem: Hashable 
     let settings = QuickBloxUIKit.settings.createDialogScreen
     
     private var items: [UserItem]
+    private var isAdmin: Bool
     private var ownerId: String
     
     // Actions
@@ -26,11 +27,13 @@ public struct RemoveUserListView<UserItem: UserEntity> where UserItem: Hashable 
     @State private var visibleRows: Set<String> = []
     
     public init(items: [UserItem],
+                isAdmin: Bool,
                 ownerId: String,
                 onSelect: @escaping (UserItem) -> Void,
                 onAppearItem: @escaping (String) -> Void,
                 onNext: @escaping () -> Void) {
         self.items = items
+        self.isAdmin = isAdmin
         self.ownerId = ownerId
         self.onSelect = onSelect
         self.onAppearItem = onAppearItem
@@ -52,7 +55,7 @@ extension RemoveUserListView: View {
                 List {
                     ForEach(items) { item in
                         ZStack {
-                            RemoveUserRow(item, isSelected: false) { user in
+                            RemoveUserRow(item, isAdmin: isAdmin, ownerId: ownerId, isSelected: false) { user in
                                 onSelect(user)
                             }
                             Separator(isLastRow: items.last?.id == item.id)

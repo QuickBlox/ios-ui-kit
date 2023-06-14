@@ -33,11 +33,18 @@ extension DialogsRepository: DialogsRepositoryProtocol {
                     case .update(witthDialogId: let dialogId): return .update(dialogId)
                     case .leave( let dialogId, let isCurrentUser ):
                         return .leave(dialogId, byUser: isCurrentUser)
+                    case .removed(let dialogId):
+                        return .removed(dialogId)
                     case .newMessage(let message):
                         return .newMessage(Message(message))
                     case .history(let dto):
                         return .history(dto.dialogId,
                                         dto.messages.map { Message($0) })
+                    
+                    case .read(let messageID, let dialogID):
+                        return .read(messageID, dialogID: dialogID)
+                    case .delivered(let messageID, let dialogID):
+                        return .delivered(messageID, dialogID: dialogID)
                     }
                 }
                 .eraseToAnyPublisher()

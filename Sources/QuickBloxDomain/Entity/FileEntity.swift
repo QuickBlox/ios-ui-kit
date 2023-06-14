@@ -101,7 +101,7 @@ public enum FileExtension: String, Codable, Hashable {
         // Files
         case .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx, .txt, .rtf, .csv,
                 .xml, .json, .html, .htm, .zip, .rar, .gz, .tar, .dmg, .exe,
-                .apk, .iso, .deb, .rpm, .bin, .jar, .app, .bat, .sh, .cmd:
+                .apk, .iso, .deb, .rpm, .bin, .jar, .app, .bat, .sh, .cmd, .hprof:
             return .file
         // Images
         case .jpeg, .jpg, .png, .bmp, .tiff, .webp, .svg, .ico, .heic, .heif:
@@ -199,6 +199,7 @@ public enum FileExtension: String, Codable, Hashable {
     case bat
     case sh
     case cmd
+    case hprof
     
     //MARK: Images cases
     case jpeg
@@ -382,6 +383,8 @@ public enum FileExtension: String, Codable, Hashable {
             return "application/x-sh"
         case .cmd:
             return "application/x-msdos-program"
+        case .hprof:
+            return "application/vnd.java.hprof.text"
             
             //MARK: Images mimeType
         case .jpeg, .jpg:

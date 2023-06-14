@@ -82,7 +82,7 @@ open class NewDialogViewModel: NewDialogProtocol {
     public func createDialogModel() {
         //TODO: implement
         if let uiImage = attachmentAsset?.image {
-            Task {
+            Task { [weak self] in
                 var compressionQuality: CGFloat = 1.0
                 let maxFileSize: Int = 10 * 1024 * 1024 // 10MB in bytes
                 var imageData = uiImage.jpegData(compressionQuality: compressionQuality)
@@ -92,16 +92,17 @@ open class NewDialogViewModel: NewDialogProtocol {
                     imageData = uiImage.jpegData(compressionQuality: compressionQuality)
                 }
                 
-                if let finalImageData = imageData {
+                if let finalImageData = imageData, let name = self?.dialogName {
                     let uploadAvatar = UploadFile(data: finalImageData,
                                                   ext: .png,
-                                                  name: dialogName,
+                                                  name: name,
                                                   repo: RepositoriesFabric.files)
                     let fileInfo =  try await uploadAvatar.execute()
-                    await MainActor.run { [fileInfo] in
-                        if let uuid = fileInfo.info.path.uuid {
-                            self.modelDialog = Dialog(type: .group, name: dialogName, photo:uuid)
-                        }
+                    guard let uuid = fileInfo.info.path.uuid else { return }
+                    await MainActor.run { [weak self, uuid] in
+                            self?.modelDialog = Dialog(type: .group,
+                                                       name: name,
+                                                       photo:uuid)
                     }
                 }
             }

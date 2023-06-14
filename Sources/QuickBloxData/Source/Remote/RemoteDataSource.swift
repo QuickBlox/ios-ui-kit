@@ -47,8 +47,10 @@ private actor Chat {
     }
     
     func send(_ message: QBChatMessage) async {
-        guard let id = dialog.id else { return }
-        await subscribe()
+        guard let id = dialog.id, id == message.dialogID else { return }
+        if dialog.type != .private {
+            await subscribe()
+        }
         do {
             try await Task.wait(second: 0.3)
             try Task.checkCancellation()
@@ -56,7 +58,7 @@ private actor Chat {
             try await dialog.send(message)
             try Task.checkCancellation()
         } catch {
-            prettyLog(label: "Join to \(id)", error)
+            prettyLog(label: "Send to \(id)", error)
         }
     }
     
@@ -109,6 +111,14 @@ private actor MessagesStreamController {
         Task { await new.subscribe() }
     }
     
+    func update(chat dialog: QBChatDialog) async {
+        guard let id = dialog.id else { return }
+        let new = Chat(dialog)
+        chats[id] = new
+        print("!!!!!!!! update(chat dialog")
+        Task { await new.subscribe() }
+    }
+    
     func remove(chat id: String) async {
         guard let chat = chats[id] else { return }
         await chat.unsubscribe()
@@ -127,6 +137,32 @@ private actor MessagesStreamController {
     
     func process(_ message: QBChatMessage) async {
         let event = RemoteEvent(RemoteMessageDTO(message))
+        subject.send(event)
+    }
+    
+    func didRead(_ messageID: String, dialogID: String, readerID: String) async {
+        var dto = RemoteMessageDTO()
+        dto.dialogId = dialogID
+        dto.id = messageID
+        dto.readIds.append(readerID)
+        dto.type = .event
+        dto.eventType = .read
+        let event = RemoteEvent(dto)
+        subject.send(event)
+    }
+    
+    func didDilivered(_ messageID: String, dialogID: String, toUserID userID: String) async {
+        var dto = RemoteMessageDTO()
+        dto.dialogId = dialogID
+        dto.id = messageID
+        dto.deliveredIds.append(userID)
+        dto.type = .event
+        dto.eventType = .delivered
+        let event = RemoteEvent(dto)
+        subject.send(event)
+    }
+    
+    func process(_ event: RemoteEvent) async {
         subject.send(event)
     }
     
@@ -170,7 +206,7 @@ class RemoteDataSource: NSObject, RemoteDataSourceProtocol {
         super.init()
         //FIXME: Must be set QBSettings.applicationID before using QBSession.currentSession
         QBSettings.disableXMPPLogging()
-        QBSettings.logLevel = .nothing
+        QBSettings.logLevel = .debug
         QBSettings.carbonsEnabled = true
         qbChat.addDelegate(self)
         
@@ -219,32 +255,6 @@ class RemoteDataSource: NSObject, RemoteDataSourceProtocol {
                                                .qbLogoutEvent,
                                                nil)
         }
-    }
-}
-
-private extension QBChatMessage {
-    var type: MessageEventType {
-        if let notification = self.customParameters[Key.type] as? String {
-            switch notification {
-            case Value.create: return .create
-            case Value.update: return .update
-            case Value.leave: return .leave
-            default: return .message
-            }
-        }
-        return .message
-    }
-    
-    struct Value {
-        static let create = "1"
-        static let update = "2"
-        static let leave = "3"
-    }
-    
-    struct Key {
-        static let type = "notification_type"
-        static let save = "save_to_history"
-        static let dialogId = "dialog_id"
     }
 }
 
@@ -319,6 +329,34 @@ extension RemoteDataSource {
             connectionSubject.send(.disconnected())
         }
     }
+    
+    func readAsync(_ message: QBChatMessage) async throws {
+        return try await withCheckedThrowingContinuation({
+            (continuation: CheckedContinuation<Void, Error>) in
+            QBChat.instance.read(message) { (error) in
+                if let error = error {
+                    prettyLog(error)
+                    continuation.resume(throwing:error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        })
+    }
+    
+    func markAsDeliveredAsync(_ message: QBChatMessage) async throws {
+        return try await withCheckedThrowingContinuation({
+            (continuation: CheckedContinuation<Void, Error>) in
+            QBChat.instance.mark(asDelivered: message) { (error) in
+                if let error = error {
+                    prettyLog(error)
+                    continuation.resume(throwing:error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        })
+    }
 }
 
 //MARK: QBChatDelegate
@@ -366,68 +404,140 @@ extension RemoteDataSource: QBChatReceiveMessageProtocol {
                             fromDialogID dialogID: String) {
         message.dialogID = dialogID
         if message.senderID == currentUserId { return }
-        Task { await stream.process(message) }
+        
+        if message.type == .leave || message.type == .removed || message.type == .update {
+            let withId = RemoteDialogDTO(id: dialogID)
+            Task {
+                try await getAndUpdate(dialog: withId)
+                await stream.process(message)
+                return
+            }
+        }
+        Task {
+            await stream.process(message)
+        }
     }
     
     func chatDidReceiveSystemMessage(_ message: QBChatMessage) {
         if message.senderID == currentUserId { return }
         Task { await stream.process(message) }
     }
+    
+    func chatDidReadMessage(withID messageID: String, dialogID: String, readerID: UInt) {
+        Task { await stream.didRead(messageID, dialogID: dialogID, readerID: String(readerID)) }
+    }
+
+    func chatDidDeliverMessage(withID messageID: String, dialogID: String, toUserID userID: UInt) {
+        Task { await stream.didDilivered(messageID, dialogID: dialogID, toUserID: String(userID)) }
+    }
 }
 
 //MARK: Dialogs
 extension RemoteDataSource {
     func create(dialog dto: RemoteDialogDTO) async throws -> RemoteDialogDTO {
-        let dialog = QBChatDialog(dialogID: nil,
-                                  type: dto.type.mapToQBDialogType)
-        let pIds = dto.participantsIds.map{ NSNumber(value: Int($0) ?? 0) }
-        
-        dialog.occupantIDs = pIds
-        if dialog.type == .group {
-            dialog.name = dto.name
-            dialog.photo = dto.photo
+            let dialog = QBChatDialog(dialogID: nil,
+                                      type: dto.type.mapToQBDialogType)
+            let pIds = dto.participantsIds.map{ NSNumber(value: Int($0) ?? 0) }
+            
+            dialog.occupantIDs = pIds
+            if dialog.type == .group {
+                dialog.name = dto.name
+                dialog.photo = dto.photo
+            }
+            let created = try await QBRequest.create(dialog: dialog)
+            try? await Task.wait(second: 0.2)
+            await stream.add(chat: created)
+            
+            guard let dialogId = created.id else {
+                let info = "Dialog with id: \(dto.id)"
+                throw RemoteDataSourceException.incorrectData(description: info)
+            }
+            
+            var message = RemoteMessageDTO.eventMessage(create(dialogText: dto.name),
+                                                        dialogId: dialogId,
+                                                        type: .chat,
+                                                        eventType: .create)
+            if dto.type == .private, let recipientId = dto.participantsIds.first {
+                message.recipientId = recipientId
+            }
+            
+            let qbChatMessage = QBChatMessage(message, toSend: true)
+            
+            if dto.type == .private {
+                qbChatMessage.customParameters[QBChatMessage.Key.save] = false
+            }
+            
+            await stream.send(qbChatMessage)
+            
+            let system = QBChatMessage()
+            let params = NSMutableDictionary()
+            params[QBChatMessage.Key.type] = QBChatMessage.Value.create
+            params[QBChatMessage.Key.dialogId] = created.id
+            system.customParameters = params
+            
+            system.senderID = QBSession.current.currentUserID
+            system.text = "Create Dialog"
+            system.markable = false
+            system.dateSent = Date()
+            
+            system.recipientID = QBSession.current.currentUserID
+            await stream.process(system)
+            
+            for id in dto.participantsIds {
+                system.recipientID = UInt(id) ?? 0
+                try? await qbChat.sendSystemMessage(system)
+            }
+            
+            return RemoteDialogDTO(created)
         }
-        let created = try await QBRequest.create(dialog: dialog)
-        try? await Task.wait(second: 0.2)
-        await stream.add(chat: created)
         
-        guard let dialogId = created.id else {
-            let info = "Dialog with id: \(dto.id)"
-            throw RemoteDataSourceException.incorrectData(description: info)
+        private func create(dialogText chatName: String) -> String {
+            let actionMessage = "created the group chat"
+            guard let current = QBSession.current.currentUser else {
+                return ""
+            }
+            return "\(current.fullName ?? "\(current.id)") \(actionMessage) \"\(chatName)\""
         }
-        
-        var message = RemoteMessageDTO.eventMessage(create(dialogText: dto.name),
-                                                    dialogId: dialogId,
-                                                    type: .chat,
-                                                    eventType: .create)
-        if dto.type == .private {
-            message.recipientId = String(QBSession.current.currentUserID)
-        }
-        await stream.send(QBChatMessage(message))
-        
-        let system = QBChatMessage()
-        let params = NSMutableDictionary()
-        params[QBChatMessage.Key.type] = QBChatMessage.Value.create
-        params[QBChatMessage.Key.dialogId] = created.id
-        system.customParameters = params
-        for id in dto.participantsIds {
-            system.recipientID = UInt(id) ?? 0
-            try? await qbChat.sendSystemMessage(system)
-        }
-        system.recipientID = QBSession.current.currentUserID
-        await stream.process(system)
-        
-        return RemoteDialogDTO(created)
-    }
     
-    private func create(dialogText chatName: String) -> String {
-        let actionMessage = "created the group chat"
-        guard let current = QBSession.current.currentUser,
-              let fullName = current.fullName, chatName.isEmpty == false else {
-            return ""
-        }
-        return "\(fullName) \(actionMessage) \"\(chatName)\""
-    }
+    
+//    func create(dialog dto: RemoteDialogDTO) async throws -> RemoteDialogDTO {
+//        let dialog = QBChatDialog(dialogID: nil,
+//                                  type: dto.type.mapToQBDialogType)
+//        let pIds = dto.participantsIds.map{ NSNumber(value: Int($0) ?? 0) }
+//
+//        dialog.occupantIDs = pIds
+//        if dialog.type == .group {
+//            dialog.name = dto.name
+//            dialog.photo = dto.photo
+//        }
+//        let created = try await QBRequest.create(dialog: dialog)
+//        try await Task.wait(second: 0.2)
+//        await stream.add(chat: created)
+//        try await Task.wait(second: 0.6)
+//
+//        guard let dialogId = created.id else {
+//            let info = "Dialog with id: \(dto.id)"
+//            throw RemoteDataSourceException.incorrectData(description: info)
+//        }
+//
+//        let message = try QBChatMessage.create(dialog: dialogId, dialogName: dto.name)
+//        if dto.type == .private {
+//            message.customParameters[QBChatMessage.Key.save] = false
+//        }
+//        await stream.send(message)
+//
+//        let system = try QBChatMessage.createSystem(dialog: dialogId)
+//        await stream.process(system)
+//
+//        if dto.type == .group {
+//            for id in dto.participantsIds {
+//                system.recipientID = UInt(id) ?? 0
+//                try? await qbChat.sendSystemMessage(system)
+//            }
+//        }
+//
+//        return RemoteDialogDTO(created)
+//    }
     
     func update(dialog dto: RemoteDialogDTO,
                 users: [RemoteUserDTO]) async throws -> RemoteDialogDTO {
@@ -443,17 +553,20 @@ extension RemoteDataSource {
             throw DataSourceException.notFound(description: info)
         }
         var text = Log()
-        if dto.name.isEmpty == false {
+        if dto.name.isEmpty == false, dialog.name != dto.name {
             dialog.name = dto.name
             text = text
                 .add("The dialog renamed by user \(userName)")
-                .nextLine
+                .newLine
         }
-        if dto.photo.isEmpty == false {
-            dialog.photo = dto.photo
+        
+        let photo = dto.photo == "" ? nil : dto.photo
+        if dialog.photo != photo {
+            dialog.photo = photo
+            
             text = text
-                .add("The dialog avatar changed by user \(userName)")
-                .nextLine
+                .add("The avatar was changed")
+                .newLine
         }
         var pullIds: [String] = []
         var pullLog = Log()
@@ -468,27 +581,27 @@ extension RemoteDataSource {
         for user in users {
             if set.contains(user.id) {
                 if pullIds.isEmpty {
-                    pullLog = pullLog.add(userName)
+                    pullLog = pullLog.add(user.name)
                 } else {
-                    pullLog = pullLog.coma.add(userName)
+                    pullLog = pullLog.coma.add(user.name)
                 }
                 pullIds.append(user.id)
             } else {
                 if pushIds.isEmpty {
-                    pushLog = pushLog.add(userName)
+                    pushLog = pushLog.add(user.name)
                 } else {
-                    pushLog = pushLog.coma.add(userName)
+                    pushLog = pushLog.coma.add(user.name)
                 }
                 pushIds.append(user.id)
             }
         }
         
         if pushIds.isEmpty == false {
-            text = text.add(pushLog).space.add("removed by \(userName)")
+            text = text.add(pushLog).space.add("added by \(userName)")
         }
         
         if pullIds.isEmpty == false {
-            text = text.add(pullLog).space.add("added by \(userName)")
+            text = text.add(pullLog).space.add("removed by \(userName)")
         }
         
         dialog.pushOccupantsIDs = pushIds
@@ -500,23 +613,41 @@ extension RemoteDataSource {
                                                     dialogId: dialogId,
                                                     type: .chat,
                                                     eventType: .update)
-        await stream.send(QBChatMessage(message))
+        await stream.send(QBChatMessage(message, toSend: true))
+        await stream.update(chat: updated)
         
         var system = RemoteMessageDTO.eventMessage(text.value,
                                                    dialogId: dialogId,
                                                    type: .event,
                                                    eventType: .update)
         var ids: Set<String> = []
-        ids.formUnion(dto.participantsIds)
-        ids.formUnion(pullIds)
+        if pushIds.isEmpty == false {
+            ids.formUnion(pushIds)
+        }
+        if pullIds.isEmpty == false {
+            system.eventType = .removed
+            ids.formUnion(pullIds)
+        }
         for id in ids {
             system.recipientId = id
-            try? await qbChat.sendSystemMessage(QBChatMessage(system))
+            try? await qbChat.sendSystemMessage(QBChatMessage(system, toSend: true))
         }
         system.recipientId = String(user.id)
-        await stream.process(QBChatMessage(system))
+        await stream.process(QBChatMessage(system, toSend: true))
         
         return RemoteDialogDTO(updated)
+    }
+    
+    func getAndUpdate(dialog dto: RemoteDialogDTO) async throws {
+        do {
+            let dialog = try await QBRequest.dialog(with: dto.id)
+            await stream.update(chat: dialog)
+
+        } catch let nsError as NSError {
+            throw try nsError.convertToRemoteException()
+        } catch {
+            throw DataSourceException.unexpected(error.localizedDescription)
+        }
     }
     
     func get(dialog dto: RemoteDialogDTO) async throws -> RemoteDialogDTO {
@@ -578,29 +709,33 @@ extension RemoteDataSource {
     }
     
     func delete(dialog dto: RemoteDialogDTO) async throws {
-        guard let user = QBSession.current.currentUser else {
-            let info = "Current user not found"
-            throw DataSourceException.notFound(description: info)
+        if dto.id.isEmpty {
+            let info = "Internal. Empty dialog id"
+            throw RepositoryException.incorrectData(description: info)
         }
-        let info = "\(user.fullName ?? dto.id) " + "has left"
-        var message = RemoteMessageDTO.eventMessage(info,
-                                                    dialogId: dto.id,
-                                                    type: .chat,
-                                                    eventType: .leave)
-        await stream.send(QBChatMessage(message))
-        message.type = .event
-        await stream.process(QBChatMessage(message))
+        
+        let message = try QBChatMessage.leave(dialog: dto.id)
+        if dto.type == .private {
+            message.customParameters[QBChatMessage.Key.save] = false
+        }
+        await stream.send(message)
+        try await Task.wait(second: 0.6)
         
         if dto.type == .private {
-            try await QBRequest.delete(dialog: dto.id, force: false)
-            try await Task.wait(second: 0.2)
             if dto.isOwnedByCurrentUser {
                 try await QBRequest.delete(dialog: dto.id, force: true)
+            } else {
+                try await QBRequest.delete(dialog: dto.id, force: false)
             }
         } else if dto.type == .group {
             let dialog = try await stream.qbChat(with: dto.id)
             try await QBRequest.leave(dialog: dialog)
         }
+        
+        try await Task.wait(second: 0.6)
+        await stream.remove(chat: dto.id)
+        
+        await stream.process(.leave(dto.id, byUser: true))
     }
 }
 
@@ -608,7 +743,7 @@ extension RemoteDataSource {
 extension RemoteDataSource {
     func get(messages dto: RemoteMessagesDTO) async throws -> RemoteMessagesDTO {
         do {
-            let result = try await QBRequest.messagess(withDialogId: dto.dialogId,
+            let result = try await QBRequest.messages(withDialogId: dto.dialogId,
                                                        messagesIds: dto.ids,
                                                        pagination: dto.pagination)
             let messages = result.messages.map { RemoteMessageDTO($0) }
@@ -624,7 +759,7 @@ extension RemoteDataSource {
     }
     
     func send(message dto: RemoteMessageDTO) async throws {
-        let message = QBChatMessage(dto)
+        let message = QBChatMessage(dto, toSend: true)
         await stream.send(message)
         await stream.process(message)
     }
@@ -635,6 +770,22 @@ extension RemoteDataSource {
     
     func delete(message dto: RemoteMessageDTO) async throws {
         throw DataSourceException.unexpected()
+    }
+    
+    func read(message dto: RemoteMessageDTO) async throws {
+        let userId = QBSession.current.currentUserID
+        if dto.readIds.contains(String(userId)) == true { return }
+        let message = QBChatMessage(dto, toSend: false)
+        try await readAsync(message)
+        await stream.didRead(dto.id, dialogID: dto.dialogId, readerID: String(userId))
+    }
+    
+    func markAsDelivered(message dto: RemoteMessageDTO) async throws {
+        let userId = QBSession.current.currentUserID
+        if dto.deliveredIds.contains(String(userId)) == true { return }
+        let message = QBChatMessage(dto, toSend: false)
+        try await markAsDeliveredAsync(message)
+        await stream.didDilivered(dto.id, dialogID: dto.dialogId, toUserID: String(userId))
     }
 }
 
@@ -1155,7 +1306,7 @@ private extension QBRequest {
         })
     }
     
-    static func messagess(withDialogId dialogId: String,
+    static func messages(withDialogId dialogId: String,
                           messagesIds: [String],
                           pagination startPage: Pagination)
     async throws -> (messages: [QBChatMessage], pagination: Pagination) {
@@ -1332,6 +1483,9 @@ private extension RemoteMessageDTO {
         if let date = value.dateSent { self.dateSent = date }
         if let params = value.customParameters as? [String: String] {
             customParameters = params
+            if let save = params[QBChatMessage.Key.save] {
+                saveToHistory = save == "1" ? true : false
+            }
             if dialogId.isEmpty, let id = params[QBChatMessage.Key.dialogId] {
                 dialogId = id
             }
@@ -1357,14 +1511,29 @@ private extension RemoteMessageDTO {
         type = eventType == .message ? .chat : .event
         
         let current = String(QBSession.current.currentUserID)
-        if let ids = value.deliveredIDs {
-            deliveredIds = ids.map { $0.stringValue }.filter { $0 != current }
-        }
-        
-        if let ids = value.readIDs {
-            readIds = ids.map { $0.stringValue }.filter { $0 != current }
-        }
+//        if let ids = value.deliveredIDs {
+//            deliveredIds = ids.map { $0.stringValue }.filter { $0 != current }
+//        }
+//
+//        if let ids = value.readIDs {
+//            readIds = ids.map { $0.stringValue }.filter { $0 != current }
+//        }
         isOwnedByCurrentUser = senderId == current
+        if isOwnedByCurrentUser {
+            if let ids = value.deliveredIDs {
+                isDelivered = ids.map { $0.stringValue }.filter { $0 != current }.isEmpty == false
+            }
+            if let ids = value.readIDs {
+                isReaded = ids.map { $0.stringValue }.filter { $0 != current }.isEmpty == false
+            }
+        } else {
+            if let ids = value.readIDs {
+                isReaded = ids.map { $0.stringValue }.contains(current) == true
+            }
+            if let ids = value.deliveredIDs {
+                isDelivered = ids.map { $0.stringValue }.contains(current) == true
+            }
+        }
     }
     
     static func eventMessage(_ text: String,
@@ -1391,12 +1560,20 @@ private extension RemoteMessageDTO {
             message.customParameters[QBChatMessage.Key.dialogId] = dialogId
             message.customParameters[QBChatMessage.Key.type]
             = QBChatMessage.Value.leave
+        case .removed:
+            message.customParameters[QBChatMessage.Key.dialogId] = dialogId
+            message.customParameters[QBChatMessage.Key.type]
+            = QBChatMessage.Value.removed
         case .message:
             message.markable = true
             message.dialogId = dialogId
             message.customParameters[QBChatMessage.Key.save] = "1"
             message.deliveredIds = [message.senderId]
             message.readIds = [message.senderId]
+        case .read:
+            break
+        case .delivered:
+            break
         }
         if type == .chat {
             message.dialogId = dialogId
@@ -1406,14 +1583,17 @@ private extension RemoteMessageDTO {
 }
 
 extension QBChatMessage {
-    convenience init(_ value: RemoteMessageDTO) {
+    convenience init(_ value: RemoteMessageDTO, toSend: Bool) {
         self.init()
+        if toSend == false {
+            id = value.id
+        }
         dialogID = value.dialogId
         text = value.text
-        senderID = QBSession.current.currentUserID
+        senderID = (toSend == true ? QBSession.current.currentUserID : UInt(value.senderId)) ?? 0
         recipientID = UInt(value.recipientId) ?? 0
         senderResource = value.senderResource
-        dateSent = Date()
+        dateSent = toSend == true ? Date() : value.dateSent
         customParameters = NSMutableDictionary(dictionary: value.customParameters)
         if value.type == .chat {
             customParameters[QBChatMessage.Key.save] = true
@@ -1433,7 +1613,14 @@ extension QBChatMessage {
         case .leave:
             customParameters[QBChatMessage.Key.type]
             = QBChatMessage.Value.leave
+        case .removed:
+            customParameters[QBChatMessage.Key.type]
+            = QBChatMessage.Value.removed
         case .message:
+            break
+        case .read:
+            break
+        case .delivered:
             break
         }
         
@@ -1444,8 +1631,8 @@ extension QBChatMessage {
         delayed = value.delayed
         markable = value.markable
         
-        readIDs = [NSNumber(value: QBSession.current.currentUserID)]
-        deliveredIDs = [NSNumber(value: QBSession.current.currentUserID)]
+        readIDs = toSend == true ? [NSNumber(value: QBSession.current.currentUserID)] : value.readIds.compactMap { NSNumber(value: UInt($0) ?? 0) }
+        deliveredIDs = toSend == true ? [NSNumber(value: QBSession.current.currentUserID)] : value.deliveredIds.compactMap { NSNumber(value: UInt($0) ?? 0) }
     }
 }
 

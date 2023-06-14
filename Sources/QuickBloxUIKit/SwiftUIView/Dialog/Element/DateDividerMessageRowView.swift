@@ -35,18 +35,16 @@ public struct DateDividerMessageRowView<MessageItem: MessageEntity>: View {
     }
 }
 
-//import QuickBloxData
-//
-//struct DateDividerMessageRowView_Previews: PreviewProvider {
-//    
-//    static var previews: some View {
-//        Group {
-//            DateDividerMessageRowView(message: Message(id: UUID().uuidString, dialogId: "1f2f3ds4d5d6d", text: "Yesterday", userId: NSNumber(value: QBSession.current.currentUserID).stringValue, date: Date()))
-//                .previewDisplayName("Out Message")
-//            
-//            DateDividerMessageRowView(message: Message(id: UUID().uuidString, dialogId: "1f2f3ds4d5d6d", text: "5 June", userId: "2d3d4d5d6d", date: Date()))
-//                .previewDisplayName("Out Dark Message")
-//                .preferredColorScheme(.dark)
-//        }
-//    }
-//}
+struct DateDividerMessageRowView_Previews: PreviewProvider {
+    
+    static var previews: some View {
+        Group {
+            DateDividerMessageRowView(message: Message(id: UUID().uuidString, dialogId: "1f2f3ds4d5d6d", text: "Yesterday", userId: "2d3d4d5d6d", date: Date()))
+                .previewDisplayName("Out Message")
+            
+            DateDividerMessageRowView(message: Message(id: UUID().uuidString, dialogId: "1f2f3ds4d5d6d", text: "5 June", userId: "2d3d4d5d6d", date: Date()))
+                .previewDisplayName("Out Dark Message")
+                .preferredColorScheme(.dark)
+        }
+    }
+}

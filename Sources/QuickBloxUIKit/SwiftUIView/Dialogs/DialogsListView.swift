@@ -11,12 +11,12 @@ import QuickBloxDomain
 import QuickBloxData
 import Combine
 
-public struct DialogsListView<DialogsList: DialogsListProtocol , DialogItemView: View> {
+public struct DialogsListView<DialogsList: DialogsListProtocol, DialogItemView: View> {
     @Environment(\.isSearching) private var isSearching: Bool
     
     let settings = QuickBloxUIKit.settings.dialogsScreen
     
-    @ObservedObject public var dialogsList: DialogsList
+    @StateObject public var dialogsList: DialogsList
     
     private var content: (DialogsList.Item) -> DialogItemView
     @State private var searchText = ""
@@ -35,7 +35,7 @@ public struct DialogsListView<DialogsList: DialogsListProtocol , DialogItemView:
     
     public init(dialogsList: DialogsList,
                 @ViewBuilder content: @escaping (DialogsList.Item) -> DialogItemView) {
-        self.dialogsList = dialogsList
+        _dialogsList = StateObject(wrappedValue: dialogsList)
         self.content = content
     }
 }
@@ -50,6 +50,7 @@ extension DialogsListView: View {
                     HStack(spacing: 12) {
                         ProgressView()
                         Text(" " + stage.rawValue)
+                            .foregroundColor(settings.dialogRow.lastMessage.foregroundColor)
                     }.padding(.top)
                     if let info = error?.errorDescription {
                         Text(info).font(.subheadline).padding()
@@ -83,7 +84,7 @@ extension DialogsListView: View {
     
     @ViewBuilder
     private func dialogsView() -> some View {
-        if items.isEmpty {
+        if items.isEmpty && dialogsList.syncState == .synced {
             Text(settings.itemsIsEmpty)
         } else {
             List {
@@ -106,6 +107,7 @@ extension DialogsListView: View {
                         }
                     }
                 }
+                .onDelete { _ in }
                 .listRowInsets(EdgeInsets())
                 .listRowSeparator(.hidden)
             }.listStyle(.plain)

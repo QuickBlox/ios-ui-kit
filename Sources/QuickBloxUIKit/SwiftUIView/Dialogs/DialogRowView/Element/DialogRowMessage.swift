@@ -34,7 +34,7 @@ extension DialogRowMessage: View {
         } else {
             contentView()
                 .task {
-                    do { fileTuple = try await dialog.attachment } catch { prettyLog(error)}
+                    do { fileTuple = try await dialog.attachment(size: settings.size) } catch { prettyLog(error)}
                 }
         }
     }

@@ -70,4 +70,16 @@ public protocol MessagesRepositoryProtocol {
     ///
     /// - Throws: ``RepositoryException``**.notFound**  when a ``MessageEntity`` item is missing from local storage.
     func delete(messageFromLocal entity: MessageEntityItem) async throws
+    
+    /// Read a message in the remote server.
+    /// - Parameter entity: ``MessageEntity`` item.
+    ///
+    /// - Throws: ``RepositoryException``**.incorrectData** when wrong format of data, missing required fields, or providing incorrect values.
+    func read(messageInRemote entity: MessageEntityItem) async throws
+    
+    /// Mark as delivered  a message in the remote server.
+    /// - Parameter entity: ``MessageEntity`` item.
+    ///
+    /// - Throws: ``RepositoryException``**.incorrectData** when wrong format of data, missing required fields, or providing incorrect values.
+    func markAsDelivered(messageInRemote entity: MessageEntityItem) async throws
 }

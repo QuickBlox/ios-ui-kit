@@ -27,6 +27,8 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
     
     @State public var userName: String?
     
+    @State private var progress: CGFloat = 0.5
+    
     public init(message: MessageItem,
                 onTap: @escaping  (_ action: MessageAttachmentAction, _ image: Image?, _ url: URL?) -> Void) {
         self.message = message
@@ -34,7 +36,7 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
     }
     
     public var body: some View {
-
+        
         HStack {
             
             if settings.isShowAvatar == true {
@@ -44,7 +46,7 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
                                height: settings.avatar.height,
                                isShow: settings.isShowAvatar)
                     .task {
-                        do { avatar = try await message.avatar } catch { prettyLog(error) }
+                        do { avatar = try await message.avatar(size: CGSizeMake(settings.avatar.height, settings.avatar.height))} catch { prettyLog(error) }
                     }
                 }.padding(.leading)
             }
@@ -87,6 +89,18 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
                                     .foregroundColor(settings.videoPlayForeground)
                                 
                             } else {
+                                if progress > 0 {
+                                    
+                                    settings.progressBarBackground()
+                                        .frame(width: settings.attachmentSize.width,
+                                               height: settings.attachmentSize.height)
+                                        .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
+                                        .padding(settings.inboundPadding(showName: settings.isShowName))
+                                    
+                                    SegmentedCircularProgressBar(progress: $progress)
+                                    
+                                } else {
+                                    
                                 settings.inboundBackground
                                     .frame(width: settings.attachmentSize.width,
                                            height: settings.attachmentSize.height)
@@ -95,13 +109,15 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
                                 
                                 Text(settings.gifTitle)
                                     .font(settings.gifFont)
-                                    .foregroundColor(settings.inboundImageIconForeground)
+                                .foregroundColor(settings.inboundImageIconForeground)
+                                
+                            }
                             }
                         }
                     }
                     .disabled(fileTuple?.image == nil)
                     .task {
-                        do { fileTuple = try await message.file } catch { prettyLog(error)}
+                        do { fileTuple = try await message.file(size: settings.imageSize) } catch { prettyLog(error)}
                     }
                     
                     if settings.isShowTime == true {
@@ -131,48 +147,45 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
     }
 }
 
-//import QuickBloxData
-//
-//struct InboundGIFMessageRow_Previews: PreviewProvider {
-//    
-//    static var previews: some View {
-//        Group {
-//            InboundGIFMessageRow(message: Message(id: UUID().uuidString,
-//                                                    dialogId: "1f2f3ds4d5d6d",
-//                                                    text: "[Attachment]",
-//                                                    userId: NSNumber(value: QBSession.current.currentUserID).stringValue,
-//                                                    date: Date(),
-////                                                    attachmentImage: Image("attachmentPlaceholder", bundle: .module)
-//                                                 ),
-//                                 onTap: { _ in})
-//            .previewDisplayName("Video with Thumbnail")
-//            
-//            InboundGIFMessageRow(message: Message(id: UUID().uuidString,
-//                                                    dialogId: "1f2f3ds4d5d6d",
-//                                                    text: "[Attachment]",
-//                                                    userId: NSNumber(value: QBSession.current.currentUserID).stringValue,
-//                                                    date: Date()),
-//                                 onTap: { _ in})
-//            .previewDisplayName("Video without Thumbnail")
-//            
-//            InboundGIFMessageRow(message: Message(id: UUID().uuidString,
-//                                                    dialogId: "1f2f3ds4d5d6d",
-//                                                    text: "[Attachment]",
-//                                                    userId: "2d3d4d5d6d",
-//                                                    date: Date()),
-//                                 onTap: { _ in})
-//            .previewDisplayName("Video without Thumbnail")
-//            .preferredColorScheme(.dark)
-//            
-//            InboundGIFMessageRow(message: Message(id: UUID().uuidString,
-//                                                    dialogId: "1f2f3ds4d5d6d",
-//                                                    text: "[Attachment]",
-//                                                    userId: "2d3d4d5d6d",
-//                                                    date: Date(),
-//                                                    attachmentImage: Image("attachmentPlaceholder", bundle: .module)),
-//                                 onTap: { _ in})
-//            .previewDisplayName("Video with Thumbnail")
-//            .preferredColorScheme(.dark)
-//        }
-//    }
-//}
+import QuickBloxData
+
+struct InboundGIFMessageRow_Previews: PreviewProvider {
+    
+    static var previews: some View {
+        Group {
+            InboundGIFMessageRow(message: Message(id: UUID().uuidString,
+                                                    dialogId: "1f2f3ds4d5d6d",
+                                                    text: "[Attachment]",
+                                                  userId: "2d3d4d5d6d",
+                                                  date: Date()),
+                                 onTap: { (_,_,_) in})
+            .previewDisplayName("Video with Thumbnail")
+            
+            InboundGIFMessageRow(message: Message(id: UUID().uuidString,
+                                                    dialogId: "1f2f3ds4d5d6d",
+                                                    text: "[Attachment]",
+                                                  userId: "2d3d4d5d6d",
+                                                  date: Date()),
+                                 onTap: { (_,_,_) in})
+            .previewDisplayName("Video without Thumbnail")
+            
+            InboundGIFMessageRow(message: Message(id: UUID().uuidString,
+                                                    dialogId: "1f2f3ds4d5d6d",
+                                                    text: "[Attachment]",
+                                                  userId: "2d3d4d5d6d",
+                                                  date: Date()),
+                                 onTap: { (_,_,_) in})
+            .previewDisplayName("Video without Thumbnail")
+            .preferredColorScheme(.dark)
+            
+            InboundGIFMessageRow(message: Message(id: UUID().uuidString,
+                                                    dialogId: "1f2f3ds4d5d6d",
+                                                    text: "[Attachment]",
+                                                  userId: "2d3d4d5d6d",
+                                                  date: Date()),
+                                 onTap: { (_,_,_) in})
+            .previewDisplayName("Video with Thumbnail")
+            .preferredColorScheme(.dark)
+        }
+    }
+}

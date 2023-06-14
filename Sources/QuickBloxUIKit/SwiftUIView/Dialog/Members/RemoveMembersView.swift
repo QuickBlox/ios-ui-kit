@@ -40,8 +40,14 @@ public struct RemoveMembersView<ViewModel: MembersDialogProtocol>: View {
         ZStack {
             settings.backgroundColor.ignoresSafeArea()
             
-            RemoveUserListView(items: viewModel.displayed, ownerId: viewModel.dialog.ownerId, onSelect: { item in
+            RemoveUserListView(items: viewModel.displayed,
+                               isAdmin: viewModel.dialog.isOwnedByCurrentUser,
+                               ownerId: viewModel.dialog.ownerId,
+                               onSelect: { item in
                 // action Select Item
+                if viewModel.dialog.participantsIds.contains(where: { $0 == item.id }) == false {
+                    return
+                }
                 viewModel.selectedUser = item
                 isAlertPresented.toggle()
             }, onAppearItem: { itemId in
@@ -67,7 +73,7 @@ public struct RemoveMembersView<ViewModel: MembersDialogProtocol>: View {
         
         NavigationLink(isActive: $isAddPresented) {
             if let dialog = viewModel.dialog as? Dialog {
-                AddMembersView(viewModel: MembersDialogViewModel(dialog: dialog, type: .add))
+                AddMembersView(viewModel: AddMembersDialogViewModel(dialog: dialog))
             }
         } label: {
             EmptyView()

@@ -16,9 +16,9 @@ public protocol DialogInfoProtocol: ObservableObject {
     associatedtype Item: DialogEntity
     var dialog: Item { get set }
     var dialogName: String { get set }
+    var error: String { get set }
     var isValidDialogName: Bool { get set }
     var isExistingImage: Bool { get }
-    var selectedImage: Image? { get set }
     var isProcessing: CurrentValueSubject<Bool, Never> { get set }
     
     func removeExistingImage()
@@ -30,13 +30,14 @@ public protocol DialogInfoProtocol: ObservableObject {
 open class DialogInfoViewModel: DialogInfoProtocol {
     let settings = QuickBloxUIKit.settings.dialogInfoScreen
     
-    public var dialog: Dialog
+    @Published public var dialog: Dialog
     
     @Published public var dialogName = ""
+    @Published public var error = ""
     @Published public var isValidDialogName = false
-    @Published public var selectedImage: Image? = nil
     @Published public var isProcessing = CurrentValueSubject<Bool, Never>(false)
     public var isExistingImage: Bool {
+        if dialog.photo == "null" { return false }
         return dialog.photo.isEmpty == false
     }
     
@@ -47,14 +48,11 @@ open class DialogInfoViewModel: DialogInfoProtocol {
     
     private var publishers = Set<AnyCancellable>()
     
-    public private(set) var dialogsRepo: DialogsRepository =
-    RepositoriesFabric.dialogs
-    
-    init(_ dialog: Dialog,
-         dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs) {
+    init(_ dialog: Dialog) {
         self.dialog = dialog
-        self.dialogsRepo = dialogsRepo
-        self.dialogName = dialog.name
+
+        let dialogName = dialog.name
+        self.dialogName = dialogName
         
         isDialogNameValidPublisher
             .receive(on: RunLoop.main)
@@ -64,65 +62,67 @@ open class DialogInfoViewModel: DialogInfoProtocol {
     
     public func updateDialog(_ modeldDialog: Dialog) {
         isProcessing.value = true
-        taskUpdate = Task {
+        taskUpdate = Task { [weak self] in
             do {
                 let update = UpdateDialog(dialog: modeldDialog,
                                           users: [],
-                                          repo: dialogsRepo)
+                                          repo: RepositoriesFabric.dialogs)
                 try await update.execute()
-                self.isProcessing.value = false
-                self.taskUpdate = nil
-            } catch {
-                prettyLog(error)
-                taskUpdate = nil
-            }
+                
+                await MainActor.run { [weak self] in
+                    if let uuid = self?.attachmentAsset?.name {
+                        self?.dialog.photo = uuid
+                    }
+                    self?.isProcessing.value = false
+                }
+            } catch { prettyLog(error) }
+            self?.taskUpdate = nil
         }
     }
     
     public func handleOnSelect(attachmentAsset: AttachmentAsset) {
         if let uiImage = attachmentAsset.image {
-            selectedImage = Image(uiImage: uiImage)
+            self.isProcessing.value = true
             self.attachmentAsset = attachmentAsset
-            updateDialog(avatar: selectedImage)
+            updateDialog(avatar: uiImage, name: dialogName)
         }
     }
     
-    public func removeExistingImage() {
-        selectedImage = nil
+    @MainActor public func removeExistingImage() {
         attachmentAsset = nil
-        updateDialog(avatar: nil)
+        removeDialogAvatar()
     }
     
-    public func updateDialog(avatar: Image?) {
-        if let avatar {
-            let uiImage = avatar.toUIImage()
-            Task {
-                var compressionQuality: CGFloat = 1.0
-                let maxFileSize: Int = 10 * 1024 * 1024 // 10MB in bytes
-                var imageData = uiImage.jpegData(compressionQuality: compressionQuality)
-                
-                while let data = imageData, data.count > maxFileSize && compressionQuality > 0.0 {
-                    compressionQuality -= 0.1
-                    imageData = uiImage.jpegData(compressionQuality: compressionQuality)
-                }
-                
-                if let finalImageData = imageData {
-                    let uploadAvatar = UploadFile(data: finalImageData,
-                                                  ext: .png,
-                                                  name: dialogName,
-                                                  repo: RepositoriesFabric.files)
-                    let fileInfo =  try await uploadAvatar.execute()
-                    await MainActor.run { [fileInfo] in
-                        if let uuid = fileInfo.info.path.uuid {
-                            dialog.photo = uuid
-                            self.updateDialog(dialog)
-                        }
-                    }
+    public func removeDialogAvatar() {
+        // TODO: remove dialog avatar method. Create remove avatar use case.
+        dialog.photo = "null"
+        updateDialog(dialog)
+    }
+    
+    public func updateDialog(avatar: UIImage, name: String) {
+        Task { [weak self] in
+            var compressionQuality: CGFloat = 1.0
+            let maxFileSize: Int = 10 * 1024 * 1024 // 10MB in bytes
+            var imageData = avatar.jpegData(compressionQuality: compressionQuality)
+            
+            while let data = imageData, data.count > maxFileSize && compressionQuality > 0.0 {
+                compressionQuality -= 0.1
+                imageData = avatar.jpegData(compressionQuality: compressionQuality)
+            }
+            
+            if let finalImageData = imageData {
+                let uploadAvatar = UploadFile(data: finalImageData,
+                                              ext: .png,
+                                              name: name,
+                                              repo: RepositoriesFabric.files)
+                let fileInfo =  try await uploadAvatar.execute()
+                guard let uuid = fileInfo.info.path.uuid else { return }
+                await MainActor.run { [weak self, uuid] in
+                    guard let self = self else { return }
+                    self.dialog.photo = uuid
+                    self.updateDialog(dialog)
                 }
             }
-        } else {
-            dialog.photo = ""
-            updateDialog(dialog)
         }
     }
     
@@ -131,23 +131,31 @@ open class DialogInfoViewModel: DialogInfoProtocol {
     }
     
     public func updateDialog(name: String) {
+        if dialog.name == name { return }
         dialog.name = name
         updateDialog(dialog)
     }
     
     public func deleteDialog() {
         isProcessing.value = true
-        taskDelete = Task {
+        taskDelete = Task { [weak self] in
             do {
+                guard let dialog = self?.dialog else { return }
                 let leave = LeaveDialog(dialog: dialog,
                                         repo: RepositoriesFabric.dialogs)
                 try await leave.execute()
-                self.isProcessing.value = false
-                self.taskDelete = nil
+                await MainActor.run { [weak self] in
+                    guard let self = self else { return }
+                    self.isProcessing.value = false
+                }
             } catch {
                 prettyLog(error)
-                taskDelete = nil
+                await MainActor.run { [weak self] in
+                    guard let self = self else { return }
+                    self.error = error.localizedDescription
+                }
             }
+            self?.taskDelete = nil
         }
     }
 }
