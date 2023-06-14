@@ -10,7 +10,6 @@ The QuickBlox UIKit for iOS offers modules that encapsulate complex chat functio
 ![ios-doc](https://github.com/QuickBlox/ios-ui-kit/assets/42934399/c3431110-a92e-41f2-90eb-89238869e6cc)
 ## Features
 
-- QuickBlox UIKit for iOS provides next functionality:
 - List of dialogs
 - Create dialog(Private or Group)
 - Dialog screen
