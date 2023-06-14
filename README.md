@@ -6,6 +6,8 @@ The main goal of the QuickBlox UIKit for iOS is to offer developers a streamline
 
 The QuickBlox UIKit for iOS offers modules that encapsulate complex chat functionalities, such as dialogs and chat management and real-time updates. These modules provide a simplified interface for integrating chat features into applications without the need for extensive knowledge of the underlying protocols or server-side infrastructure.
 
+## Screenshots
+![ios-doc](https://github.com/QuickBlox/ios-ui-kit/assets/42934399/c3431110-a92e-41f2-90eb-89238869e6cc)
 ## Features
 
 - QuickBlox UIKit for iOS provides next functionality:
