@@ -1,5 +1,5 @@
 //
-//  GetFile.swift
+//  LeaveDialog.swift
 //  QuickBloxUIKit
 //
 //  Created by Injoit on 24.04.2023.

@@ -37,6 +37,10 @@ extension DialogEntity {
         get async throws {
             if QuickBloxUIKit.previewAware {  return placeholder }
             
+            if let uiImage = imageCache.imageFromCache(id) {
+                return Image(uiImage: uiImage)
+            }
+            
             let filesRepo = RepositoriesFabric.files
             var path: String
             switch type {
@@ -72,8 +76,8 @@ extension DialogEntity {
                 let info = "Dialog avatar image data is incorrect"
                 throw RepositoryException.incorrectData(description: info)
             }
-            let image = Image(uiImage: uiImage)
-            return image
+            imageCache.store(uiImage, for: id)
+            return Image(uiImage: uiImage)
         }
     }
     
@@ -114,12 +118,16 @@ extension DialogEntity {
                 let name = "Video." + file.info.ext.rawValue
                 return (name, nil, settings.videoPlaceholder)
             case .image, .gif:
+                if let uiImage = imageCache.imageFromCache(id + "1x") {
+                    return (name, Image(uiImage: uiImage), settings.imagePlaceholder)
+                }
                 let name = "Image." + file.info.ext.rawValue
                 guard let uiImage = UIImage(data: file.data)?
                     .cropToRect()
                     .resize(to: size) else {
                     return (name, nil, settings.imagePlaceholder)
                 }
+                imageCache.store(uiImage, for: id + "1x")
                 return (name, Image(uiImage: uiImage), settings.imagePlaceholder)
             case .file:
                 let name = "File." + file.info.ext.rawValue
@@ -210,6 +218,11 @@ extension MessageEntity {
         let usersRepo = RepositoriesFabric.users
         let getUser = GetUser(id: userId, repo: usersRepo)
         let user = try await getUser.execute()
+        
+        if let uiImage = imageCache.imageFromCache(user.id) {
+            return Image(uiImage: uiImage)
+        }
+        
         if user.avatarPath.isEmpty { return placeholder }
         
         let filesRepo = RepositoriesFabric.files
@@ -224,6 +237,7 @@ extension MessageEntity {
             let info = "Message avatar image data is incorrect"
             throw RepositoryException.incorrectData(description: info)
         }
+        imageCache.store(uiImage, for: user.id)
         return Image(uiImage: uiImage)
     }
     
@@ -251,10 +265,14 @@ extension MessageEntity {
                 return (uploaded.info.name, nil, localURL)
             case .video:
                 let localURL = uploaded.temporaryUrl
+                if let cachedImage = imageCache.imageFromCache(id) {
+                    return (uploaded.info.name, Image(uiImage: cachedImage), localURL)
+                }
                 var image: Image = settings.videoPlaceholder
                 if let uiImage = await localURL.getThumbnailImage() {
                     if let size {
                         let resized = uiImage.resize(to: size)
+                        imageCache.store(resized, for: id)
                         image = Image(uiImage: resized)
                     } else {
                         image = Image(uiImage: uiImage)
@@ -266,8 +284,13 @@ extension MessageEntity {
                     return (uploaded.info.name, settings.imagePlaceholder, nil)
                 }
                 if let size {
+                    if let cachedImage = imageCache.imageFromCache(id) {
+                        return (uploaded.info.name, Image(uiImage: cachedImage), nil)
+                    }
                     let resized = uiImage.resize(to: size)
-                    return (uploaded.info.name, Image(uiImage: resized) ,nil)
+                    imageCache.store(resized, for: id)
+                    let image = Image(uiImage: resized)
+                    return (uploaded.info.name, image ,nil)
                 }
                 return (uploaded.info.name, Image(uiImage: uiImage) ,nil)
             case .file:
@@ -345,6 +368,10 @@ extension UserEntity {
         get async throws {
             if QuickBloxUIKit.previewAware {  return placeholder }
             
+            if let uiImage = imageCache.imageFromCache(id) {
+                return Image(uiImage: uiImage)
+            }
+            
             if avatarPath.isEmpty { return placeholder }
             
             let filesRepo = RepositoriesFabric.files
@@ -360,6 +387,7 @@ extension UserEntity {
                 let info = "User avatar image data is incorrect"
                 throw RepositoryException.incorrectData(description: info)
             }
+            imageCache.store(uiImage, for: id)
             return Image(uiImage: uiImage)
         }
     }

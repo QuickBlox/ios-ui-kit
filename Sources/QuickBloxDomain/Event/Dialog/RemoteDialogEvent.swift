@@ -16,4 +16,6 @@ public enum RemoteDialogEvent<MessageItem: MessageEntity> {
     case history(_ dialogId: String, _ messages: [MessageItem])
     case read( _ messageID: String, dialogID: String)
     case delivered( _ messageID: String, dialogID: String)
+    case typing( _ userID: UInt, dialogID: String)
+    case stopTyping( _ userID: UInt, dialogID: String)
 }

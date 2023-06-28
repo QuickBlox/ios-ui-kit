@@ -58,6 +58,23 @@ public struct Dialog: DialogEntity {
     }
 }
 
+public extension Dialog {
+    init<T: DialogEntity>(_ value: T) {
+        self.init(id: value.id,
+                  type: value.type,
+                  name: value.name,
+                  participantsIds: value.participantsIds,
+                  photo: value.photo,
+                  ownerId: value.ownerId,
+                  createdAt: value.createdAt,
+                  updatedAt: value.updatedAt,
+                  lastMessage: LastMessage(value.lastMessage),
+                  messages: value.messages.map{ Message($0) },
+                  unreadMessagesCount: value.unreadMessagesCount)
+        isOwnedByCurrentUser = value.isOwnedByCurrentUser
+    }
+}
+
 public struct LastMessage: LastMessageEntity {
     public var id: String = ""
     
@@ -79,5 +96,15 @@ public struct LastMessage: LastMessageEntity {
         self.dateSent = dateSent
         self.userId = userId
         self.dialogId = dialogId
+    }
+}
+
+public extension LastMessage {
+    init<T: LastMessageEntity>(_ value: T) {
+        self.init(id: value.id,
+                  text: value.text,
+                  dateSent: value.dateSent,
+                  userId: value.userId,
+                  dialogId: value.dialogId)
     }
 }

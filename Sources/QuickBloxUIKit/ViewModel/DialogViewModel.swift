@@ -27,10 +27,10 @@ public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel {
     
     var audioPlayer: AudioPlayer { get set }
     var targetMessage: DialogItem.MessageItem? { get set }
-    var typing: String { get set }
     var dialog: DialogItem { get set }
     var avatar: Image? { get set }
     var withAnimation: Bool { get set }
+    var typing: String { get set }
     
     func saveImage(_ image: Image)
     func stopPlayng()
@@ -41,6 +41,9 @@ public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel {
     func handleOnSelect(attachment: AttachmentAsset)
     func handleOnAppear(_ message: DialogItem.MessageItem)
     func playAudio(_ audioData: Data, action: MessageAttachmentAction)
+    func sendStopTyping()
+    func sendTyping()
+    func unsubscribe()
 }
 
 open class DialogViewModel: DialogViewModelProtocol {
@@ -48,9 +51,8 @@ open class DialogViewModel: DialogViewModelProtocol {
     @Published public var avatar: Image? = nil
     @Published public var targetMessage: Message?
     @Published public var audioPlayer = AudioPlayer()
-    @Published public var typing: String = ""
-    
     @Published public var deleteDialog: Bool = false
+    @Published public var typing: String = ""
     
     private var isExistingImage: Bool {
         if dialog.photo == "null" { return false }
@@ -63,44 +65,109 @@ open class DialogViewModel: DialogViewModelProtocol {
     
     @Published public var isLoading = CurrentValueSubject<Bool, Never>(false)
     
+    private let dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs
+    private let usersRepo: UsersRepository = RepositoriesFabric.users
+    
     private var syncDialog: SyncDialog<Dialog,
                                        DialogsRepository,
                                        UsersRepository,
                                        MessagesRepository,
                                        Pagination>?
     
+    private var typingObserve: TypingObserver<DialogsRepository>!
+    private var stopTypingObserve: StopTypingObserver<DialogsRepository>!
+    
     public var cancellables = Set<AnyCancellable>()
     public var tasks = Set<Task<Void, Never>>()
     
-    private var displayed: [String] = []
+    private var typingProvider: TypingProvider
     
     init(dialog: Dialog) {
         self.dialog = dialog
         
+        typingProvider = TypingProvider(dialogId: dialog.id, usersRepo: usersRepo)
+        
+        typingProvider
+            .objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] typing in
+                self?.typing = typing
+            }.store(in: &cancellables)
+        
+        typingObserve = TypingObserver(repo: dialogsRepo,
+                                       dialogId: dialog.id)
+        stopTypingObserve = StopTypingObserver(dialogsRepo: dialogsRepo,
+                                               dialogId: dialog.id)
+
+        typingObserve.execute()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] userId in
+                prettyLog(label: "typing user.id", userId)
+                self?.typingProvider.typingUser(userId)
+            }
+            .store(in: &cancellables)
+        
+        stopTypingObserve.execute()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] userId in
+                prettyLog(label: "stop typing userId", userId)
+                self?.typingProvider.stopTypingUser(userId)
+            }
+            .store(in: &cancellables)
+        
         audioPlayer
             .objectWillChange
+            .receive(on: RunLoop.main)
             .sink { [weak self] (_) in
                 self?.objectWillChange.send()
             }.store(in: &cancellables)
         
         getAvatar()
+        
+        QuickBloxUIKit.syncState
+            .receive(on: RunLoop.main)
+            .sink { [weak self] syncState in
+                if syncState == .synced {
+                    self?.sync()
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    deinit {
+        unsubscribe()
+    }
+    
+    public func unsubscribe() {
+        typingObserve = nil
+        stopTypingObserve = nil
     }
     
     public func sync() {
         syncDialog = SyncDialog(dialogId: dialog.id,
-                                dialogsRepo: RepositoriesFabric.dialogs,
-                                usersRepo: RepositoriesFabric.users,
+                                dialogsRepo: dialogsRepo,
+                                usersRepo: usersRepo,
                                 messageRepo: RepositoriesFabric.messages)
         syncDialog?.execute()
             .receive(on: RunLoop.main)
             .sink { [weak self] dialog in
-                self?.dialog = dialog
+                if dialog.messages.isEmpty == false {
+                    self?.dialog = dialog
+                }
                 self?.getAvatar()
                 self?.targetMessage = dialog.messages.last
             }
             .store(in: &cancellables)
     }
     
+    //MARK: - Typing Current User
+    @objc public func sendStopTyping() {
+        typingProvider.sendStopTyping()
+    }
+
+    public func sendTyping() {
+        typingProvider.sendTyping()
+    }
     
     public func handleOnSelect(attachment: AttachmentAsset) {
         if attachment.ext.type == .image,
@@ -196,6 +263,7 @@ open class DialogViewModel: DialogViewModelProtocol {
         if message.isRead == true { return }
         if message.isDelivered == true { return }
         if message.userId.isEmpty == true { return }
+        
         let readMessage = ReadMessage(message: message,
                                       messageRepo: RepositoriesFabric.messages)
         Task {

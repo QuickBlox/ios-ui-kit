@@ -50,10 +50,13 @@ public struct AvatarSizeSettings {
 }
 
 public struct TypingSettings {
-    public var text: String = "Dialog"
+    public var typingOne = " is typing..."
+    public var typingTwo = " are typing..."
+    public var typingFour = " and 2 others are typing..."
     public var color: Color
     public var font: Font
     public var height: CGFloat = 31
+    public var offset: CGFloat = 52.0
     
     public init(_ theme: ThemeProtocol) {
         self.font = theme.font.caption2
@@ -220,6 +223,8 @@ public struct MessageRowSettings {
     public var imageIcon: Image
     public var outboundImageIconForeground: Color
     public var inboundImageIconForeground: Color
+    public var outboundLinkForeground: Color
+    public var inboundLinkForeground: Color
     public var inboundSpacer: CGFloat = DialogScreenSettingsConstant.spacer
     public var outboundSpacer: CGFloat = DialogScreenSettingsConstant.spacer
     public var spacing: CGFloat = 16.0
@@ -327,6 +332,8 @@ public struct MessageRowSettings {
             traitCollection.userInterfaceStyle == .dark ? UIColor(theme.color.mainElements)
             : UIColor(theme.color.tertiaryElements)
         })
+        self.inboundLinkForeground = theme.color.mainText
+        self.outboundLinkForeground = theme.color.mainText
     }
     
     public struct ProgressBarSettings {

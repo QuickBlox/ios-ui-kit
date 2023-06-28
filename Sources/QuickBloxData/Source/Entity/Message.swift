@@ -43,3 +43,24 @@ public struct Message: MessageEntity {
         self.type = type
     }
 }
+
+public extension Message {
+    init<T: MessageEntity>(_ value: T) {
+        self.init(id: value.id,
+                  dialogId: value.dialogId,
+                  text: value.text,
+                  userId: value.userId,
+                  date: value.date,
+                  isOwnedByCurrentUser: value.isOwnedByCurrentUser,
+                  deliveredIds: value.deliveredIds,
+                  readIds: value.readIds,
+                  isDelivered: value.isDelivered,
+                  isRead: value.isRead,
+                  eventType: value.eventType,
+                  type: value.type)
+        if let fileInfo = value.fileInfo {
+            self.fileInfo = FileInfo(fileInfo)
+        }
+        
+    }
+}

@@ -45,6 +45,10 @@ extension DialogsRepository: DialogsRepositoryProtocol {
                         return .read(messageID, dialogID: dialogID)
                     case .delivered(let messageID, let dialogID):
                         return .delivered(messageID, dialogID: dialogID)
+                    case .typing(let userID,let dialogID):
+                        return .typing(userID, dialogID: dialogID)
+                    case .stopTyping(let userID,let dialogID):
+                        return .stopTyping(userID, dialogID: dialogID)
                     }
                 }
                 .eraseToAnyPublisher()
@@ -178,6 +182,30 @@ extension DialogsRepository: DialogsRepositoryProtocol {
     public func cleareAll() async throws {
         do {
             try await local.cleareAll()
+        } catch {
+            throw try error.repositoryException
+        }
+    }
+    
+    public func subscribeToObserveTyping(dialog dialogId: String) async throws {
+        do {
+            try await remote.subscribeToObserveTyping(dialog: dialogId)
+        } catch {
+            throw try error.repositoryException
+        }
+    }
+    
+    public func sendTyping(dialogInRemote dialogId: String) async throws {
+        do {
+            try await remote.sendTyping(dialog: dialogId)
+        } catch {
+            throw try error.repositoryException
+        }
+    }
+    
+    public func sendStopTyping(dialogInRemote dialogId: String) async throws {
+        do {
+            try await remote.sendStopTyping(dialog: dialogId)
         } catch {
             throw try error.repositoryException
         }

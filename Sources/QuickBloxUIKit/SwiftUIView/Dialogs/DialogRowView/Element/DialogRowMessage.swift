@@ -95,26 +95,10 @@ extension DialogRowView {
     }
 }
 
-//struct DialogRowMessage_Previews: PreviewProvider {
-//    static var previews: some View {
-//        Group {
-//            DialogRowMessage(message: LastMessage(id: "123456",
-//                                                  text: "Last Message Text !!!!!!!!!!!!!   !!!!!!!!!    !!!!!!!!!!!!!!!!!!!!!! jfhksuh udfhodshds hddsfhuds ohdhdssdh dhodfho ohdhsdh ",
-//                                                  dateSent: Date(),
-//                                                  userId: "23456"),
-//                             isShow: true)
-//            DialogRowMessage(message: LastMessage(id: "123456",
-//                                                  text: "Ok! ",
-//                                                  dateSent: Date(),
-//                                                  userId: "23456"),
-//                             isShow: true)
-//            .previewDisplayName("Short text")
-//            DialogRowMessage(message: LastMessage(id: "123456",
-//                                                  text: "Last Message Text!",
-//                                                  dateSent: Date(),
-//                                                  userId: "23456",
-//                                                  hasAttachment: true),
-//                             isShow: true)
-//        }.previewLayout(.fixed(width: 375, height: 32))
-//    }
-//}
+struct DialogRowMessage_Previews: PreviewProvider {
+    static var previews: some View {
+        Group {
+            DialogRowMessage(dialog: PreviewModel.groupDialog, isShow: true, fileTuple: nil)
+        }.previewLayout(.fixed(width: 375, height: 32))
+    }
+}

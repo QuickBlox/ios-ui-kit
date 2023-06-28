@@ -80,6 +80,8 @@ private func syncData() {
     }
 }
 
+let imageCache = ImageCache.shared
+
 //FIXME: add dialogsView screen
 @ViewBuilder
 public func dialogsView() -> some View {

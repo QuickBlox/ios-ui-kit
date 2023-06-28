@@ -44,14 +44,27 @@ public struct OutboundChatMessageRow<MessageItem: MessageEntity>: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Spacer()
-                Text(message.text)
-                    .lineLimit(nil)
-                    .foregroundColor(settings.outboundForeground)
-                    .font(settings.outboundFont)
-                    .padding(settings.messagePadding)
-                    .background(settings.outboundBackground)
-                    .cornerRadius(settings.bubbleRadius, corners: settings.outboundCorners)
-                    .padding(settings.outboundPadding)
+                
+                if message.text.containtsLink == true {
+                    Text(message.text.makeAttributedString(settings.outboundForeground,
+                                                           linkColor: settings.outboundLinkForeground))
+                        .lineLimit(nil)
+                        .foregroundColor(settings.outboundForeground)
+                        .font(settings.outboundFont)
+                        .padding(settings.messagePadding)
+                        .background(settings.outboundBackground)
+                        .cornerRadius(settings.bubbleRadius, corners: settings.outboundCorners)
+                        .padding(settings.outboundPadding)
+                } else {
+                    Text(message.text)
+                        .lineLimit(nil)
+                        .foregroundColor(settings.outboundForeground)
+                        .font(settings.outboundFont)
+                        .padding(settings.messagePadding)
+                        .background(settings.outboundBackground)
+                        .cornerRadius(settings.bubbleRadius, corners: settings.outboundCorners)
+                        .padding(settings.outboundPadding)
+                }
             }
         }
         .fixedSize(horizontal: false, vertical: true)

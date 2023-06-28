@@ -47,6 +47,15 @@ public struct FileInfo: FileInfoEntity {
     }
 }
 
+public extension FileInfo {
+    init<T: FileInfoEntity>(_ value: T) {
+        self.init(id: value.id,
+                  ext: value.ext,
+                  name: value.name,
+                  path: FilePath(value.path))
+    }
+}
+
 public struct FilePath: FilePathEntity {
     public var remote = ""
     public var local = ""
@@ -60,4 +69,10 @@ public struct FilePath: FilePathEntity {
     public var localURL: URL? 
     
     public init() {}
+}
+
+public extension FilePath {
+    init<T: FilePathEntity>(_ value: T) {
+        self.init(remote: value.remote, local: value.local)
+    }
 }

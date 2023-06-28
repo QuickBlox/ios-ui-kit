@@ -46,11 +46,7 @@ where DialogItem == ViewModel.DialogItem, UserItem == ViewModel.UserItem {
             dismiss()
         }, onTapCreate: {
             onTapCreate.toggle()
-            if viewModel.modeldDialog.type == .private {
-                viewModel.createPrivateDialog()
-            } else {
-                viewModel.createGroupDialog()
-            }
+            viewModel.createDialog()
         }, disabled: viewModel.selected.isEmpty || onTapCreate == true))
     }
 }

@@ -265,6 +265,10 @@ extension SyncData {
                     Task { [weak self] in do {
                         try await self?.update(byDelivered: messageID, dialogID: dialogID)
                     } catch { prettyLog(error) } }
+                case .typing(let userID, let dialogID):
+                    print("typing user: \(userID) in dialog: \(dialogID)")
+                case .stopTyping(let userID, let dialogID):
+                    print("stopTyping user: \(userID) in dialog: \(dialogID)")
                 }
             }
             guard let sub = sub, let self = self else {

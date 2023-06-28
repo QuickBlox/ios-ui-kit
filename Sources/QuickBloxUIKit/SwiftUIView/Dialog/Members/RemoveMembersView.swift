@@ -72,9 +72,7 @@ public struct RemoveMembersView<ViewModel: MembersDialogProtocol>: View {
         })
         
         NavigationLink(isActive: $isAddPresented) {
-            if let dialog = viewModel.dialog as? Dialog {
-                AddMembersView(viewModel: AddMembersDialogViewModel(dialog: dialog))
-            }
+            Fabric.screen.addMembers(to: viewModel.dialog)
         } label: {
             EmptyView()
         }
@@ -84,10 +82,10 @@ public struct RemoveMembersView<ViewModel: MembersDialogProtocol>: View {
 //struct RemoveMembersView_Previews: PreviewProvider {
 //    static var previews: some View {
 //        Group {
-//            RemoveMembersView<PreviewDialog, User, RemoveUserListView<User>, RemoveUserRow>(viewModel: MembersDialogViewModel<User, PreviewDialog>(dialog: PreviewModel.groupDialog))
+//            RemoveMembersView(viewModel: MembersDialogViewModel(dialog: Dialog(id: "123456" ,type: .group)))
 //                .previewDisplayName("Members View Light Delete")
 //
-//            RemoveMembersView<PreviewDialog, User, RemoveUserListView<User>, RemoveUserRow>(viewModel: MembersDialogViewModel<User, PreviewDialog>(dialog: PreviewModel.groupDialog))
+//            RemoveMembersView(viewModel: MembersDialogViewModel(dialog: Dialog(id: "123456" ,type: .group)))
 //                .previewDisplayName("Members View Dark Delete")
 //                .preferredColorScheme(.dark)
 //        }

@@ -111,7 +111,9 @@ where Dialog == DialogsRepo.DialogEntityItem,
         taskUpdate = Task { [weak self] in
             let sub = await self?.dialogsRepo.localDialogsPublisher
                 .compactMap { $0.first(where: { $0.id == self?.dialogId }) }
-                .sink { dialog in self?.subject.send(dialog) }
+                .sink { dialog in
+                    self?.subject.send(dialog)
+                }
             guard let sub = sub else { return }
             self?.cancellables.insert(sub)
         }

@@ -194,15 +194,15 @@ public struct DialogsRowBuilder<DialogItem: DialogEntity> {
 
 import QuickBloxData
 
-//struct PrivateDialogRowView_Previews: PreviewProvider {
-//
-//    static var previews: some View {
-//        Group {
+struct PrivateDialogRowView_Previews: PreviewProvider {
+
+    static var previews: some View {
+        Group {
 //            DialogsRowBuilder.defaultRow(PreviewModel.privateDialog)
-//
+
 //            DialogsRowBuilder.defaultRow(PreviewModel.groupDialog)
 //                .preferredColorScheme(.dark)
-//
+
 //            GroupDialogRowView(PreviewModel.longNameGroupDialog)
 //                .previewSettings(scheme: .dark, name: "Long name")
 //
@@ -239,7 +239,7 @@ import QuickBloxData
 //                        isShow: false)
 //                .message(LastMessage())
 //                .previewSettings(name: "Without optional")
-//
-//        }.previewLayout(.fixed(width: 375, height: 76))
-//    }
-//}
+
+        }.previewLayout(.fixed(width: 375, height: 76))
+    }
+}

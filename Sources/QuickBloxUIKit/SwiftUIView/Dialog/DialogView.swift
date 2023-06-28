@@ -13,7 +13,7 @@ import QuickBloxLog
 import UniformTypeIdentifiers
 
 public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
-    var settings = QuickBloxUIKit.settings.dialogScreen
+    let settings = QuickBloxUIKit.settings.dialogScreen
     
     @Environment(\.dismiss) var dismiss
     
@@ -31,6 +31,8 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
     @State private var tappedMessage: ViewModel.DialogItem.MessageItem? = nil
     
     @Binding private var isDialogPresented: Bool
+    
+    @State private var isNewTyping: Bool = true
     
     public init(viewModel: ViewModel, isDialogPresented: Binding<Bool>) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -74,12 +76,23 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
                                     }
                                 }
                             })
+                            .offset(y: viewModel.typing.isEmpty == false ? (isNewTyping == true ? 0 : -settings.typing.offset) : 0)
                             .onAppear {
                                 viewModel.handleOnAppear(message)
                             }
                             .transition(.move(edge: .bottom))
                         }
                     }
+                    
+                    .onChange(of: viewModel.dialog.displayedMessages.count, perform: { newValue in
+                        isNewTyping = true
+                    })
+                    
+                    .onChange(of: viewModel.typing.count, perform: { newValue in
+                        if newValue == 0 && isNewTyping == true {
+                            isNewTyping = false
+                        }
+                    })
                     
                     .onChange(of: viewModel.targetMessage) { message in
                         if let message = message {
@@ -95,18 +108,7 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
                     }
                     
                     if viewModel.typing.isEmpty == false {
-                        VStack(alignment: .leading) {
-                            HStack {
-                                Text(viewModel.typing)
-                                    .font(settings.typing.font)
-                                    .foregroundColor(settings.typing.color)
-                                    .lineLimit(1)
-                                
-                                Spacer()
-                            }.padding([.leading, .trailing], 8)
-                            
-                            Spacer()
-                        }.frame(height: settings.typing.height)
+                        TypingView(typing: viewModel.typing)
                     }
                     
                     MessageTextField(onSend: { text in
@@ -119,6 +121,10 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
                         viewModel.stopRecording()
                     }, onDeleteRecord: {
                         viewModel.deleteRecording()
+                    }, onTyping: {
+                        viewModel.sendTyping()
+                    }, onStopTyping: {
+                        viewModel.sendStopTyping()
                     })
                     .background(settings.backgroundColor)
                     
@@ -161,9 +167,12 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
                 .modifier(DialogHeader(avatar: $viewModel.avatar,
                                        dialog: viewModel.dialog,
                                        onDismiss: {
+                    viewModel.sendStopTyping()
+                    viewModel.unsubscribe()
                     viewModel.stopPlayng()
                     dismiss()
                 }, onTapInfo: {
+                    viewModel.sendStopTyping()
                     viewModel.stopPlayng()
                     isInfoPresented = true
                 }))
@@ -194,8 +203,32 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
                 viewModel.sync()
             }
             .onDisappear {
+                viewModel.sendStopTyping()
                 viewModel.unsync()
             }
+    }
+}
+
+public struct TypingView: View {
+    let settings = QuickBloxUIKit.settings.dialogScreen
+    var typing: String
+    
+    public var body: some View {
+        VStack(alignment: .leading) {
+            HStack {
+                Text(typing)
+                    .font(settings.typing.font)
+                    .foregroundColor(settings.typing.color)
+                    .lineLimit(1)
+                
+                Spacer()
+            }.padding([.leading, .trailing], 8)
+            
+            Spacer()
+        }
+        .frame(height: settings.typing.height)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.top, 8)
     }
 }
 
@@ -219,3 +252,4 @@ public struct MessagesScrollView<Content: View>: View {
         }
     }
 }
+

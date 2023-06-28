@@ -35,7 +35,9 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                                height: settings.avatar.height,
                                isShow: settings.isShowAvatar)
                     .task {
-                        do { avatar = try await message.avatar(size: CGSizeMake(settings.avatar.height, settings.avatar.height)) } catch { prettyLog(error) }
+                        let size = CGSizeMake(settings.avatar.height,
+                                              settings.avatar.height)
+                        do { avatar = try await message.avatar(size: size) } catch { prettyLog(error) }
                     }
                 }.padding(.leading)
             }
@@ -53,7 +55,10 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                 }
                 
                 HStack(spacing: 8) {
-                    Text(message.text)
+
+                    if message.text.containtsLink == true {
+                        Text(message.text.makeAttributedString(settings.inboundForeground,
+                                                               linkColor: settings.inboundLinkForeground))
                         .lineLimit(nil)
                         .foregroundColor(settings.inboundForeground)
                         .font(settings.inboundFont)
@@ -61,7 +66,17 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                         .background(settings.inboundBackground)
                         .cornerRadius(settings.bubbleRadius, corners: settings.inboundCorners)
                         .padding(settings.inboundPadding(showName: settings.isShowName))
-                    
+                    } else {
+                        Text(message.text)
+                            .lineLimit(nil)
+                            .foregroundColor(settings.inboundForeground)
+                            .font(settings.inboundFont)
+                            .padding(settings.messagePadding)
+                            .background(settings.inboundBackground)
+                            .cornerRadius(settings.bubbleRadius, corners: settings.inboundCorners)
+                            .padding(settings.inboundPadding(showName: settings.isShowName))
+                    }
+                        
                     if settings.isShowTime == true {
                         VStack {
                             Spacer()
