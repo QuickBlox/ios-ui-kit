@@ -152,3 +152,51 @@ public extension View {
         return modifier(ResignKeyboardOnGesture())
     }
 }
+
+public extension String {
+    var containtsLink: Bool {
+        let matches = checkMatches()
+        
+        for match in matches {
+            guard Range(match.range, in: self) != nil else { continue }
+            return true
+        }
+        return false
+    }
+    
+    func makeAttributedString(_ color: Color, linkColor: Color) -> AttributedString {
+        var attributedString = AttributedString(self)
+        attributedString.foregroundColor = color
+        let matches = checkMatches()
+        
+        for match in matches {
+            guard let rangeURL = Range(match.range, in: self),
+                  let range = Range(match.range, in: attributedString),
+                  let url = URL(string: String(self[rangeURL])) else { continue }
+            attributedString[range].link = url.corrected
+            attributedString[range].foregroundColor = linkColor
+            attributedString[range].underlineStyle = Text.LineStyle(
+                pattern: .solid, color: linkColor)
+        }
+        return attributedString
+    }
+    
+    func checkMatches() -> [NSTextCheckingResult] {
+        let detector = try! NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
+        return detector.matches(in: self,
+                                       options: [],
+                                       range: NSRange(location: 0, length: self.utf16.count))
+    }
+}
+
+public extension URL {
+  var corrected: URL {
+    if var components = URLComponents(url: self, resolvingAgainstBaseURL: false) {
+      if components.scheme == nil {
+        components.scheme = "http"
+      }
+      return components.url ?? self
+    }
+    return self
+  }
+}

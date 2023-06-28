@@ -46,7 +46,9 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
                                height: settings.avatar.height,
                                isShow: settings.isShowAvatar)
                     .task {
-                        do { avatar = try await message.avatar(size: CGSizeMake(settings.avatar.height, settings.avatar.height))} catch { prettyLog(error) }
+                        let size = CGSizeMake(settings.avatar.height,
+                                              settings.avatar.height)
+                        do { avatar = try await message.avatar(size: size) } catch { prettyLog(error) }
                     }
                 }.padding(.leading)
             }

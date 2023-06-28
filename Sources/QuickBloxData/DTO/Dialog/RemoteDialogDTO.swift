@@ -15,6 +15,8 @@ public struct RemoteDialogDTO: Equatable {
     var type: DialogType = .private
     var name = ""
     var participantsIds: [String] = []
+    var toDeleteIds: [String] = []
+    var toAddIds: [String] = []
     var photo = ""
     var ownerId = ""
     var isOwnedByCurrentUser = false

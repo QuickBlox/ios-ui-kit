@@ -33,7 +33,6 @@ open class AudioPlayer: NSObject, ObservableObject, AVAudioPlayerDelegate {
         }
         
         do {
-//            audioPlayer = try AVAudioPlayer(contentsOf: audio)
             audioPlayer = try AVAudioPlayer(data: audio, fileTypeHint: AVFileType.mp3.rawValue)
         
             audioPlayer.delegate = self

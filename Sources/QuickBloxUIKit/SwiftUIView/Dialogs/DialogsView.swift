@@ -140,34 +140,3 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
 //        }
 //    }
 //}
-
-extension View {
-    @ViewBuilder func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
-        if condition {
-            transform(self)
-        } else {
-            self
-        }
-    }
-    
-    func setupNavigationBarAppearance(titleColor: UIColor,
-                                      barColor: UIColor,
-                                      shadowColor: UIColor) {
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = barColor
-        appearance.titleTextAttributes = [.foregroundColor: titleColor]
-        appearance.shadowColor = shadowColor
-        UINavigationBar.appearance().standardAppearance = appearance
-        UINavigationBar.appearance().compactAppearance = appearance
-        UINavigationBar.appearance().scrollEdgeAppearance = appearance
-    }
-}
-
-var isIphone: Bool {
-    UIDevice.current.userInterfaceIdiom == .phone
-}
-
-var isIPad: Bool {
-    UIDevice.current.userInterfaceIdiom == .pad
-}

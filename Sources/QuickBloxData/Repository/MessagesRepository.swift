@@ -117,10 +117,10 @@ extension Message {
         isOwnedByCurrentUser = value.isOwnedByCurrentUser
         deliveredIds = value.deliveredIds
         readIds = value.readIds
-        isRead = value.isReaded
         isDelivered = value.isDelivered
-        type = value.type
+        isRead = value.isReaded
         eventType = value.eventType
+        type = value.type
         if let info = value.fileInfo {
             fileInfo = FileInfo(id: info.id,
                             ext: info.ext,

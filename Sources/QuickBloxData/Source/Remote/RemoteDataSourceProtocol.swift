@@ -48,6 +48,24 @@ public protocol RemoteDataSourceProtocol {
     /// - Throws: ``RemoteDataSourceException``**.restrictedAccess** when appropriate permissions to perform this operation is absent.
     func delete(dialog dto: RemoteDialogDTO) async throws
     
+    /// Subscribe to observe typing for dialog.
+    /// - Parameter dialogId: string unique identifier that is used to identify a specific item of dialog.
+    ///
+    /// - Throws: ``RepositoryException``**.notFound**  when an dialog item is missing from remote storage.
+    func subscribeToObserveTyping(dialog dialogId: String) async throws
+    
+    /// Sends  typing message to participants.
+    /// - Parameter dialogId: string unique identifier that is used to identify a specific item of dialog.
+    ///
+    /// - Throws: ``RepositoryException``**.incorrectData** when wrong format of data, missing required fields, or providing incorrect values.
+    func sendTyping(dialog dialogId: String) async throws
+    
+    /// Sends stopped typing message to participants.
+    /// - Parameter dialogId: string unique identifier that is used to identify a specific item of dialog.
+    ///
+    /// - Throws: ``RepositoryException``**.incorrectData** when wrong format of data, missing required fields, or providing incorrect values.
+    func sendStopTyping(dialog dialogId: String) async throws
+    
     //MARK: Messages
     
     /// Retrieve an array of messages from a remote storage.
@@ -69,7 +87,7 @@ public protocol RemoteDataSourceProtocol {
     /// - Throws: ``DataSourceException``**.notFound**  when an message item is missing from remote storage.
     /// - Throws: ``RemoteDataSourceException``**.restrictedAccess** when appropriate permissions to perform this operation is absent.
     func update(message dto: RemoteMessageDTO) async throws -> RemoteMessageDTO
-    
+//
     /// Remove a message from a remote storage.
     /// - Parameter dto: message's dto item.
     ///

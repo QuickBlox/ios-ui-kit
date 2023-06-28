@@ -16,6 +16,8 @@ struct MessageTextField: View {
     let onRecord: () -> Void
     let onStopRecord: () -> Void
     let onDeleteRecord: () -> Void
+    let onTyping: () -> Void
+    let onStopTyping: () -> Void
     
     @State private var text: String = ""
     
@@ -25,8 +27,6 @@ struct MessageTextField: View {
     @State var isHasMessage: Bool = false
     
     @ObservedObject var timer = StopWatchTimer()
-    
-//    @Binding var text: String
     
     var body: some View {
         
@@ -53,7 +53,10 @@ struct MessageTextField: View {
                 
                 TextField(isRecordState ? "" : settings.placeholderText, text: $text)
                     .onChange(of: text, perform: { newValue in
-                        isHasMessage = newValue.isEmpty == false
+                        if newValue.isEmpty == false {
+                            onTyping()
+                            isHasMessage = true
+                        }
                     })
                     .padding(settings.padding)
                     .background(settings.backgroundColor)
@@ -94,6 +97,7 @@ struct MessageTextField: View {
                     timer.reset()
                     onSend(text)
                     text = ""
+                    onStopTyping()
                 }
             }) {
                 if text.isEmpty, isHasMessage == false {
@@ -123,6 +127,10 @@ struct MessageTextField_Previews: PreviewProvider {
                 
             }, onDeleteRecord: {
                 
+            }, onTyping: {
+                
+            }, onStopTyping: {
+                
             })
             
             MessageTextField(onSend: { _ in
@@ -134,6 +142,10 @@ struct MessageTextField_Previews: PreviewProvider {
             }, onStopRecord: {
                 
             }, onDeleteRecord: {
+                
+            }, onTyping: {
+                
+            }, onStopTyping: {
                 
             })
             .previewSettings(scheme: .dark, name: "Dark mode")

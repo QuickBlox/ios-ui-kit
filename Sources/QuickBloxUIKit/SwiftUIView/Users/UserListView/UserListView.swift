@@ -11,7 +11,9 @@ import QuickBloxDomain
 import QuickBloxData
 import Combine
 
-public struct UserListView<ViewModel: CreateDialogProtocol, UserItem: UserEntity, UserView: View> where UserItem == ViewModel.UserItem {
+public struct UserListView<ViewModel: CreateDialogProtocol,
+                           UserItem: UserEntity,
+                           UserView: View> where UserItem == ViewModel.UserItem {
     @Environment(\.isSearching) private var isSearching: Bool
     
     @StateObject public var viewModel: ViewModel
@@ -48,19 +50,19 @@ extension UserListView: View {
         ZStack {
             settings.backgroundColor.ignoresSafeArea()
             
-            if viewModel.diaplayed.isEmpty {
+            if viewModel.displayed.isEmpty {
                 VStack {
                     ProgressView().padding(.top)
                     Spacer()
                 }
             } else {
                 List {
-                    ForEach(viewModel.diaplayed) { item in
+                    ForEach(viewModel.displayed) { item in
                         ZStack {
                             content(item, viewModel.selected.contains(item), { user in
                                 viewModel.handleOnSelect(user)
                             })
-                            Separator(isLastRow: viewModel.diaplayed.last?.id == item.id)
+                            Separator(isLastRow: viewModel.displayed.last?.id == item.id)
                         }
                     }
                     .listRowInsets(EdgeInsets())
@@ -69,29 +71,11 @@ extension UserListView: View {
                 .listStyle(.plain)
             }
         }
-        .searchable(text: $viewModel.searchText, prompt: "Search").autocorrectionDisabled(true)
+        .searchable(text: $viewModel.search, prompt: "Search").autocorrectionDisabled(true)
         .onChange(of: isSearching, perform: { newValue in
             if newValue == false {
-                viewModel.searchText = ""
+                viewModel.search = ""
             }
         })
     }
 }
-
-import QuickBloxData
-//public struct UsersViewBuilder {
-//    @ViewBuilder
-//    public static func defaultListView(_ users: [User],
-//                                       onSelect: @escaping (String) -> Void,
-//                                       onAppearItem: @escaping (String) -> Void,
-//                                       onNext: @escaping () -> Void) -> UserListView<User, some View> {
-//
-//        UserListView(items: users,
-//                     content: { item, isSelected, onSelect in
-//            UserRow(item, isSelected: isSelected, onTap: onSelect)
-//        },
-//                     onSelect: onSelect,
-//                     onAppearItem: onAppearItem,
-//                     onNext: onNext)
-//    }
-//}

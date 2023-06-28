@@ -94,6 +94,24 @@ public protocol DialogsRepositoryProtocol {
     /// Remove data  from the local storage.
     func cleareAll() async throws
     
+    /// Subscribe to observe typing for dialog.
+    /// - Parameter dialogId: string unique identifier that is used to identify a specific item of dialog.
+    ///
+    /// - Throws: ``RepositoryException``**.notFound**  when an dialog item is missing from remote storage.
+    func subscribeToObserveTyping(dialog dialogId: String) async throws
+    
+    /// Sends  typing message to participants.
+    /// - Parameter dialogId: string unique identifier that is used to identify a specific item of dialog.
+    ///
+    /// - Throws: ``RepositoryException``**.incorrectData** when wrong format of data, missing required fields, or providing incorrect values.
+    func sendTyping(dialogInRemote dialogId: String) async throws
+    
+    /// Sends stopped typing message to participants.
+    /// - Parameter dialogId: string unique identifier that is used to identify a specific item of dialog.
+    ///
+    /// - Throws: ``RepositoryException``**.incorrectData** when wrong format of data, missing required fields, or providing incorrect values.
+    func sendStopTyping(dialogInRemote dialogId: String) async throws
+    
     //FIXME: Add method documentation
     var remoteEventPublisher: AnyPublisher<RemoteDialogEvent<DialogEntityItem.MessageItem>, Never> { get async }
     var localDialogsPublisher: AnyPublisher<[DialogEntityItem], Never> { get async }

@@ -16,6 +16,8 @@ public enum RemoteEvent {
     case history(_ messages: RemoteMessagesDTO)
     case read( _ messageID: String, dialogID: String)
     case delivered( _ messageID: String, dialogID: String)
+    case typing( _ userID: UInt, dialogID: String)
+    case stopTyping( _ userID: UInt, dialogID: String)
     
     init(_ message: RemoteMessageDTO) {
         if message.type == .event {
