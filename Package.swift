@@ -5,6 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "QuickBloxUIKit",
+    defaultLocalization: "en",
     platforms: [
         .iOS(.v15)
     ],
@@ -40,6 +41,14 @@ let package = Package(
             dependencies: ["QuickBloxUIKit",
                            "QuickBloxData",
                            "QuickBloxLog"],
+            resources: [.process("Resources")]),
+        .testTarget(
+            name: "QuickBloxUIKitIntegrationTests",
+            dependencies: ["QuickBloxUIKit",
+                           "QuickBloxData",
+                           "QuickBloxLog",
+                           .product(name: "Quickblox",
+                                    package: "ios-quickblox-sdk")],
             resources: [.process("Resources")]),
     ]
 )
