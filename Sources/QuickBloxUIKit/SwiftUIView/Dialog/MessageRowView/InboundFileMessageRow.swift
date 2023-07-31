@@ -20,11 +20,6 @@ public struct InboundFileMessageRow<MessageItem: MessageEntity>: View {
     
     @State public var fileTuple: (type: String, image: Image?, url: URL?)? = nil
     
-    @State public var avatar: Image =
-    QuickBloxUIKit.settings.dialogScreen.messageRow.avatar.placeholder
-    
-    @State public var userName: String?
-    
     public init(message: MessageItem,
                 onTap: @escaping  (_ action: MessageAttachmentAction, _ image: Image?, _ url: URL?) -> Void) {
         self.message = message
@@ -35,32 +30,12 @@ public struct InboundFileMessageRow<MessageItem: MessageEntity>: View {
         
         HStack {
             
-            if settings.isShowAvatar == true {
-                VStack(spacing: settings.spacing) {
-                    Spacer()
-                    AvatarView(image: avatar,
-                               height: settings.avatar.height,
-                               isShow: settings.isShowAvatar)
-                    .task {
-                        let size = CGSizeMake(settings.avatar.height,
-                                              settings.avatar.height)
-                        do { avatar = try await message.avatar(size: size) } catch { prettyLog(error) }
-                    }
-                }.padding(.leading)
-            }
+            MessageRowAvatar(message: message)
             
             VStack(alignment: .leading, spacing: settings.infoSpacing) {
                 Spacer()
                 
-                if settings.isShowName == true {
-                    Text(userName ?? String(message.userId))
-                        .foregroundColor(settings.name.foregroundColor)
-                        .font(settings.name.font)
-                        .padding(settings.inboundNamePadding)
-                        .task {
-                            do { userName = try await message.userName } catch { prettyLog(error) }
-                        }
-                }
+                MessageRowName(message: message)
                 
                 HStack(alignment: .center, spacing: 8) {
                     Button {
@@ -77,11 +52,11 @@ public struct InboundFileMessageRow<MessageItem: MessageEntity>: View {
                             }
                             if let ext = fileTuple?.url?.pathExtension {
                                 Text(settings.fileTitle + "." + ext)
-                                    .foregroundColor(settings.message.foregroundColor)
+                                    .foregroundColor(settings.message.inboundForeground)
                                     .font(settings.message.font)
                             } else {
                                 Text(settings.fileTitle)
-                                    .foregroundColor(settings.message.foregroundColor)
+                                    .foregroundColor(settings.message.inboundForeground)
                                     .font(settings.message.font)
                             }
                         }
@@ -89,22 +64,14 @@ public struct InboundFileMessageRow<MessageItem: MessageEntity>: View {
                         .frame(height: settings.fileBubbleHeight)
                         .background(settings.inboundBackground)
                         .cornerRadius(settings.bubbleRadius, corners: settings.inboundCorners)
-                        .padding(settings.inboundPadding(showName: settings.isShowName))
+                        .padding(settings.inboundPadding(showName: settings.isHiddenName))
                     }
                     .disabled(fileTuple?.url == nil)
                     .task {
                         do { fileTuple = try await message.file(size: nil) } catch { prettyLog(error)}
                     }
                     
-                    if settings.isShowTime == true {
-                        VStack {
-                            Spacer()
-                            Text("\(message.date, formatter: Date.formatter)")
-                                .foregroundColor(settings.time.foregroundColor)
-                                .font(settings.time.font)
-                                .padding(.bottom, settings.infoSpacing)
-                        }
-                    }
+                    MessageRowTime(date: message.date)
                 }
             }
             Spacer(minLength: settings.inboundSpacer)

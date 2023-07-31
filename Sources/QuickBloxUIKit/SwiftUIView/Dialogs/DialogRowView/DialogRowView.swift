@@ -75,19 +75,19 @@ extension DialogRowView {
         HStack(spacing: settings.spacing) {
             (avatarView ?? AvatarView(image: avatar,
                                       height: settings.contentHeight,
-                                      isShow: settings.isShowAvatar))
+                                      isHidden: settings.isHiddenAvatar))
             VStack(spacing: settings.infoSpacing) {
                 HStack {
                     nameView ?? DialogRowName(text: dialog.name)
                     settings.infoSpacer
                     timeView ?? DialogRowTime(time: dialog.time,
-                                              isShow: settings.isShowTime)
+                                              isHidden: settings.isHiddenTime)
                 }
                 
                 HStack {
                     if dialog.lastMessage.id.isEmpty == false {
                         messageView ?? DialogRowMessage(dialog: dialog,
-                                                        isShow: settings.isShowLastMessage)
+                                                        isHidden: settings.isHiddenLastMessage)
                     }
                     
                     settings.infoSpacer
@@ -215,7 +215,7 @@ struct PrivateDialogRowView_Previews: PreviewProvider {
 //                .badge(backgroundColor: .green)
 //                .avatar(image: Image("attachmentPlaceholder", bundle: .module),
 //                        height: 56.0,
-//                        isShow: true)
+//                        isHidden: true)
 //                .time("last Year")
 //                .previewSettings(name: "Custom")
 //
@@ -223,11 +223,11 @@ struct PrivateDialogRowView_Previews: PreviewProvider {
 //                .previewSettings(name: "Old Message")
 //
 //            PublicDialogRowView(PreviewModel.oldMessagePublicDialog)
-//                .time(isShow: false)
+//                .time(isHidden: false)
 //                .previewSettings(name: "Without time")
 //
 //            PublicDialogRowView(PreviewModel.oldMessagePublicDialog)
-//                .message(isShow: false)
+//                .message(isHidden: false)
 //                .previewSettings(name: "Without message")
 //
 //            PreviewRow(PreviewModel.publicDialog)
@@ -236,7 +236,7 @@ struct PrivateDialogRowView_Previews: PreviewProvider {
 //                .time(nil)
 //                .avatar(image: Image("attachmentPlaceholder", bundle: .module),
 //                        height: 56.0,
-//                        isShow: false)
+//                        isHidden: false)
 //                .message(LastMessage())
 //                .previewSettings(name: "Without optional")
 

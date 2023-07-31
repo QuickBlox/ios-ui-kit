@@ -10,7 +10,7 @@ import SwiftUI
 
 struct AddMembersHeaderToolbarContent: ToolbarContent {
     
-    private var header = QuickBloxUIKit.settings.addMembersScreen.header
+    private var settings = QuickBloxUIKit.settings.addMembersScreen.header
     
     let onDismiss: () -> Void
     
@@ -24,11 +24,15 @@ struct AddMembersHeaderToolbarContent: ToolbarContent {
             Button {
                 onDismiss()
             } label: {
-                if let title = header.leftButton.title {
+                if let title = settings.leftButton.title {
                     Text(title)
-                        .foregroundColor(header.leftButton.color)
+                        .foregroundColor(settings.leftButton.color)
                 } else {
-                    header.leftButton.image.tint(header.leftButton.color)
+                    settings.leftButton.image
+                        .resizable()
+                        .scaleEffect(settings.leftButton.scale)
+                        .tint(settings.leftButton.color)
+                        .padding(settings.leftButton.padding)
                 }
             }
         }
@@ -36,7 +40,7 @@ struct AddMembersHeaderToolbarContent: ToolbarContent {
 }
 
 public struct AddMembersHeader: ViewModifier {
-    private var header = QuickBloxUIKit.settings.addMembersScreen.header
+    private var settings = QuickBloxUIKit.settings.addMembersScreen.header
     
     let onDismiss: () -> Void
     
@@ -49,9 +53,10 @@ public struct AddMembersHeader: ViewModifier {
         content.toolbar {
             AddMembersHeaderToolbarContent(onDismiss: onDismiss)
         }
-        .navigationTitle(header.title.text)
-        .navigationBarTitleDisplayMode(header.displayMode)
+        .navigationTitle(settings.title.text)
+        .navigationBarTitleDisplayMode(settings.displayMode)
         .navigationBarBackButtonHidden(true)
+        .navigationBarHidden(settings.isHidden)
     }
 }
 

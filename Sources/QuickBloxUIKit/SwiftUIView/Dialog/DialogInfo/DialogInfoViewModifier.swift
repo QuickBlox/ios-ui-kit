@@ -36,7 +36,11 @@ struct DialogInfoHeaderToolbarContent: ToolbarContent {
                 if let title = settings.leftButton.title {
                     Text(title).foregroundColor(settings.leftButton.color.opacity(disabled == true ? settings.opacity : 1.0))
                 } else {
-                    settings.leftButton.image.tint(settings.leftButton.color.opacity(disabled == true ? settings.opacity : 1.0))
+                    settings.leftButton.image
+                        .resizable()
+                        .scaleEffect(settings.leftButton.scale)
+                        .tint(settings.leftButton.color.opacity(disabled == true ? settings.opacity : 1.0))
+                        .padding(settings.leftButton.padding)
                 }
             }.disabled(disabled)
         }
@@ -48,7 +52,11 @@ struct DialogInfoHeaderToolbarContent: ToolbarContent {
                 if let title = settings.rightButton.title {
                     Text(title).foregroundColor(settings.rightButton.color.opacity(disabled == true ? settings.opacity : 1.0))
                 } else {
-                    settings.rightButton.image.tint(settings.rightButton.color.opacity(disabled == true ? settings.opacity : 1.0))
+                    settings.rightButton.image
+                        .resizable()
+                        .scaleEffect(settings.rightButton.scale)
+                        .tint(settings.rightButton.color.opacity(disabled == true ? settings.opacity : 1.0))
+                        .padding(settings.rightButton.padding)
                 }
             }.disabled(disabled)
         }
@@ -81,6 +89,7 @@ public struct DialogInfoHeader: ViewModifier {
         .navigationTitle(settings.title.text)
         .navigationBarTitleDisplayMode(settings.displayMode)
         .navigationBarBackButtonHidden(true)
+        .navigationBarHidden(settings.isHidden)
     }
 }
 
@@ -109,7 +118,7 @@ public struct InfoDialogAvatar<Item: DialogEntity>: View {
             } else {
                 AvatarView(image: avatar ?? dialog.placeholder,
                            height: settings.height,
-                           isShow: settings.isShow)
+                           isHidden: settings.isHidden)
                 .task {
                     do { avatar = try await dialog.avatar } catch { prettyLog(error) }
                 }
@@ -210,7 +219,7 @@ public struct EditDialogAlert: ViewModifier {
     @Binding var isValidDialogName: Bool
     
     let isExistingImage: Bool
-    let isShowFiles: Bool
+    let isHiddenFiles: Bool
     
     @Binding var isEdit: Bool
     
@@ -247,7 +256,7 @@ public struct EditDialogAlert: ViewModifier {
                 })
                 .mediaAlert(isAlertPresented: $isMediaAlertPresented,
                             isExistingImage: isExistingImage,
-                            isShowFiles: isShowFiles,
+                            isHiddenFiles: isHiddenFiles,
                             mediaTypes: [UTType.image.identifier],
                             onRemoveImage: {
                     onRemoveImage()
@@ -301,7 +310,7 @@ extension View {
         dialogName: Binding<String>,
         isValidDialogName: Binding<Bool>,
         isExistingImage: Bool,
-        isShowFiles: Bool,
+        isHiddenFiles: Bool,
         isEdit: Binding<Bool>,
         onRemoveImage: @escaping () -> Void,
         onGetAttachment: @escaping (_ attachmentAsset: AttachmentAsset) -> Void,
@@ -311,7 +320,7 @@ extension View {
                                       dialogName: dialogName,
                                       isValidDialogName: isValidDialogName,
                                       isExistingImage: isExistingImage,
-                                      isShowFiles: isShowFiles,
+                                      isHiddenFiles: isHiddenFiles,
                                       isEdit: isEdit,
                                       onRemoveImage: onRemoveImage,
                                       onGetAttachment: onGetAttachment,

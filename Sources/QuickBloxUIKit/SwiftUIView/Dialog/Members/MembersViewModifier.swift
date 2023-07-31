@@ -10,7 +10,7 @@ import SwiftUI
 
 struct MembersHeaderToolbarContent: ToolbarContent {
     
-    private var header = QuickBloxUIKit.settings.membersScreen.header
+    private var settings = QuickBloxUIKit.settings.membersScreen.header
     
     let onDismiss: () -> Void
     let onAdd: () -> Void
@@ -27,11 +27,15 @@ struct MembersHeaderToolbarContent: ToolbarContent {
             Button {
                 onDismiss()
             } label: {
-                if let title = header.leftButton.title {
+                if let title = settings.leftButton.title {
                     Text(title)
-                        .foregroundColor(header.leftButton.color)
+                        .foregroundColor(settings.leftButton.color)
                 } else {
-                    header.leftButton.image.tint(header.leftButton.color)
+                    settings.leftButton.image
+                        .resizable()
+                        .scaleEffect(settings.leftButton.scale)
+                        .tint(settings.leftButton.color)
+                        .padding(settings.leftButton.padding)
                 }
             }
         }
@@ -40,11 +44,15 @@ struct MembersHeaderToolbarContent: ToolbarContent {
             Button {
                 onAdd()
             } label: {
-                if let title = header.rightButton.title {
+                if let title = settings.rightButton.title {
                     Text(title)
-                        .foregroundColor(header.rightButton.color)
+                        .foregroundColor(settings.rightButton.color)
                 } else {
-                    header.rightButton.image.tint(header.rightButton.color)
+                    settings.rightButton.image
+                        .resizable()
+                        .scaleEffect(settings.rightButton.scale)
+                        .tint(settings.rightButton.color)
+                        .padding(settings.rightButton.padding)
                 }
             }
         }
@@ -52,7 +60,7 @@ struct MembersHeaderToolbarContent: ToolbarContent {
 }
 
 public struct MembersHeader: ViewModifier {
-    private var header = QuickBloxUIKit.settings.membersScreen.header
+    private var settings = QuickBloxUIKit.settings.membersScreen.header
     
     let onDismiss: () -> Void
     let onAdd: () -> Void
@@ -69,9 +77,10 @@ public struct MembersHeader: ViewModifier {
             MembersHeaderToolbarContent(onDismiss: onDismiss,
                                         onAdd: onAdd)
         }
-        .navigationTitle(header.title.text)
-        .navigationBarTitleDisplayMode(header.displayMode)
+        .navigationTitle(settings.title.text)
+        .navigationBarTitleDisplayMode(settings.displayMode)
         .navigationBarBackButtonHidden(true)
+        .navigationBarHidden(settings.isHidden)
     }
 }
 

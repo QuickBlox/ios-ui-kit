@@ -15,26 +15,18 @@ import QuickBloxLog
 public protocol MembersDialogProtocol: QuickBloxUIKitViewModel {
     associatedtype UserItem: UserEntity
     associatedtype DialogItem: DialogEntity
-    associatedtype UsersRepo: UsersRepositoryProtocol
-    associatedtype DialogsRepo: DialogsRepositoryProtocol
     
     var displayed: [UserItem] { get set }
     var dialog: DialogItem { get set }
     var selectedUser: UserItem? { get set }
-    var usersRepo: UsersRepo { get }
-    var dialogsRepo: DialogsRepo { get }
     
-    var searchText: String { get set }
     func removeUserFromDialog()
 }
 
 open class MembersDialogViewModel: MembersDialogProtocol {
-    @Published public var searchText = ""
     @MainActor
     @Published public var displayed: [User] = []
     @Published public var selectedUser: User? = nil
-    @Published public var isLoading = CurrentValueSubject<Bool, Never>(false)
-    
     @Published public var dialog: Dialog
     
     public var cancellables = Set<AnyCancellable>()
@@ -53,17 +45,6 @@ open class MembersDialogViewModel: MembersDialogProtocol {
                                        MessagesRepository,
                                        Pagination>?
     private var syncSub: AnyCancellable?
-    
-    var isSearchingPublisher: AnyPublisher<Bool, Never> {
-        $searchText
-            .map { searchText in
-                if searchText.count > 2 {
-                    self.search(searchText, pageNumber: 1)
-                }
-                return searchText.isEmpty == false
-            }
-            .eraseToAnyPublisher()
-    }
     
     // use for PreviewProvider
     init(dialog: Dialog,
@@ -138,7 +119,7 @@ open class MembersDialogViewModel: MembersDialogProtocol {
                 try await Task.sleep(nanoseconds: duration)
                 try Task.checkCancellation()
                 
-                var getUsers: GetUsers<UserItem, UsersRepo>
+                var getUsers: GetUsers<UserItem, UsersRepository>
                 getUsers = GetUsers(ids: dialog.participantsIds,
                                     repo: repo)
                 
@@ -154,23 +135,7 @@ open class MembersDialogViewModel: MembersDialogProtocol {
         }
     }
     
-    func fetchWithPage(_ pageNumber: UInt) {
-        
-    }
-    
-    func append( _ users: [User]) {
-        
-    }
-    
     func search(_ name: String, pageNumber: UInt) {
         showUsers(dialog, name: name)
-    }
-    
-    func searchNext(_ name: String) {
-    }
-    
-    
-    // MARK: - Dialogs
-    func updateDialog() {
     }
 }

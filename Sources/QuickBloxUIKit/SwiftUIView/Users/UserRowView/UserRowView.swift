@@ -69,7 +69,7 @@ public struct UserRow<Item: UserEntity>: View  {
         HStack(spacing: settings.spacing) {
             avatarView ?? AvatarView(image: avatar,
                                      height: settings.contentHeight,
-                                     isShow: true )
+                                     isHidden: settings.isHiddenAvatar )
             
             nameView ?? UserRowName(text: user.name)
             Spacer()
@@ -124,7 +124,7 @@ public struct RemoveUserRow<Item: UserEntity>: View  {
         HStack(spacing: settings.spacing) {
             avatarView ?? AvatarView(image: avatar,
                                      height: settings.contentHeight,
-                                     isShow: true )
+                                     isHidden: settings.isHiddenAvatar )
             
             nameView ?? UserRowName(text: user.isCurrent
                                     ? user.name + settings.name.you
@@ -181,7 +181,7 @@ public struct AddUserRow<Item: UserEntity>: View  {
         HStack(spacing: settings.spacing) {
             avatarView ?? AvatarView(image: avatar,
                                      height: settings.contentHeight,
-                                     isShow: true )
+                                     isHidden: settings.isHiddenAvatar )
             
             nameView ?? UserRowName(text: user.name)
             Spacer()

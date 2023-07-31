@@ -32,7 +32,11 @@ struct CreateDialogHeaderToolbarContent: ToolbarContent {
                 if let title = settings.leftButton.title {
                     Text(title).foregroundColor(settings.leftButton.color)
                 } else {
-                    settings.leftButton.image.tint(settings.leftButton.color)
+                    settings.leftButton.image
+                        .resizable()
+                        .scaleEffect(settings.leftButton.scale)
+                        .tint(settings.leftButton.color)
+                        .padding(settings.leftButton.padding)
                 }
             }
         }
@@ -44,7 +48,11 @@ struct CreateDialogHeaderToolbarContent: ToolbarContent {
                 if let title = settings.rightButton.title {
                     Text(title).foregroundColor(settings.rightButton.color.opacity(disabled == true ? settings.opacity : 1.0))
                 } else {
-                    settings.rightButton.image.tint(settings.rightButton.color.opacity(disabled == true ? settings.opacity : 1.0))
+                    settings.rightButton.image
+                        .resizable()
+                        .scaleEffect(settings.rightButton.scale)
+                        .tint(settings.rightButton.color.opacity(disabled == true ? settings.opacity : 1.0))
+                        .padding(settings.rightButton.padding)
                 }
             }.disabled(disabled)
         }
@@ -77,5 +85,6 @@ public struct CreateDialogHeader: ViewModifier {
         .navigationTitle(settings.title.text)
         .navigationBarTitleDisplayMode(settings.displayMode)
         .navigationBarBackButtonHidden(true)
+        .navigationBarHidden(settings.isHidden)
     }
 }

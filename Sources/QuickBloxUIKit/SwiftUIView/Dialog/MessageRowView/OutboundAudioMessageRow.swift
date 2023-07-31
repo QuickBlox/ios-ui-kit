@@ -40,15 +40,11 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
             VStack(alignment: .trailing) {
                 Spacer()
                 HStack(spacing: 3) {
-                    message.statusImage
-                        .resizable()
-                        .renderingMode(.template)
-                        .foregroundColor(message.statusForeground)
-                        .scaledToFit()
-                        .frame(width: 10, height: 5)
-                    Text("\(message.date, formatter: Date.formatter)")
-                        .foregroundColor(settings.time.foregroundColor)
-                        .font(settings.time.font)
+                    
+                    MessageRowStatus(message: message)
+                    
+                    MessageRowTime(date: message.date)
+                    
                 }.padding(.bottom, 2)
             }
             
@@ -60,21 +56,9 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
                     Spacer()
                     HStack(alignment: .center, spacing: 8) {
                         if fileTuple?.url != nil {
-                            if isPlaying {
-                                settings.pause
-                                    .resizable()
-                                    .scaledToFit()
-                                    .foregroundColor(settings.outboundPlayForeground)
-                                    .frame(width: settings.audioPlaySize.width, height: settings.audioPlaySize.height)
-                                
-                            } else {
-                                settings.play
-                                    .resizable()
-                                    .renderingMode(.template)
-                                    .foregroundColor(settings.outboundPlayForeground)
-                                    .scaledToFit()
-                                    .frame(width: settings.audioPlaySize.width, height: settings.audioPlaySize.height)
-                            }
+                            
+                            MessageRowPlay(isOutbound: true, isPlaying: isPlaying)
+                            
                         } else {
                             ProgressView()
                         }

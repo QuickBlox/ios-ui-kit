@@ -25,11 +25,13 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
     public init(dialogsList: ViewModel,
                 @ViewBuilder content: @escaping (_ viewModel: ViewModel) -> ListView,
                 @ViewBuilder detailContent: @escaping (_ dialog: ViewModel.Item, _ isDialogPresented: Binding<Bool>) -> DetailView,
-                selectTypeContent: @escaping (@escaping() -> Void) -> TypeView) {
+                selectTypeContent: @escaping (@escaping() -> Void) -> TypeView,
+                onBack: @escaping () -> Void ) {
         _dialogsList = StateObject(wrappedValue: dialogsList)
         self.content = content
         self.detailContent = detailContent
         self.selectTypeContent = selectTypeContent
+        self.onBack = onBack
         setupNavigationBarAppearance(titleColor: UIColor(settings.header.title.color),
                                      barColor: UIColor(settings.header.backgroundColor),
                                      shadowColor: UIColor(settings.dialogRow.dividerColor))
@@ -38,6 +40,7 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
     private var content: (_ viewModel: ViewModel) -> ListView
     private var detailContent: (ViewModel.Item, _ isDialogPresented: Binding<Bool>) -> DetailView
     private var selectTypeContent: (@escaping () -> Void) -> TypeView
+    private var onBack: () -> Void
     
     @State private var isDialogTypePresented: Bool = false
     @State private var isDialogPresented: Bool = false
@@ -73,6 +76,7 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
             }
         })
         .modifier(DialogListHeader(onDismiss: {
+            onBack()
             dismiss()
         }, onTapDialogType: {
             isDialogTypePresented.toggle()

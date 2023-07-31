@@ -72,6 +72,9 @@ open class DialogInfoViewModel: DialogInfoProtocol {
                 await MainActor.run { [weak self] in
                     if let uuid = self?.attachmentAsset?.name {
                         self?.dialog.photo = uuid
+                    } else {
+                        self?.dialog.photo = "null"
+                        self?.dialog.removeAvatar()
                     }
                     self?.isProcessing.value = false
                 }
@@ -96,6 +99,7 @@ open class DialogInfoViewModel: DialogInfoProtocol {
     public func removeDialogAvatar() {
         // TODO: remove dialog avatar method. Create remove avatar use case.
         dialog.photo = "null"
+        dialog.removeAvatar()
         updateDialog(dialog)
     }
     

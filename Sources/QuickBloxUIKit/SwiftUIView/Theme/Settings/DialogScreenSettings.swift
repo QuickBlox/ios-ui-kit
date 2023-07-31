@@ -25,12 +25,13 @@ public class DialogScreenSettings {
     public var textField: MessageTextFieldSettings
     public var zoomedImage: ZoomedImageSettings
     public var typing: TypingSettings
-    public var itemsIsEmpty: String = "You don’t have any messages."
+    public var itemsIsEmpty: String
     public var blurRadius: CGFloat = 12.0
     public var maximumMB: Double = 10
     public var dividerToMB: Double = 1048576
-    public var largeSize: String = "The uploaded file exceeds maximum file size (10MB)"
+    public var maxSize: String
     public var avatarSize: AvatarSizeSettings = AvatarSizeSettings()
+    public var isHiddenFiles = false
     
     public init(_ theme: ThemeProtocol) {
         self.header = DialogHeaderSettings(theme)
@@ -40,6 +41,8 @@ public class DialogScreenSettings {
         self.typing = TypingSettings(theme)
         self.backgroundColor = theme.color.mainBackground
         self.contentBackgroundColor = theme.color.secondaryBackground
+        self.itemsIsEmpty = theme.string.messegesEmpty
+        self.maxSize = theme.string.maxSize
     }
 }
 
@@ -50,27 +53,32 @@ public struct AvatarSizeSettings {
 }
 
 public struct TypingSettings {
-    public var typingOne = " is typing..."
-    public var typingTwo = " are typing..."
-    public var typingFour = " and 2 others are typing..."
+    public var typingOne: String
+    public var typingTwo: String
+    public var typingFour: String
     public var color: Color
     public var font: Font
     public var height: CGFloat = 31
     public var offset: CGFloat = 52.0
+    public var enable: Bool = true
     
     public init(_ theme: ThemeProtocol) {
         self.font = theme.font.caption2
         self.color = theme.color.tertiaryElements
+        self.typingOne = theme.string.typingOne
+        self.typingTwo = theme.string.typingTwo
+        self.typingFour = theme.string.typingFour
     }
 }
 
-public struct DialogHeaderSettings {
+public struct DialogHeaderSettings: HeaderSettingsProtocol {
+    public var leftButton: ButtonSettingsProtocol
+    public var title: HeaderTitleSettingsProtocol
+    public var rightButton: ButtonSettingsProtocol
     public var displayMode: NavigationBarItem.TitleDisplayMode = .automatic
     public var backgroundColor: Color
-    public var leftButton: CancelButton
-    public var title: DialogTitle
-    public var rightButton: InfoButton
     public var opacity: CGFloat = 0.4
+    public var isHidden: Bool = false
     
     public init(_ theme: ThemeProtocol) {
         self.backgroundColor = theme.color.mainBackground
@@ -80,9 +88,17 @@ public struct DialogHeaderSettings {
     }
     
     public struct InfoButton: ButtonSettingsProtocol {
+        public var imageSize: CGSize?
+        public var frame: CGSize?
+        
         public var title: String? = nil
         public var image: Image
         public var color: Color
+        public var scale: Double = 1.0
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 0.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.info
@@ -91,22 +107,31 @@ public struct DialogHeaderSettings {
     }
     
     public struct DialogTitle: HeaderTitleSettingsProtocol {
-        public var text: String = "Dialog"
+        public var text: String
         public var color: Color
         public var font: Font
         public var avatarHeight: CGFloat = 34.0
-        public var isShowAvatar: Bool = true
+        public var isHiddenAvatar: Bool = false
         
         public init(_ theme: ThemeProtocol) {
             self.font = theme.font.headline
             self.color = theme.color.mainText
+            self.text = theme.string.dialog
         }
     }
     
     public struct CancelButton: ButtonSettingsProtocol {
+        public var imageSize: CGSize?
+        public var frame: CGSize?
+        
         public var title: String? = nil
         public var image: Image
         public var color: Color
+        public var scale: Double = 1.0
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 0.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.back
@@ -130,9 +155,17 @@ public struct ZoomedImageSettings {
     }
     
     public struct InfoButton: ButtonSettingsProtocol {
+        public var frame: CGSize?
+        
         public var title: String? = nil
         public var image: Image
         public var color: Color
+        public var scale: Double = 1.0
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 0.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
+        public var imageSize: CGSize? = CGSize(width: 18.0, height: 18.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.info
@@ -151,9 +184,17 @@ public struct ZoomedImageSettings {
     }
     
     public struct CancelButton: ButtonSettingsProtocol {
+        public var frame: CGSize?
+        
         public var title: String? = nil
         public var image: Image
         public var color: Color
+        public var scale: Double = 1.0
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 0.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
+        public var imageSize: CGSize? = CGSize(width: 16.0, height: 18.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.back
@@ -192,7 +233,7 @@ public struct MessageRowSettings {
     public var videoPlayForeground: Color
     public var videoPlayBackground: Color
     public var file: Image
-    public var fileTitle: String = "file"
+    public var fileTitle: String
     public var inboundFileForeground: Color
     public var inboundFileBackground: Color
     public var outboundFileForeground: Color
@@ -202,15 +243,16 @@ public struct MessageRowSettings {
     public var dateFont: Font
     public var infoForeground: Color
     public var infoFont: Font
-    public var gifTitle: String = "GIF"
+    public var gifTitle: String
     public var gifFont: Font
     public var gifFontPlay: Font
     public var bubbleRadius: CGFloat = 22.0
     public var dateRadius: CGFloat = 10.0
     public var attachmentRadius: CGFloat = 8.0
-    public var isShowAvatar: Bool = true
-    public var isShowName: Bool = true
-    public var isShowTime: Bool = true
+    public var isHiddenAvatar: Bool = false
+    public var isHiddenName: Bool = false
+    public var isHiddenTime: Bool = false
+    public var isHiddenStatus: Bool = false
     public var attachmentSize: CGSize = CGSize(width: 240.0, height: 160.0)
     public var imageSize: CGSize = CGSize(width: 336.0, height: 224.0)
     public var audioImageSize: CGSize = CGSize(width: 168.0, height: 12.0)
@@ -223,6 +265,8 @@ public struct MessageRowSettings {
     public var imageIcon: Image
     public var outboundImageIconForeground: Color
     public var inboundImageIconForeground: Color
+    public var linkFont: Font
+    public var linkUnderline: Bool = true
     public var outboundLinkForeground: Color
     public var inboundLinkForeground: Color
     public var inboundSpacer: CGFloat = DialogScreenSettingsConstant.spacer
@@ -254,7 +298,7 @@ public struct MessageRowSettings {
                                                            trailing: 16.0)
     
     public func inboundPadding(showName: Bool) -> EdgeInsets {
-        return EdgeInsets(top: showName == true ? 0.0 : 18,
+        return EdgeInsets(top: showName == false ? 0.0 : 18,
                           leading: 0.0,
                           bottom: 0.0,
                           trailing: 0.0)
@@ -324,7 +368,9 @@ public struct MessageRowSettings {
         self.deliveredForeground = theme.color.tertiaryElements
         self.readForeground = theme.color.mainElements
         self.sendForeground = theme.color.tertiaryElements
+        self.fileTitle = theme.string.fileTitle
         self.file = theme.image.doctext
+        self.gifTitle = theme.string.gif
         self.inboundFileForeground = theme.color.system
         self.inboundFileBackground = theme.color.tertiaryElements
         self.outboundFileForeground = theme.color.system
@@ -332,6 +378,7 @@ public struct MessageRowSettings {
             traitCollection.userInterfaceStyle == .dark ? UIColor(theme.color.mainElements)
             : UIColor(theme.color.tertiaryElements)
         })
+        self.linkFont = theme.font.callout
         self.inboundLinkForeground = theme.color.mainText
         self.outboundLinkForeground = theme.color.mainText
     }
@@ -361,15 +408,20 @@ public struct MessageRowSettings {
     }
     
     public struct MessageSettings {
-        public var foregroundColor: Color
+        public var inboundForeground: Color
+        public var outboundForeground: Color
         public var font: Font
         public var attachmentPlaceholder: Image
         public var size: CGSize = CGSize(width: 32.0, height: 32.0)
         public var imageCornerRadius = 8.0
         
         public init(_ theme: ThemeProtocol) {
-            self.foregroundColor = theme.color.secondaryText
-            self.font = theme.font.caption
+            self.inboundForeground = theme.color.secondaryText
+            self.outboundForeground = Color(uiColor: UIColor { traitCollection in
+                traitCollection.userInterfaceStyle == .dark ? UIColor(hexRGB: "#9CBCFE") ?? UIColor.white
+                : UIColor(theme.color.secondaryText)
+            })
+            self.font = theme.font.callout
             self.attachmentPlaceholder = theme.image.attachmentPlaceholder
         }
     }
@@ -403,7 +455,7 @@ public struct MessageRowSettings {
 }
 
 public struct MessageTextFieldSettings {
-    public var placeholderText: String = "Type message"
+    public var placeholderText: String
     public var placeholderFont: Font
     public var placeholderColor: Color
     public var backgroundColor: Color
@@ -421,6 +473,7 @@ public struct MessageTextFieldSettings {
                                                 trailing: 16)
     
     public init(_ theme: ThemeProtocol) {
+        self.placeholderText = theme.string.typeMessage
         self.placeholderColor = theme.color.secondaryText
         self.placeholderFont = theme.font.callout
         self.backgroundColor = theme.color.inputBackground
@@ -446,9 +499,17 @@ public struct MessageTextFieldSettings {
     }
     
     public struct AttachmentButton: ButtonSettingsProtocol {
+        public var imageSize: CGSize?
+        public var frame: CGSize?
+        
         public var title: String? = nil
         public var image: Image
         public var color: Color
+        public var scale: Double = 1.0
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 0.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
         public var stopImage: Image
         public var stopColor: Color
         public var width: CGFloat = 44.0
@@ -462,9 +523,17 @@ public struct MessageTextFieldSettings {
     }
     
     public struct SendButton: ButtonSettingsProtocol {
+        public var imageSize: CGSize?
+        public var frame: CGSize?
+        
         public var title: String? = nil
         public var image: Image
         public var color: Color
+        public var scale: Double = 1.0
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 0.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
         public var micImage: Image
         public var micColor: Color
         public var width: CGFloat = 44.0
@@ -479,10 +548,18 @@ public struct MessageTextFieldSettings {
     }
     
     public struct EmojiButton: ButtonSettingsProtocol {
+        public var imageSize: CGSize?
+        public var frame: CGSize?
+        
         public var title: String? = nil
         public var image: Image
         public var keyboardImage: Image
         public var color: Color
+        public var scale: Double = 1.0
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 0.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.smiley

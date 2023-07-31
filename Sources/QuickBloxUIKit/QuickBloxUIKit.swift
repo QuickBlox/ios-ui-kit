@@ -84,15 +84,21 @@ let imageCache = ImageCache.shared
 
 //FIXME: add dialogsView screen
 @ViewBuilder
-public func dialogsView() -> some View {
+public func dialogsView(onExit: (() -> Void)? = nil) -> some View {
     DialogsView(dialogsList: DialogsList(dialogsRepo: RepositoriesFabric.dialogs),
                 content: { dialogsList in
         DialogsListView(dialogsList: dialogsList,
                         content: DialogsRowBuilder.defaultRow)
     }, detailContent: { item, isPresented in
-        DialogView(viewModel: DialogViewModel(dialog: item), isDialogPresented: isPresented)
+        if item.type == .group {
+            GroupDialogView(viewModel: DialogViewModel(dialog: item), isDialogPresented: isPresented)
+        } else if item.type == .private {
+            PrivateDialogView(viewModel: DialogViewModel(dialog: item), isDialogPresented: isPresented)
+        }
     }, selectTypeContent: { onClose in
         DialogTypeView(onClose: onClose)
+    }, onBack: {
+        onExit?()
     }).onAppear {
         syncData()
     }

@@ -10,7 +10,7 @@ import SwiftUI
 
 struct DialogTypeHeaderToolbarContent: ToolbarContent {
     
-    private var header = QuickBloxUIKit.settings.dialogTypeScreen.header
+    private var settings = QuickBloxUIKit.settings.dialogTypeScreen.header
     
     let onCloseButtonTapped: () -> Void
     
@@ -21,19 +21,23 @@ struct DialogTypeHeaderToolbarContent: ToolbarContent {
     
     public var body: some ToolbarContent {
         ToolbarItem(placement: .principal) {
-            Text(header.title.text)
-                .font(header.title.font)
-                .foregroundColor(header.title.color)
+            Text(settings.title.text)
+                .font(settings.title.font)
+                .foregroundColor(settings.title.color)
         }
         
         ToolbarItem(placement: .navigationBarTrailing) {
             Button {
                 onCloseButtonTapped()
             } label: {
-                if let title = header.rightButton.title {
-                    Text(title).foregroundColor(header.rightButton.color)
+                if let title = settings.rightButton.title {
+                    Text(title).foregroundColor(settings.rightButton.color)
                 } else {
-                    header.rightButton.image.tint(header.rightButton.color)
+                    settings.rightButton.image
+                        .resizable()
+                        .scaleEffect(settings.rightButton.scale)
+                        .tint(settings.rightButton.color)
+                        .padding(settings.rightButton.padding)
                 }
             }
         }
@@ -42,7 +46,7 @@ struct DialogTypeHeaderToolbarContent: ToolbarContent {
 
 public struct DialogTypeHeader: ViewModifier {
     
-    public var header = QuickBloxUIKit.settings.dialogTypeScreen.header
+    public var settings = QuickBloxUIKit.settings.dialogTypeScreen.header
     
     let onClose: () -> Void
     
@@ -53,7 +57,9 @@ public struct DialogTypeHeader: ViewModifier {
     public func body(content: Content) -> some View {
         content.toolbar {
             DialogTypeHeaderToolbarContent(onCloseButtonTapped: onClose)
-        }.navigationBarTitleDisplayMode(header.displayMode)
+        }
+        .navigationBarTitleDisplayMode(settings.displayMode)
+        .navigationBarHidden(settings.isHidden)
     }
 }
 

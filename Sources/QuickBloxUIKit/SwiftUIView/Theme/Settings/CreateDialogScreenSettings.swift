@@ -21,7 +21,7 @@ public class CreateDialogScreenSettings {
     public var searchBar: DialogsSearchBarSettings
     public var userRow: UserRowSettings
     public var backgroundColor: Color
-    public var itemsIsEmpty: String = "You don’t have any users."
+    public var itemsIsEmpty: String
     public var blurRadius: CGFloat = 12.0
     
     public init(_ theme: ThemeProtocol) {
@@ -29,6 +29,7 @@ public class CreateDialogScreenSettings {
         self.searchBar = DialogsSearchBarSettings(theme)
         self.userRow = UserRowSettings(theme)
         self.backgroundColor = theme.color.mainBackground
+        self.itemsIsEmpty = theme.string.usersEmpty
     }
 }
 
@@ -39,6 +40,7 @@ public struct CreateDialogHeaderSettings {
     public var title: CreateDialogTitle
     public var rightButton: CreateButton
     public var opacity: CGFloat = 0.4
+    public var isHidden: Bool = false
     
     public init(_ theme: ThemeProtocol) {
         self.backgroundColor = theme.color.mainBackground
@@ -48,35 +50,56 @@ public struct CreateDialogHeaderSettings {
     }
     
     public struct CreateButton: ButtonSettingsProtocol {
-        public var title: String? = "Create"
+        public var imageSize: CGSize?
+        public var frame: CGSize?
+        
+        public var title: String?
         public var image: Image
         public var color: Color
+        public var scale: Double = 1.0
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 0.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.newChat
             self.color = theme.color.mainElements
+            self.title = theme.string.create
         }
     }
     
     public struct CreateDialogTitle: HeaderTitleSettingsProtocol {
-        public var text: String = "Create Dialog"
+        public var text: String
         public var color: Color
         public var font: Font
+        public var avatarHeight: CGFloat = 0.0
+        public var isHiddenAvatar: Bool = true
         
         public init(_ theme: ThemeProtocol) {
             self.font = theme.font.headline
             self.color = theme.color.mainText
+            self.text = theme.string.createDialog
         }
     }
     
     public struct CancelButton: ButtonSettingsProtocol {
-        public var title: String? = "Cancel"
+        public var imageSize: CGSize?
+        public var frame: CGSize?
+        
+        public var title: String?
         public var image: Image
         public var color: Color
+        public var scale: Double = 1.0
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 0.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.back
             self.color = theme.color.mainElements
+            self.title = theme.string.cancel
         }
     }
 }
@@ -90,13 +113,14 @@ public struct CreateDialogSearchBarSettings: SearchBarSettingsProtocol {
     }
     
     public struct DialogsSearchTextField: SearchTextFieldSettingsProtocol {
-        public var placeholderText: String = "Search"
+        public var placeholderText: String
         public var placeholderColor: Color
         public var backgroundColor: Color
         
         public init(_ theme: ThemeProtocol) {
             self.placeholderColor = theme.color.secondaryText
             self.backgroundColor = theme.color.inputBackground
+            self.placeholderText = theme.string.search
         }
     }
 }
@@ -108,6 +132,7 @@ public struct UserRowSettings {
     public var checkbox: UserCheckboxSettings
     public var backgroundColor: Color
     public var dividerColor: Color
+    public var isHiddenAvatar: Bool = false
     
     public var height: CGFloat = CreateDialogScreenSettingsConstant.height
     public var contentHeight: CGFloat = CreateDialogScreenSettingsConstant.height - CreateDialogScreenSettingsConstant.verticalPadding * 2
@@ -157,24 +182,26 @@ public struct UserCheckboxSettings {
 }
 
 public struct UserNameSettings {
-    public var you: String = " (You)"
+    public var you: String
     public var foregroundColor: Color
     public var font: Font
     
     public init(_ theme: ThemeProtocol) {
         self.foregroundColor = theme.color.mainText
         self.font = theme.font.callout
+        self.you = theme.string.you
     }
 }
 
 public struct RoleUserNameSettings {
-    public var admin: String = "Admin"
+    public var admin: String
     public var foregroundColor: Color
     public var font: Font
     
     public init(_ theme: ThemeProtocol) {
         self.foregroundColor = theme.color.tertiaryElements
         self.font = theme.font.footnote
+        self.admin = theme.string.admin
     }
 }
 

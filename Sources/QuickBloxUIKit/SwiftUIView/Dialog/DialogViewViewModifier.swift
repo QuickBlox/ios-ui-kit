@@ -40,7 +40,11 @@ struct DialogHeaderToolbarContent: ToolbarContent {
                 if let title = settings.leftButton.title {
                     Text(title).foregroundColor(settings.leftButton.color)
                 } else {
-                    settings.leftButton.image.tint(settings.leftButton.color)
+                    settings.leftButton.image
+                        .resizable()
+                        .scaleEffect(settings.leftButton.scale)
+                        .tint(settings.leftButton.color)
+                        .padding(settings.leftButton.padding)
                 }
             }
         }
@@ -49,7 +53,7 @@ struct DialogHeaderToolbarContent: ToolbarContent {
             HStack(spacing: 8.0) {
                 AvatarView(image: avatar ?? dialog.placeholder,
                            height: settings.title.avatarHeight,
-                           isShow: settings.title.isShowAvatar)
+                           isHidden: settings.title.isHiddenAvatar)
                 
                 Text(dialog.name)
                     .font(settings.title.font)
@@ -64,7 +68,11 @@ struct DialogHeaderToolbarContent: ToolbarContent {
                 if let title = settings.rightButton.title {
                     Text(title).foregroundColor(settings.rightButton.color)
                 } else {
-                    settings.rightButton.image.tint(settings.rightButton.color)
+                    settings.rightButton.image
+                        .resizable()
+                        .scaleEffect(settings.rightButton.scale)
+                        .tint(settings.rightButton.color)
+                        .padding(settings.rightButton.padding)
                 }
             }
         }
@@ -72,7 +80,7 @@ struct DialogHeaderToolbarContent: ToolbarContent {
 }
 
 public struct DialogHeader: ViewModifier {
-    private var settings = QuickBloxUIKit.settings.createDialogScreen.header
+    private var settings = QuickBloxUIKit.settings.dialogScreen.header
     
     var dialog: any DialogEntity
     @Binding var avatar: Image?
@@ -99,10 +107,55 @@ public struct DialogHeader: ViewModifier {
                                        onTapInfo: onTapInfo)
         }
         .navigationBarTitleDisplayMode(settings.displayMode)
+        .navigationTitle("")
         .navigationBarBackButtonHidden(true)
+        .navigationBarHidden(settings.isHidden)
     }
 }
 
+public struct TypingView: View {
+    let settings = QuickBloxUIKit.settings.dialogScreen
+    var typing: String
+    
+    public var body: some View {
+        VStack(alignment: .leading) {
+            HStack {
+                Text(typing)
+                    .font(settings.typing.font)
+                    .foregroundColor(settings.typing.color)
+                    .lineLimit(1)
+                
+                Spacer()
+            }.padding([.leading, .trailing], 8)
+            
+            Spacer()
+        }
+        .frame(height: settings.typing.height)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.top, 8)
+    }
+}
+
+public struct MessagesScrollView<Content: View>: View {
+    var content: Content
+    
+    init(@ViewBuilder builder: @escaping ()-> Content) {
+        self.content = builder()
+    }
+    
+    public var body: some View {
+        GeometryReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 0) {
+                    Spacer()
+                    content
+                }
+                .frame(minWidth: proxy.size.width)
+                .frame(minHeight: proxy.size.height)
+            }
+        }
+    }
+}
 
 public struct BubbleCornerRadius: ViewModifier {
     var radius: CGFloat
@@ -164,7 +217,10 @@ public extension String {
         return false
     }
     
-    func makeAttributedString(_ color: Color, linkColor: Color) -> AttributedString {
+    func makeAttributedString(_ color: Color,
+                              linkColor: Color,
+                              linkFont: Font,
+                              underline: Bool) -> AttributedString {
         var attributedString = AttributedString(self)
         attributedString.foregroundColor = color
         let matches = checkMatches()
@@ -175,8 +231,11 @@ public extension String {
                   let url = URL(string: String(self[rangeURL])) else { continue }
             attributedString[range].link = url.corrected
             attributedString[range].foregroundColor = linkColor
-            attributedString[range].underlineStyle = Text.LineStyle(
-                pattern: .solid, color: linkColor)
+            attributedString[range].font = linkFont
+            if underline == true {
+                attributedString[range].underlineStyle = Text.LineStyle(
+                    pattern: .solid, color: linkColor)
+            }
         }
         return attributedString
     }
@@ -199,4 +258,17 @@ public extension URL {
     }
     return self
   }
+}
+
+struct ActivityViewController: UIViewControllerRepresentable {
+var activityItems: [Any]
+var applicationActivities: [UIActivity]? = nil
+
+func makeUIViewController(context: UIViewControllerRepresentableContext<ActivityViewController>) -> UIActivityViewController {
+    let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: applicationActivities)
+    return controller
+}
+
+func updateUIViewController(_ uiViewController: UIActivityViewController, context: UIViewControllerRepresentableContext<ActivityViewController>) {}
+
 }

@@ -86,11 +86,11 @@ private actor Chat {
     
     func send(_ message: QBChatMessage) async {
         guard let id = dialog.id, id == message.dialogID else { return }
-        if dialog.type != .private {
+        if dialog.type != .private, dialog.isJoined() == false {
             await subscribe()
         }
         do {
-            try await Task.wait(second: 0.3)
+            try await Task.wait(second: 1.3)
             try Task.checkCancellation()
             message.dateSent = Date()
             try await dialog.send(message)
@@ -583,7 +583,7 @@ extension RemoteDataSource {
                 .newLine
         }
         
-        let photo = dto.photo == "" ? nil : dto.photo
+        let photo = dto.photo == "null" ? "null" : dto.photo
         if dialog.photo != photo {
             dialog.photo = photo
             

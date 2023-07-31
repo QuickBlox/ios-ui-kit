@@ -26,6 +26,22 @@ public protocol ButtonSettingsProtocol {
     var title: String? { get set }
     var image: Image { get set }
     var color: Color { get set }
+    var scale: Double { get set }
+    var padding: EdgeInsets { get set }
+    var imageSize: CGSize? { get set }
+    var frame: CGSize? { get set }
+    
+    init(_ theme: ThemeProtocol)
+}
+
+public protocol HeaderSettingsProtocol {
+    var displayMode: NavigationBarItem.TitleDisplayMode { get set }
+    var backgroundColor: Color { get set }
+    var leftButton: ButtonSettingsProtocol { get set }
+    var title: HeaderTitleSettingsProtocol { get set }
+    var rightButton: ButtonSettingsProtocol { get set }
+    var opacity: CGFloat { get set }
+    var isHidden: Bool { get set }
     
     init(_ theme: ThemeProtocol)
 }
@@ -34,6 +50,8 @@ public protocol HeaderTitleSettingsProtocol {
     var text: String { get set }
     var color: Color { get set }
     var font: Font { get set }
+    var avatarHeight: CGFloat { get set }
+    var isHiddenAvatar: Bool { get set }
     
     init(_ theme: ThemeProtocol)
 }

@@ -14,12 +14,12 @@ public struct AvatarView {
     
     public var image: Image
     public var height: CGFloat
-    public var isShow: Bool
+    public var isHidden: Bool
 }
 
 extension AvatarView: View {
     public var body: some View {
-        if isShow == false {
+        if isHidden == true {
             EmptyView()
         } else {
             Avatar(image: image, height: height)
@@ -39,11 +39,11 @@ public struct Avatar: View {
 extension DialogRowView {
     func avatar(image: Image,
                 height: CGFloat,
-                isShow: Bool = true) -> Self {
+                isHidden: Bool = false) -> Self {
         var row = Self.init(self)
         row.avatarView = AvatarView(image: image,
                                     height: height,
-                                    isShow: isShow)
+                                    isHidden: isHidden)
         return row
     }
 }
@@ -61,18 +61,18 @@ extension Image {
 struct DialogRowAvatar_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            AvatarView(image: Image("AvatarUser", bundle: .module), height: 56.0, isShow: true)
+            AvatarView(image: Image("AvatarUser", bundle: .module), height: 56.0, isHidden: false)
                 .previewDisplayName("Empty")
                 .preferredColorScheme(.dark)
-            AvatarView(image: Image("AvatarUser", bundle: .module), height: 56.0, isShow: true)
+            AvatarView(image: Image("AvatarUser", bundle: .module), height: 56.0, isHidden: false)
                 .previewDisplayName("With Url Photo")
-            AvatarView(image: Image("AvatarGroup", bundle: .module), height: 56.0, isShow: true)
+            AvatarView(image: Image("AvatarGroup", bundle: .module), height: 56.0, isHidden: false)
                 .previewSettings(name: "Group")
-            AvatarView(image: Image("AvatarPublic", bundle: .module), height: 56.0, isShow: true)
+            AvatarView(image: Image("AvatarPublic", bundle: .module), height: 56.0, isHidden: false)
                 .previewSettings(name: "Public")
-            AvatarView(image: Image("TestAvatar", bundle: .module), height: 40.0, isShow: true)
+            AvatarView(image: Image("TestAvatar", bundle: .module), height: 40.0, isHidden: false)
                 .previewSettings(name: "Custom Avatar")
-            AvatarView(image: Image("TestAvatar", bundle: .module), height: 40.0, isShow: true)
+            AvatarView(image: Image("TestAvatar", bundle: .module), height: 40.0, isHidden: false)
                 .previewSettings(name: "Custom Image Auto Crop")
         }.previewLayout(.fixed(width: 56, height: 56))
     }

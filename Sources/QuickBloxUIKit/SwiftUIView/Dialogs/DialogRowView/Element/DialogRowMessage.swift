@@ -18,7 +18,7 @@ public struct DialogRowMessage {
     public var dialog: any DialogEntity
     public var font: Font? = nil
     public var foregroundColor: Color? = nil
-    public var isShow: Bool
+    public var isHidden: Bool
     
     @State public var fileTuple: (name: String, image: Image?, placeholder: Image)? = nil {
         didSet {
@@ -29,7 +29,7 @@ public struct DialogRowMessage {
 
 extension DialogRowMessage: View {
     public var body: some View {
-        if isShow == false {
+        if isHidden == true {
             EmptyView()
         } else {
             contentView()
@@ -85,12 +85,12 @@ extension DialogRowView {
     func message(_ dialog: Dialog = Dialog(type: .group),
                  font: Font? = nil,
                  foregroundColor: Color? = nil,
-                 isShow: Bool = true) -> Self {
+                 isHidden: Bool = false) -> Self {
         var row = Self.init(self)
         row.messageView = DialogRowMessage(dialog: dialog,
                                            font: font,
                                            foregroundColor: foregroundColor,
-                                           isShow: isShow)
+                                           isHidden: isHidden)
         return row
     }
 }
@@ -98,7 +98,7 @@ extension DialogRowView {
 struct DialogRowMessage_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            DialogRowMessage(dialog: PreviewModel.groupDialog, isShow: true, fileTuple: nil)
+            DialogRowMessage(dialog: PreviewModel.groupDialog, isHidden: false, fileTuple: nil)
         }.previewLayout(.fixed(width: 375, height: 32))
     }
 }

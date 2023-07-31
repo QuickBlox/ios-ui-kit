@@ -8,15 +8,15 @@
 
 import SwiftUI
 import AVKit
+import UIKit
 
 public struct MediaViewerView: ViewModifier {
     public var settings = QuickBloxUIKit.settings.dialogScreen.zoomedImage
     
     @Binding var isImagePresented: Bool
-    var image: Image?
+    var image: UIImage?
     var url: URL?
     @State private var scale: CGFloat = 1
-    let onSave: () -> Void
     let onDismiss: () -> Void
     
     public func body(content: Content) -> some View {
@@ -26,12 +26,10 @@ public struct MediaViewerView: ViewModifier {
                     ZStack {
                         settings.backgroundColor.ignoresSafeArea(.all)
                         VStack {
-                            MediaViewerHeaderView(title: "") {
+                            MediaViewerHeaderView(title: "", onDismiss: {
                                 isImagePresented = false
                                 onDismiss()
-                            } onSave: {
-                                onSave()
-                            }
+                            }, image: image, url: url)
                             
                             Spacer()
                             
@@ -41,7 +39,7 @@ public struct MediaViewerView: ViewModifier {
                                     }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                                 }
                             } else if let image {
-                                image
+                                Image(uiImage: image)
                                     .resizable()
                                     .scaledToFit()
                                     .zooming(scale: $scale)
@@ -51,7 +49,6 @@ public struct MediaViewerView: ViewModifier {
                         }
                     }
                 }
-            
         }
     }
 }
@@ -59,24 +56,30 @@ public struct MediaViewerView: ViewModifier {
 extension View {
     func mediaViewerView(
         isImagePresented: Binding<Bool>,
-        image: Image?,
+        image: UIImage?,
         url: URL?,
-        onSave: @escaping () -> Void,
         onDismiss: @escaping () -> Void) -> some View {
             self.modifier(MediaViewerView(isImagePresented: isImagePresented,
                                           image: image,
                                           url: url,
-                                          onSave: onSave,
                                           onDismiss: onDismiss))
         }
 }
+
+import Combine
 
 public struct MediaViewerHeaderView: View {
     public var settings = QuickBloxUIKit.settings.dialogScreen.zoomedImage
     
     let title: String
     let onDismiss: () -> Void
-    let onSave: () -> Void
+    let image: UIImage?
+    let url: URL?
+    
+    @State private var isInfoAlertPresented = false
+    @State private var isSavedAlertPresented = false
+    
+    @StateObject private var saver = MediaSaverProvider()
     
     public var body: some View {
         ZStack {
@@ -87,7 +90,14 @@ public struct MediaViewerHeaderView: View {
                     if let title = settings.leftButton.title {
                         Text(title).foregroundColor(settings.leftButton.color)
                     } else {
-                        settings.leftButton.image.tint(settings.leftButton.color)
+                        settings.leftButton.image
+                            .resizable()
+                            .scaledToFit()
+                            .scaleEffect(settings.leftButton.scale)
+                            .tint(settings.leftButton.color)
+                            .padding(settings.leftButton.padding)
+                            .frame(width: settings.leftButton.imageSize?.width,
+                                   height: settings.leftButton.imageSize?.height)
                     }
                 }.padding(.leading)
                 
@@ -100,18 +110,59 @@ public struct MediaViewerHeaderView: View {
                 Spacer()
                 
                 Button {
-                    onSave()
+                    isInfoAlertPresented = true
                 } label: {
                     if let title = settings.rightButton.title {
                         Text(title).foregroundColor(settings.rightButton.color)
                     } else {
-                        settings.rightButton.image.tint(settings.rightButton.color)
+                        settings.rightButton.image
+                            .resizable()
+                            .scaledToFit()
+                            .scaleEffect(settings.rightButton.scale)
+                            .tint(settings.rightButton.color)
+                            .padding(settings.rightButton.padding)
+                            .frame(width: settings.rightButton.imageSize?.width,
+                                   height: settings.rightButton.imageSize?.height)
                     }
                 }.padding(.trailing)
             }
         }
         .frame(height: settings.height)
         .background(settings.backgroundColor)
+        
+        .alert("", isPresented: $isInfoAlertPresented) {
+            Button("Cancel", action: {
+                isInfoAlertPresented = false
+            })
+            Button("Save", action: {
+                if let image {
+                    saver.write(image: image)
+                } else if let url {
+                    saver.write(video: url)
+                }
+            })
+        } message: {
+            if image != nil {
+                Text( "Are you sure you want to save that image on your phone?")
+            } else if url != nil {
+                Text( "Are you sure you want to save that video on your phone?")
+            }
+            
+        }
+        
+        .alert("", isPresented: $isSavedAlertPresented) {
+            Button("Ok", action: {
+                isSavedAlertPresented = false
+            })
+        } message: {
+            Text(saver.completedMessage)
+        }
+        
+        .onChange(of: saver.completedMessage, perform: { newValue in
+            if newValue.isEmpty == false {
+                isSavedAlertPresented = true
+            }
+        })
     }
 }
 
@@ -151,13 +202,13 @@ class ZoomImageView: UIView {
          offsetUpdate: @escaping (CGSize) -> Void,
          anchorUpdate: @escaping (UnitPoint) -> Void,
          scaleUpdate: @escaping (CGFloat) -> Void
-         ) {
+    ) {
         self.min = min
         self.max = max
         self.offsetUpdate = offsetUpdate
         self.anchorUpdate = anchorUpdate
         self.scaleUpdate = scaleUpdate
-      
+        
         super.init(frame: .zero)
         let pinchGestureRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(pinch(gestureRecognizer:)))
         pinchGestureRecognizer.cancelsTouchesInView = false
@@ -215,7 +266,7 @@ struct ZoomImageOverlay: UIViewRepresentable {
         return uiView
     }
     
-    func updateUIView(_ uiView: ZoomImageView, context: Context) { }
+    func updateUIView(_ uiView: ZoomImageView, context: Context) {}
 }
 
 struct ZoomImage: ViewModifier {
@@ -239,10 +290,10 @@ struct ZoomImage: ViewModifier {
             .offset(offset)
             .animation(.spring(), value: 1) // looks more natural
             .overlay(ZoomImageOverlay(scale: $scale,
-                                     anchor: $anchor,
-                                     offset: $offset,
-                                     min: min,
-                                     max: max))
+                                      anchor: $anchor,
+                                      offset: $offset,
+                                      min: min,
+                                      max: max))
             .gesture(TapGesture(count: 2).onEnded {
                 if scale != 1 { // reset the scale
                     scale = clamping(1, min, max)
@@ -257,12 +308,45 @@ struct ZoomImage: ViewModifier {
 
 extension View {
     func zooming(scale: Binding<CGFloat>,
-                  min: CGFloat = 0.5,
-                  max: CGFloat = 2) -> some View {
+                 min: CGFloat = 0.5,
+                 max: CGFloat = 2) -> some View {
         modifier(ZoomImage(scale: scale, min: min, max: max))
     }
 }
 
 func clamping(_ value: CGFloat, _ minValue: CGFloat, _ maxValue: CGFloat) -> CGFloat {
     min(maxValue, max(minValue, value))
+}
+
+class MediaSaverProvider: NSObject, ObservableObject {
+    
+    @Published public var completedMessage = ""
+    
+    func write(image: UIImage) {
+        UIImageWriteToSavedPhotosAlbum(image, self, #selector(saveImageCompleted), nil)
+    }
+    
+    @objc func saveImageCompleted(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
+        if let error {
+            completedMessage = error.localizedDescription
+            return
+        }
+        
+        completedMessage = "Save finished!"
+    }
+    
+    func write(video: URL) {
+        if UIVideoAtPathIsCompatibleWithSavedPhotosAlbum(video.relativePath) == true {
+            UISaveVideoAtPathToSavedPhotosAlbum(video.relativePath, self, #selector(saveVideoCompleted), nil)
+        }
+    }
+    
+    @objc func saveVideoCompleted(_ videoPath: String, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
+        if let error {
+            completedMessage = error.localizedDescription
+            return
+        }
+        
+        completedMessage = "Save finished!"
+    }
 }

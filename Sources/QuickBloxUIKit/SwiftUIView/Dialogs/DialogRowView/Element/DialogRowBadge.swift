@@ -11,9 +11,7 @@ import SwiftUI
 public struct DialogRowBadge {
     
     public var settings = QuickBloxUIKit.settings.dialogsScreen.dialogRow.unreadCount
-    
     public var count: Int
-    public var maxCount: Int = 99
     public var font: Font? = nil
     public var foregroundColor: Color? = nil
     public var backgroundColor: Color? = nil
@@ -28,7 +26,7 @@ extension DialogRowBadge: View {
         if (count <= 0) {
             EmptyView()
         } else {
-            Text(count <= maxCount ? "\(count)" : "\(settings.maxCount)+")
+            Text(count <= settings.maxCount ? "\(count)" : "\(settings.maxCount)+")
                 .font(font ?? settings.font)
                 .foregroundColor(foregroundColor ?? settings.foregroundColor)
                 .padding(padding)
@@ -38,7 +36,7 @@ extension DialogRowBadge: View {
 }
 
 extension DialogRowView {
-    func `badge`(maxCount: Int = 99,
+    func `badge`(maxCount: Int = QuickBloxUIKit.settings.dialogsScreen.dialogRow.unreadCount.maxCount,
                 font: Font? = nil,
                 foregroundColor: Color? = nil,
                 backgroundColor: Color? = nil,
@@ -48,7 +46,6 @@ extension DialogRowView {
                                             trailing: 6)) -> Self {
         var row = Self.init(self)
         row.badgeView = DialogRowBadge(count: dialog.unreadMessagesCount,
-                              maxCount: maxCount,
                               font: font,
                               foregroundColor: foregroundColor,
                               backgroundColor: backgroundColor,
@@ -65,7 +62,7 @@ struct Badge_Previews: PreviewProvider {
     
     static var previews: some View {
         Group {
-            DialogRowBadge(count:0)
+            DialogRowBadge(count: 0)
             
             DialogRowBadge(count:3).previewSettings(name: "Count")
             
@@ -79,7 +76,7 @@ struct Badge_Previews: PreviewProvider {
             DialogRowBadge(count:102, backgroundColor: .green)
                 .previewSettings(name: "BackgroundColor")
             
-            DialogRowBadge(count:1001, maxCount: 999)
+            DialogRowBadge(count:1001)
                 .previewSettings(name: "MaxCount")
             
         }

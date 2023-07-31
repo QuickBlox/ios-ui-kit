@@ -85,9 +85,17 @@ public struct DialogTypeHeaderView: View {
                     if let title = settings.header.rightButton.title {
                         Text(title).foregroundColor(settings.header.rightButton.color)
                     } else {
-                        settings.header.rightButton.image.tint(settings.header.rightButton.color)
+                        settings.header.rightButton.image
+                            .resizable()
+                            .scaledToFit()
+                            .scaleEffect(settings.header.rightButton.scale)
+                            .tint(settings.header.rightButton.color)
+                            .padding(settings.header.rightButton.padding)
                     }
-                }.padding(.trailing)
+                }
+                .padding(.trailing)
+                .frame(width: settings.header.rightButton.frame?.width,
+                       height: settings.header.rightButton.frame?.height)
             }
             VStack {
                 Spacer()

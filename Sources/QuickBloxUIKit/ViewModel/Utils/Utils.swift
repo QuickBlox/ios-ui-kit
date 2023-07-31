@@ -33,6 +33,12 @@ private func getFile<T:FileEntity, R:FilesRepositoryProtocol>(useCase: GetFile<T
 //MARK: DialogEntity files
 extension DialogEntity {
     
+    func removeAvatar() {
+        if imageCache.imageFromCache(id) != nil {
+            imageCache.removeImage(for: id)
+        }
+    }
+    
     var avatar: Image {
         get async throws {
             if QuickBloxUIKit.previewAware {  return placeholder }
@@ -45,7 +51,7 @@ extension DialogEntity {
             var path: String
             switch type {
             case .group, .public:
-                if photo.isEmpty { return placeholder }
+                if photo.isEmpty || photo == "null" { return placeholder }
                 path = photo
                 if path.hasPrefix("http"),
                    let url = URL(string: path),
@@ -111,27 +117,26 @@ extension DialogEntity {
             let file = try await getFile(useCase: useCase, priority: .low)
             try Task.checkCancellation()
             let settings = QuickBloxUIKit.settings.dialogsScreen.dialogRow.lastMessage
+            
+            let fileName = file.info.ext.name
             switch file.info.ext.type {
             case .audio:
-                return (file.info.name, nil, settings.audioPlaceholder)
+                return (fileName, nil, settings.audioPlaceholder)
             case .video:
-                let name = "Video." + file.info.ext.rawValue
-                return (name, nil, settings.videoPlaceholder)
+                return (fileName, nil, settings.videoPlaceholder)
             case .image, .gif:
                 if let uiImage = imageCache.imageFromCache(id + "1x") {
-                    return (name, Image(uiImage: uiImage), settings.imagePlaceholder)
+                    return (fileName, Image(uiImage: uiImage), settings.imagePlaceholder)
                 }
-                let name = "Image." + file.info.ext.rawValue
                 guard let uiImage = UIImage(data: file.data)?
                     .cropToRect()
                     .resize(to: size) else {
-                    return (name, nil, settings.imagePlaceholder)
+                    return (fileName, nil, settings.imagePlaceholder)
                 }
                 imageCache.store(uiImage, for: id + "1x")
-                return (name, Image(uiImage: uiImage), settings.imagePlaceholder)
+                return (fileName, Image(uiImage: uiImage), settings.imagePlaceholder)
             case .file:
-                let name = "File." + file.info.ext.rawValue
-                return (name, nil, settings.filePlaceholder)
+                return (fileName, nil, settings.filePlaceholder)
             }
             
         } catch { return nil }
@@ -143,6 +148,18 @@ extension DialogEntity {
         case .public: return settings.avatar.publicAvatar
         case .group: return settings.avatar.groupAvatar
         case .private, .unknown: return settings.avatar.privateAvatar
+        }
+    }
+}
+
+private extension FileExtension {
+    var name: String {
+        switch type {
+        case .image: return "Image.\(self)"
+        case .video: return "Video.\(self)"
+        case .audio: return "Audio.\(self)"
+        case .file: return "File.\(self)"
+        case .gif: return "GIF.\(self)"
         }
     }
 }
@@ -336,7 +353,6 @@ private extension File {
     var temporaryUrl: URL {
         let localURL = URL(fileURLWithPath:NSTemporaryDirectory())
             .appendingPathComponent(info.name)
-            .appendingPathExtension(info.ext.rawValue)
         let _ = (try? data.write(to: localURL, options: [.atomic])) != nil
         return localURL
     }

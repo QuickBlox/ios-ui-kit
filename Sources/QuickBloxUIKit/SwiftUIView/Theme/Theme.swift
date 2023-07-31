@@ -12,12 +12,14 @@ public protocol ThemeProtocol: AnyObject {
     var color: ThemeColorProtocol { get set }
     var font: ThemeFontProtocol { get set }
     var image: ThemeImageProtocol { get set }
+    var string: ThemeStringProtocol { get set }
 }
 
 public class Theme: ThemeProtocol {
     public var color: ThemeColorProtocol = ThemeColor()
     public var font: ThemeFontProtocol = ThemeFont()
     public var image: ThemeImageProtocol = ThemeImage()
+    public var string: ThemeStringProtocol = ThemeString()
     
     public init() {}
 }
@@ -173,6 +175,149 @@ public class ThemeImage: ThemeImageProtocol {
     public var send: Image = Image("send", bundle: .module)
     public var doctext: Image = Image(systemName: "doc.text.fill")
     public var speakerwave: Image = Image(systemName: "speaker.wave.1.fill")
+    
+    public init() {}
+}
+
+extension UIColor {
+    convenience init?(hexRGB: String, alpha: CGFloat = 1) {
+        var chars = Array(hexRGB.hasPrefix("#") ? hexRGB.dropFirst() : hexRGB[...])
+        switch chars.count {
+        case 3: chars = chars.flatMap { [$0, $0] }
+        case 6: break
+        default: return nil
+        }
+        self.init(red: .init(strtoul(String(chars[0...1]), nil, 16)) / 255,
+                green: .init(strtoul(String(chars[2...3]), nil, 16)) / 255,
+                 blue: .init(strtoul(String(chars[4...5]), nil, 16)) / 255,
+                alpha: alpha)
+    }
+}
+
+
+//MARK: Theme Strings
+public protocol ThemeStringProtocol {
+    var dialogsEmpty: String { get set }
+    var usersEmpty: String { get set }
+    var messegesEmpty: String { get set }
+    
+    var privateDialog: String { get set }
+    var groupDialog: String { get set }
+    var publicDialog: String { get set }
+    
+    var typingOne: String { get set }
+    var typingTwo: String { get set }
+    var typingFour: String { get set }
+    
+    var enterName: String { get set }
+    var nameHint: String { get set }
+    var create: String { get set }
+    var next: String { get set }
+    var search: String { get set }
+    var edit: String { get set }
+    var members: String { get set }
+    var notification: String { get set }
+    var searchInDialog: String { get set }
+    var leaveDialog: String { get set }
+    
+    var you: String { get set }
+    var admin: String { get set }
+    var typeMessage: String { get set }
+    
+    var dialogs: String { get set }
+    var dialog: String { get set }
+    var dialogType: String { get set }
+    var newDialog: String { get set }
+    var createDialog: String { get set }
+    var addMembers: String { get set }
+    var dialogInformation: String { get set }
+    
+    var add: String { get set }
+    var dialogName: String { get set }
+    var changeImage: String { get set }
+    var changeDialogName: String { get set }
+    
+    var photo: String { get set }
+    var removePhoto: String { get set }
+    var camera: String { get set }
+    var gallery: String { get set }
+    var file: String { get set }
+    
+    var remove: String { get set }
+    var cancel: String { get set }
+    var ok: String { get set }
+    var removeUser: String { get set }
+    var questionMark: String { get set }
+    var errorValidation: String { get set }
+    var addUser: String { get set }
+    var toDialog: String { get set }
+    
+    var maxSize: String { get set }
+    var maxSizeHint: String { get set }
+    var fileTitle: String { get set }
+    var gif: String { get set }
+}
+
+public class ThemeString: ThemeStringProtocol {
+    public var dialogsEmpty: String = String(localized: "dialog.items.empty", bundle: .module)
+    public var usersEmpty: String = String(localized: "dialog.members.empty", bundle: .module)
+    public var messegesEmpty: String = String(localized: "dialog.messages.empty", bundle: .module)
+    
+    public var privateDialog: String = String(localized: "dialog.type.private", bundle: .module)
+    public var groupDialog: String = String(localized: "dialog.type.group", bundle: .module)
+    public var publicDialog: String = String(localized: "dialog.type.group", bundle: .module)
+    
+    public var typingOne: String = String(localized: "dialog.typing.one", bundle: .module)
+    public var typingTwo: String = String(localized: "dialog.typing.two", bundle: .module)
+    public var typingFour: String = String(localized: "dialog.typing.four", bundle: .module)
+    
+    public var enterName: String = String(localized: "alert.actions.enterName", bundle: .module)
+    public var nameHint: String = String(localized: "dialog.name.hint", bundle: .module)
+    public var create: String = String(localized: "dialog.name.create", bundle: .module)
+    public var next: String = String(localized: "dialog.name.next", bundle: .module)
+    public var search: String = String(localized: "dialog.name.search", bundle: .module)
+    public var edit: String = String(localized: "dialog.info.edit", bundle: .module)
+    public var members: String = String(localized: "dialog.info.members", bundle: .module)
+    public var notification: String = String(localized: "dialog.info.notification", bundle: .module)
+    public var searchInDialog: String = String(localized: "dialog.info.searchInDialog", bundle: .module)
+    public var leaveDialog: String = String(localized: "dialog.info.leaveDialog", bundle: .module)
+    
+    public var you: String = String(localized: "dialog.info.you", bundle: .module)
+    public var admin: String = String(localized: "dialog.info.admin", bundle: .module)
+    public var typeMessage: String = String(localized: "dialog.action.typeMessage", bundle: .module)
+    
+    public var dialogs: String = String(localized: "screen.title.dialogs", bundle: .module)
+    public var dialog: String = String(localized: "screen.title.dialog", bundle: .module)
+    public var dialogType: String = String(localized: "screen.title.dialogType", bundle: .module)
+    public var newDialog: String = String(localized: "screen.title.newDialog", bundle: .module)
+    public var createDialog: String = String(localized: "screen.title.createDialog", bundle: .module)
+    public var addMembers: String = String(localized: "screen.title.addMembers", bundle: .module)
+    public var dialogInformation: String = String(localized: "screen.title.dialogInformation", bundle: .module)
+    
+    public var add: String = String(localized: "alert.actions.add", bundle: .module)
+    public var dialogName: String = String(localized: "alert.actions.dialogName", bundle: .module)
+    public var changeImage: String = String(localized: "alert.actions.changeImage", bundle: .module)
+    public var changeDialogName: String = String(localized: "alert.actions.changeDialogName", bundle: .module)
+    
+    public var photo: String = String(localized: "alert.actions.photo", bundle: .module)
+    public var removePhoto: String = String(localized: "alert.actions.removePhoto", bundle: .module)
+    public var camera: String = String(localized: "alert.actions.camera", bundle: .module)
+    public var gallery: String = String(localized: "alert.actions.gallery", bundle: .module)
+    public var file: String = String(localized: "alert.actions.file", bundle: .module)
+    
+    public var remove: String = String(localized: "alert.actions.remove", bundle: .module)
+    public var cancel: String = String(localized: "alert.actions.cancel", bundle: .module)
+    public var ok: String = String(localized: "alert.actions.ok", bundle: .module)
+    public var removeUser: String = String(localized: "alert.message.removeUser", bundle: .module)
+    public var questionMark: String = String(localized: "alert.message.questionMark", bundle: .module)
+    public var errorValidation: String = String(localized: "alert.message.errorValidation", bundle: .module)
+    public var addUser: String = String(localized: "alert.message.addUser", bundle: .module)
+    public var toDialog: String = String(localized: "alert.message.toDialog", bundle: .module)
+    
+    public var maxSize: String = String(localized: "attachment.maxSize.title", bundle: .module)
+    public var maxSizeHint: String = String(localized: "attachment.maxSize.hint", bundle: .module)
+    public var fileTitle: String  = String(localized: "attachment.title.file", bundle: .module)
+    public var gif: String = String(localized: "attachment.title.gif", bundle: .module)
     
     public init() {}
 }

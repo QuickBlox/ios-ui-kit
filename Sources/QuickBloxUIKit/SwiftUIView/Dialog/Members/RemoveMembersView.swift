@@ -11,7 +11,7 @@ import QuickBloxDomain
 import QuickBloxData
 
 public struct RemoveMembersView<ViewModel: MembersDialogProtocol>: View {
-    let settings = QuickBloxUIKit.settings.membersScreen
+    @State public var settings = QuickBloxUIKit.settings.membersScreen
     
     @Environment(\.dismiss) var dismiss
     @Environment(\.isSearching) private var isSearching: Bool
@@ -21,8 +21,11 @@ public struct RemoveMembersView<ViewModel: MembersDialogProtocol>: View {
     @State var isAlertPresented: Bool = false
     @State var isAddPresented: Bool = false
     
-    init(viewModel: ViewModel) {
+    init(viewModel: ViewModel,
+         settings: MembersScreenSettings
+         = QuickBloxUIKit.settings.membersScreen) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.settings = settings
     }
     
     public var body: some View {
@@ -79,15 +82,39 @@ public struct RemoveMembersView<ViewModel: MembersDialogProtocol>: View {
     }
 }
 
-//struct RemoveMembersView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        Group {
-//            RemoveMembersView(viewModel: MembersDialogViewModel(dialog: Dialog(id: "123456" ,type: .group)))
-//                .previewDisplayName("Members View Light Delete")
-//
-//            RemoveMembersView(viewModel: MembersDialogViewModel(dialog: Dialog(id: "123456" ,type: .group)))
-//                .previewDisplayName("Members View Dark Delete")
-//                .preferredColorScheme(.dark)
-//        }
-//    }
-//}
+struct RemoveMembersView_Previews: PreviewProvider {
+    static var previews: some View {
+        Group {
+            RemoveMembersView(viewModel: MembersPreviewModel())
+                .previewDisplayName("Members View Light Delete")
+
+            RemoveMembersView(viewModel: MembersPreviewModel())
+                .previewDisplayName("Members View Dark Delete")
+                .preferredColorScheme(.dark)
+        }
+    }
+}
+
+import Combine
+private class MembersPreviewModel: MembersDialogProtocol {
+    var dialog: QuickBloxData.Dialog = Dialog(id:"2b3c4d5e",
+                                              type: .group,
+                                              name: "Group Dialog",
+                                              ownerId: "2b3c4d5e",
+                                              lastMessage: LastMessage(id: "123456",
+                                                                       text: "I'm not even going to pretend to understand what you're talking about.",
+                                                                       dateSent: Calendar.current.date(byAdding: .day, value: -1, to: Date())!,
+                                                                       userId: "23456"),
+                                              unreadMessagesCount: 1)
+    
+    var selectedUser: QuickBloxData.User?
+    var displayed: [QuickBloxData.User] = PreviewModel.users
+    
+    func removeUserFromDialog() {}
+
+    var cancellables: Set<AnyCancellable> = []
+
+    var tasks: Set<Task<Void, Never>> = []
+
+    func sync() { }
+}

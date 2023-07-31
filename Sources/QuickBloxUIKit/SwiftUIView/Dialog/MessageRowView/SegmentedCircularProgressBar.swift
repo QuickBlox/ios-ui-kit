@@ -72,7 +72,7 @@ struct SegmentedCircularProgressBarContentView: View {
                     .frame(width: settings.attachmentSize.width,
                            height: settings.attachmentSize.height)
                     .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
-                    .padding(settings.inboundPadding(showName: settings.isShowName))
+                    .padding(settings.inboundPadding(showName: settings.isHiddenName))
                 
                 SegmentedCircularProgressBar(progress: $progress)
                     
