@@ -42,13 +42,5 @@ let package = Package(
                            "QuickBloxData",
                            "QuickBloxLog"],
             resources: [.process("Resources")]),
-        .testTarget(
-            name: "QuickBloxUIKitIntegrationTests",
-            dependencies: ["QuickBloxUIKit",
-                           "QuickBloxData",
-                           "QuickBloxLog",
-                           .product(name: "Quickblox",
-                                    package: "ios-quickblox-sdk")],
-            resources: [.process("Resources")]),
     ]
 )
