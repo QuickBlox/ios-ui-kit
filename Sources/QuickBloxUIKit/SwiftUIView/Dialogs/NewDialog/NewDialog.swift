@@ -30,6 +30,11 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
     }
     
     public var body: some View {
+        container()
+    }
+    
+    @ViewBuilder
+    private func container() -> some View {
         ZStack {
             settings.backgroundColor.ignoresSafeArea()
             VStack {
@@ -47,7 +52,7 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
             
             .mediaAlert(isAlertPresented: $isAlertPresented,
                         isExistingImage: viewModel.isExistingImage,
-                        isShowFiles: false,
+                        isHiddenFiles: settings.isHiddenFiles,
                         mediaTypes: [UTType.image.identifier],
                         onRemoveImage: {
                 viewModel.removeExistingImage()
@@ -62,7 +67,7 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
                 viewModel.handleOnSelect(attachmentAsset: asset)
             })
             
-            .modifier(DialogNameHeader(type: type, disabled: !viewModel.isValidDialogName || presentCreateDialog == true, onDismiss: {
+            .modifier(DialogNameHeader(type: type, disabled: !viewModel.isValidDialogName, onDismiss: {
                 dismiss()
             }, onNext: {
                 presentCreateDialog.toggle()

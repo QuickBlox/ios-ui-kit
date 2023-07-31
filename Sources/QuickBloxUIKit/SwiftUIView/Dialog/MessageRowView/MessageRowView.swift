@@ -1,5 +1,5 @@
 //
-//  SwiftUIView.swift
+//  MessageRowView.swift
 //  QuickBloxUIKit
 //
 //  Created by Injoit on 03.05.2023.

@@ -25,7 +25,11 @@ struct PrivateDialogInfoHeaderToolbarContent: ToolbarContent {
                 if let title = settings.leftButton.title {
                     Text(title).foregroundColor(settings.leftButton.color)
                 } else {
-                    settings.leftButton.image.tint(settings.leftButton.color)
+                    settings.leftButton.image
+                        .resizable()
+                        .scaleEffect(settings.leftButton.scale)
+                        .tint(settings.leftButton.color)
+                        .padding(settings.leftButton.padding)
                 }
             }
         }
@@ -49,5 +53,6 @@ public struct PrivateDialogInfoHeader: ViewModifier {
         .navigationTitle(settings.title.text)
         .navigationBarTitleDisplayMode(settings.displayMode)
         .navigationBarBackButtonHidden(true)
+        .navigationBarHidden(settings.isHidden)
     }
 }

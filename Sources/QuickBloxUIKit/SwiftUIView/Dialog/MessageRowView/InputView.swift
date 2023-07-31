@@ -1,5 +1,5 @@
 //
-//  MessageTextField.swift
+//  InputView.swift
 //  QuickBloxUIKit
 //
 //  Created by Injoit on 01.05.2023.
@@ -8,7 +8,7 @@
 
 import SwiftUI
 
-struct MessageTextField: View {
+struct InputView: View {
     var settings = QuickBloxUIKit.settings.dialogScreen.textField
     
     let onSend: (_ text: String) -> Void
@@ -45,7 +45,8 @@ struct MessageTextField: View {
                 if isRecordState == true, isRecording == false {
                     settings.leftButton.stopImage.foregroundColor(settings.leftButton.stopColor)
                 } else if isRecording == false {
-                    settings.leftButton.image.foregroundColor(settings.leftButton.color)
+                    settings.leftButton.image
+                        .foregroundColor(settings.leftButton.color)
                 }
             }.frame(width: settings.leftButton.width, height: settings.barHeight)
             
@@ -103,7 +104,8 @@ struct MessageTextField: View {
                 if text.isEmpty, isHasMessage == false {
                     settings.rightButton.micImage.foregroundColor(isRecording ? settings.timer.imageColor : settings.rightButton.micColor)
                 } else if isHasMessage == true {
-                    settings.rightButton.image.foregroundColor(settings.rightButton.color)
+                    settings.rightButton.image
+                        .foregroundColor(settings.rightButton.color)
                         .rotationEffect(Angle(degrees: settings.rightButton.degrees))
                 }
             }
@@ -117,7 +119,7 @@ struct MessageTextField: View {
 struct MessageTextField_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            MessageTextField(onSend: { _ in
+            InputView(onSend: { _ in
                 
             }, onAttachment: {
                 
@@ -133,7 +135,7 @@ struct MessageTextField_Previews: PreviewProvider {
                 
             })
             
-            MessageTextField(onSend: { _ in
+            InputView(onSend: { _ in
                 
             }, onAttachment: {
                 

@@ -37,16 +37,12 @@ public struct OutboundImageMessageRow<MessageItem: MessageEntity>: View {
             VStack(alignment: .trailing) {
                 Spacer()
                 HStack(spacing: 3) {
-                    message.statusImage
-                        .resizable()
-                        .renderingMode(.template)
-                        .foregroundColor(message.statusForeground)
-                        .scaledToFit()
-                        .frame(width: 10, height: 5)
-                    Text("\(message.date, formatter: Date.formatter)")
-                        .foregroundColor(settings.time.foregroundColor)
-                        .font(settings.time.font)
-                }
+                    
+                    MessageRowStatus(message: message)
+                    
+                    MessageRowTime(date: message.date)
+                    
+                }.padding(.bottom, 2)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Spacer()

@@ -35,20 +35,17 @@ public struct OutboundFileMessageRow<MessageItem: MessageEntity>: View {
             VStack(alignment: .trailing) {
                 Spacer()
                 HStack(spacing: 3) {
-                    message.statusImage
-                        .resizable()
-                        .renderingMode(.template)
-                        .foregroundColor(message.statusForeground)
-                        .scaledToFit()
-                        .frame(width: 10, height: 5)
-                    Text("\(message.date, formatter: Date.formatter)")
-                        .foregroundColor(settings.time.foregroundColor)
-                        .font(settings.time.font)
+
+                    MessageRowStatus(message: message)
+
+                    MessageRowTime(date: message.date)
+
                 }.padding(.bottom, 2)
             }
             
             Button {
                 if let url = fileTuple?.url {
+                    
                     onTap(.save, nil, url)
                 }
             } label: {
@@ -65,11 +62,11 @@ public struct OutboundFileMessageRow<MessageItem: MessageEntity>: View {
                         
                         if let ext = fileTuple?.url?.pathExtension {
                             Text(settings.fileTitle + "." + ext)
-                                .foregroundColor(settings.message.foregroundColor)
+                                .foregroundColor(settings.message.outboundForeground)
                                 .font(settings.message.font)
                         } else {
                             Text(settings.fileTitle)
-                                .foregroundColor(settings.message.foregroundColor)
+                                .foregroundColor(settings.message.outboundForeground)
                                 .font(settings.message.font)
                         }
                     }

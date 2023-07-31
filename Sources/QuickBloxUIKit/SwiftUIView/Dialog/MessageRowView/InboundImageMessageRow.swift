@@ -21,11 +21,6 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
     
     @State public var fileTuple: (type: String, image: Image?, url: URL?)? = nil
     
-    @State public var avatar: Image =
-    QuickBloxUIKit.settings.dialogScreen.messageRow.avatar.placeholder
-    
-    @State public var userName: String?
-    
     @State private var progress: CGFloat = 0.5
     
     public init(message: MessageItem,
@@ -37,31 +32,13 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
     public var body: some View {
         
         HStack {
-            if settings.isShowAvatar == true {
-                VStack(spacing: settings.spacing) {
-                    Spacer()
-                    AvatarView(image: avatar,
-                               height: settings.avatar.height,
-                               isShow: settings.isShowAvatar)
-                    .task {
-                        let size = CGSizeMake(settings.avatar.height,
-                                              settings.avatar.height)
-                        do { avatar = try await message.avatar(size: size) } catch { prettyLog(error) }
-                    }
-                }.padding(.leading)
-            }
+            
+            MessageRowAvatar(message: message)
             
             VStack(alignment: .leading, spacing: 2) {
                 Spacer()
-                if settings.isShowName == true {
-                    Text(userName ?? String(message.userId))
-                        .foregroundColor(settings.name.foregroundColor)
-                        .font(settings.name.font)
-                        .padding(settings.inboundNamePadding)
-                        .task {
-                            do { userName = try await message.userName } catch { prettyLog(error) }
-                        }
-                }
+                
+                MessageRowName(message: message)
                 
                 HStack(spacing: 8) {
                     
@@ -77,7 +54,7 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
                                     .scaledToFill()
                                     .frame(width: settings.attachmentSize.width, height: settings.attachmentSize.height)
                                     .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
-                                    .padding(settings.inboundPadding(showName: settings.isShowName))
+                                    .padding(settings.inboundPadding(showName: settings.isHiddenName))
                             } else {
                                 
                                 if progress > 0 {
@@ -86,7 +63,7 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
                                         .frame(width: settings.attachmentSize.width,
                                                height: settings.attachmentSize.height)
                                         .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
-                                        .padding(settings.inboundPadding(showName: settings.isShowName))
+                                        .padding(settings.inboundPadding(showName: settings.isHiddenName))
                                     
                                     SegmentedCircularProgressBar(progress: $progress)
                                     
@@ -96,7 +73,7 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
                                         .frame(width: settings.attachmentSize.width,
                                                height: settings.attachmentSize.height)
                                         .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
-                                        .padding(settings.inboundPadding(showName: settings.isShowName))
+                                        .padding(settings.inboundPadding(showName: settings.isHiddenName))
                                     
                                     settings.imageIcon
                                         .resizable()
@@ -112,15 +89,7 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
                             do { fileTuple = try await message.file(size: settings.imageSize) } catch { prettyLog(error)}
                         }
                     
-                    if settings.isShowTime == true {
-                        VStack {
-                            Spacer()
-                            Text("\(message.date, formatter: settings.time.formatter)")
-                                .foregroundColor(settings.time.foregroundColor)
-                                .font(settings.time.font)
-                                .padding(.bottom, settings.time.bottom)
-                        }
-                    }
+                    MessageRowTime(date: message.date)
                 }
             }
             Spacer(minLength: settings.inboundSpacer)

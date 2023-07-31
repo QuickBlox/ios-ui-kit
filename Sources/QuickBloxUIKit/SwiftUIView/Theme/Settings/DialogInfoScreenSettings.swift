@@ -56,7 +56,7 @@ public class DialogInfoScreenSettings {
         public var font: Font
         public var height: CGFloat = 80.0
         public var containerHeight: CGFloat = 110.0
-        public var isShow: Bool = true
+        public var isHidden: Bool = false
         public var padding: EdgeInsets = EdgeInsets(top: 24.0,
                                                    leading: 0.0,
                                                    bottom: 24.0,
@@ -74,6 +74,7 @@ public struct NonEditInfoHeaderSettings {
     public var backgroundColor: Color
     public var leftButton: CancelButton
     public var title: DialogInfoTitle
+    public var isHidden: Bool = false
     
     public init(_ theme: ThemeProtocol) {
         self.backgroundColor = theme.color.mainBackground
@@ -82,20 +83,31 @@ public struct NonEditInfoHeaderSettings {
     }
     
     public struct DialogInfoTitle: HeaderTitleSettingsProtocol {
-        public var text: String = "Dialog information"
+        public var text: String
         public var color: Color
         public var font: Font
+        public var avatarHeight: CGFloat = 0.0
+        public var isHiddenAvatar: Bool = true
         
         public init(_ theme: ThemeProtocol) {
             self.font = theme.font.headline
             self.color = theme.color.mainText
+            self.text = theme.string.dialogInformation
         }
     }
     
     public struct CancelButton: ButtonSettingsProtocol {
+        public var imageSize: CGSize?
+        public var frame: CGSize?
+        
         public var title: String? = nil
         public var image: Image
         public var color: Color
+        public var scale: Double = 1.0
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 0.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.back
@@ -109,6 +121,7 @@ public struct PrivateDialogInfoHeaderSettings {
     public var backgroundColor: Color
     public var leftButton: CancelButton
     public var title: DialogInfoTitle
+    public var isHidden: Bool = false
     
     public init(_ theme: ThemeProtocol) {
         self.backgroundColor = theme.color.mainBackground
@@ -117,20 +130,31 @@ public struct PrivateDialogInfoHeaderSettings {
     }
     
     public struct DialogInfoTitle: HeaderTitleSettingsProtocol {
-        public var text: String = "Dialog information"
+        public var text: String
         public var color: Color
         public var font: Font
+        public var avatarHeight: CGFloat = 0.0
+        public var isHiddenAvatar: Bool = true
         
         public init(_ theme: ThemeProtocol) {
             self.font = theme.font.headline
             self.color = theme.color.mainText
+            self.text = theme.string.dialogInformation
         }
     }
     
     public struct CancelButton: ButtonSettingsProtocol {
+        public var imageSize: CGSize?
+        public var frame: CGSize?
+        
         public var title: String? = nil
         public var image: Image
         public var color: Color
+        public var scale: Double = 1.0
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 0.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.back
@@ -146,6 +170,7 @@ public struct DialogInfoHeaderSettings {
     public var title: DialogInfoTitle
     public var rightButton: EditButton
     public var opacity: CGFloat = 2.0
+    public var isHidden: Bool = false
     
     public init(_ theme: ThemeProtocol) {
         self.backgroundColor = theme.color.mainBackground
@@ -155,31 +180,51 @@ public struct DialogInfoHeaderSettings {
     }
     
     public struct EditButton: ButtonSettingsProtocol {
-        public var title: String? = "Edit"
+        public var imageSize: CGSize?
+        public var frame: CGSize?
+        
+        public var title: String?
         public var image: Image
         public var color: Color
+        public var scale: Double = 1.0
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 0.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.newChat
             self.color = theme.color.mainElements
+            self.title = theme.string.edit
         }
     }
     
     public struct DialogInfoTitle: HeaderTitleSettingsProtocol {
-        public var text: String = "Dialog information"
+        public var text: String
         public var color: Color
         public var font: Font
+        public var avatarHeight: CGFloat = 0.0
+        public var isHiddenAvatar: Bool = true
         
         public init(_ theme: ThemeProtocol) {
             self.font = theme.font.headline
             self.color = theme.color.mainText
+            self.text = theme.string.dialogInformation
         }
     }
     
     public struct CancelButton: ButtonSettingsProtocol {
+        public var imageSize: CGSize?
+        public var frame: CGSize?
+        
         public var title: String? = nil
         public var image: Image
         public var color: Color
+        public var scale: Double = 1.0
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 0.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.back
@@ -190,13 +235,17 @@ public struct DialogInfoHeaderSettings {
 
 public struct DialogMediaEditAlert {
     public var title: String = ""
-    public var cancel: String = "Cancel"
-    public var changeImage: String = "Change image"
-    public var changeDialogName: String = "Change dialog name"
+    public var cancel: String
+    public var changeImage: String
+    public var changeDialogName: String
     public var blurRadius: CGFloat = 12.0
     public var blurBackground: Color
+    public var isHiddenFiles: Bool = true
     
     public init(_ theme: ThemeProtocol) {
+        self.changeImage = theme.string.changeImage
+        self.changeDialogName = theme.string.changeDialogName
+        self.cancel = theme.string.cancel
         self.blurBackground = Color(uiColor: UIColor { traitCollection in
             traitCollection.userInterfaceStyle == .dark ? UIColor(theme.color.secondaryBackground)
             : UIColor(theme.color.incomingBackground)
@@ -205,26 +254,26 @@ public struct DialogMediaEditAlert {
 }
 
 public struct NameEditAlert {
-    public var title: String = "Dialog name"
+    public var title: String
     public var titleForeground: Color
     public var titleFont: Font
-    public var textfieldPrompt: String = "Enter name"
+    public var textfieldPrompt: String
     public var textfieldRadius: CGFloat = 5.0
     public var textfieldPadding: CGFloat = 24.0
     public var textfieldSize: CGSize = CGSize(width: 238, height: 32)
     public var hintPadding: CGFloat = 18.0
     public var textForeground: Color
     public var textFont: Font
-    public var hint: String = "Use alphanumeric characters and spaces in a range from 3 to 60. Cannot contain more than one space in a row."
+    public var hint: String
     public var hintForeground: Color
     public var hintFont: Font
-    public var cancel: String = "Cancel"
+    public var cancel: String
     public var cancelForeground: Color
     public var cancelFont: Font
-    public var ok: String = "OK"
+    public var ok: String
     public var okForeground: Color
     public var okFont: Font
-    public var errorValidation: String = "Error Validation"
+    public var errorValidation: String
     public var blurRadius: CGFloat = 12.0
     public var cornerRadius: CGFloat = 14.0
     public var size: CGSize = CGSize(width: 270.0, height: 151.0)
@@ -253,11 +302,17 @@ public struct NameEditAlert {
             : UIColor(theme.color.incomingBackground)
         })
         self.textfieldBackground = theme.color.inputBackground
+        self.textfieldPrompt = theme.string.enterName
+        self.title = theme.string.dialogName
+        self.hint = theme.string.nameHint
+        self.cancel = theme.string.cancel
+        self.ok = theme.string.ok
+        self.errorValidation = theme.string.errorValidation
     }
 }
 
 public struct NotificationSegment {
-    public var title: String = "Notification"
+    public var title: String
     public var foregroundColor: Color
     public var font: Font
     public var image: Image
@@ -270,11 +325,12 @@ public struct NotificationSegment {
         self.image = theme.image.bell
         self.imageColor = theme.color.mainElements
         self.toggleColor = theme.color.mainElements
+        self.title = theme.string.notification
     }
 }
 
 public struct MembersSegment {
-    public var title: String = "Members"
+    public var title: String
     public var foregroundColor: Color
     public var font: Font
     public var image: Image
@@ -294,11 +350,12 @@ public struct MembersSegment {
         self.arrowColor = theme.color.secondaryElements
         self.countColor = theme.color.tertiaryElements
         self.countFont = theme.font.footnote
+        self.title = theme.string.members
     }
 }
 
 public struct SearchSegment {
-    public var title: String = "Search in dialog"
+    public var title: String
     public var foregroundColor: Color
     public var font: Font
     public var image: Image
@@ -309,11 +366,12 @@ public struct SearchSegment {
         self.font = theme.font.callout
         self.image = theme.image.magnifyingglass
         self.imageColor = theme.color.mainElements
+        self.title = theme.string.searchInDialog
     }
 }
 
 public struct LeaveSegment {
-    public var title: String = "Leave dialog"
+    public var title: String
     public var foregroundColor: Color
     public var font: Font
     public var image: Image
@@ -326,5 +384,6 @@ public struct LeaveSegment {
         self.image = theme.image.leave
         self.imagePNG = theme.image.leavePNG
         self.imageColor = theme.color.error
+        self.title = theme.string.leaveDialog
     }
 }

@@ -26,7 +26,7 @@ where DialogItem == Repo.DialogEntityItem, UserItem == Repo.UsersEntityItem {
     
     public func execute() async throws {
         do {
-            _ = try await repo.update(dialogInRemote: dialog, users: users)
+            let _ = try await repo.update(dialogInRemote: dialog, users: users)
         } catch  {
             throw error
         }

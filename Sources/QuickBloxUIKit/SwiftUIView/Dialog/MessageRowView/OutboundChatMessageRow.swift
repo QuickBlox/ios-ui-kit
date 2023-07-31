@@ -25,19 +25,15 @@ public struct OutboundChatMessageRow<MessageItem: MessageEntity>: View {
             
             Spacer(minLength: settings.outboundSpacer)
             
-            if settings.isShowTime == true {
+            if settings.isHiddenTime == false {
                 VStack(alignment: .trailing) {
                     Spacer()
                     HStack(spacing: 3) {
-                        message.statusImage
-                            .resizable()
-                            .renderingMode(.template)
-                            .foregroundColor(message.statusForeground)
-                            .scaledToFit()
-                            .frame(width: 10, height: 5)
-                        Text("\(message.date, formatter: Date.formatter)")
-                            .foregroundColor(settings.time.foregroundColor)
-                            .font(settings.time.font)
+                        
+                        MessageRowStatus(message: message)
+                        
+                        MessageRowTime(date: message.date)
+                        
                     }.padding(.bottom, 2)
                 }
             }
@@ -45,26 +41,8 @@ public struct OutboundChatMessageRow<MessageItem: MessageEntity>: View {
             VStack(alignment: .leading, spacing: 2) {
                 Spacer()
                 
-                if message.text.containtsLink == true {
-                    Text(message.text.makeAttributedString(settings.outboundForeground,
-                                                           linkColor: settings.outboundLinkForeground))
-                        .lineLimit(nil)
-                        .foregroundColor(settings.outboundForeground)
-                        .font(settings.outboundFont)
-                        .padding(settings.messagePadding)
-                        .background(settings.outboundBackground)
-                        .cornerRadius(settings.bubbleRadius, corners: settings.outboundCorners)
-                        .padding(settings.outboundPadding)
-                } else {
-                    Text(message.text)
-                        .lineLimit(nil)
-                        .foregroundColor(settings.outboundForeground)
-                        .font(settings.outboundFont)
-                        .padding(settings.messagePadding)
-                        .background(settings.outboundBackground)
-                        .cornerRadius(settings.bubbleRadius, corners: settings.outboundCorners)
-                        .padding(settings.outboundPadding)
-                }
+                MessageRowText(isOutbound: true, text: message.text)
+                
             }
         }
         .fixedSize(horizontal: false, vertical: true)

@@ -19,7 +19,7 @@ public class DialogsScreenSettings {
     public var searchBar: DialogsSearchBarSettings
     public var dialogRow: DialogRowSettings
     public var backgroundColor: Color
-    public var itemsIsEmpty: String = "You don’t have any dialogs."
+    public var itemsIsEmpty: String
     public var blurRadius: CGFloat = 12.0
     
     public init(_ theme: ThemeProtocol) {
@@ -27,6 +27,7 @@ public class DialogsScreenSettings {
         self.searchBar = DialogsSearchBarSettings(theme)
         self.dialogRow = DialogRowSettings(theme)
         self.backgroundColor = theme.color.mainBackground
+        self.itemsIsEmpty = theme.string.dialogsEmpty
     }
 }
 
@@ -36,6 +37,7 @@ public struct DialogsHeaderSettings {
     public var leftButton: BackButton
     public var title: DialogsTitle
     public var rightButton: SelectTypeButton
+    public var isHidden: Bool = false
     
     public init(_ theme: ThemeProtocol) {
         self.backgroundColor = theme.color.mainBackground
@@ -45,9 +47,17 @@ public struct DialogsHeaderSettings {
     }
     
     public struct SelectTypeButton: ButtonSettingsProtocol {
+        public var imageSize: CGSize?
+        public var frame: CGSize?
+        
         public var title: String? = nil
         public var image: Image
         public var color: Color
+        public var scale: Double = 1.0
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 0.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.newChat
@@ -56,20 +66,35 @@ public struct DialogsHeaderSettings {
     }
     
     public struct DialogsTitle: HeaderTitleSettingsProtocol {
-        public var text: String = "Dialogs"
+        public var text: String
         public var color: Color
         public var font: Font
+        public var avatarHeight: CGFloat = 0.0
+        public var isHiddenAvatar: Bool = true
+        public var imageSize: CGSize?
+        public var frame: CGSize?
         
         public init(_ theme: ThemeProtocol) {
             self.font = theme.font.headline
             self.color = theme.color.mainText
+            self.text = theme.string.dialogs
         }
+        
+        
     }
     
     public struct BackButton: ButtonSettingsProtocol {
+        public var imageSize: CGSize?
+        public var frame: CGSize?
+        
         public var title: String? = nil
         public var image: Image
         public var color: Color
+        public var scale: Double = 1.0
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 0.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.back
@@ -87,13 +112,14 @@ public struct DialogsSearchBarSettings: SearchBarSettingsProtocol {
     }
     
     public struct DialogsSearchTextField: SearchTextFieldSettingsProtocol {
-        public var placeholderText: String = "Search"
+        public var placeholderText: String
         public var placeholderColor: Color
         public var backgroundColor: Color
         
         public init(_ theme: ThemeProtocol) {
             self.placeholderColor = theme.color.secondaryText
             self.backgroundColor = theme.color.inputBackground
+            self.placeholderText = theme.string.search
         }
     }
 }
@@ -129,9 +155,10 @@ public struct DialogRowSettings {
     public var backgroundColor: Color
     public var dividerColor: Color
     public var leaveImage: Image
-    public var isShowAvatar: Bool = true
-    public var isShowLastMessage: Bool = true
-    public var isShowTime: Bool = true
+    public var isHiddenAvatar: Bool = false
+    public var isHiddenLastMessage: Bool = false
+    public var isHiddenCounter: Bool = false
+    public var isHiddenTime: Bool = false
     public var separatorInset: CGFloat = 88.0
     public var avatarSize: CGSize = CGSize(width: 56.0, height: 56.0)
     public var height: CGFloat = DialogsScreenSettingsConstant.height
@@ -184,6 +211,7 @@ public struct DialogRowSettings {
     public struct DialogTimeSettings {
         public var foregroundColor: Color
         public var font: Font
+        public var isHidden: Bool = false
         
         public init(_ theme: ThemeProtocol) {
             self.foregroundColor = theme.color.secondaryText

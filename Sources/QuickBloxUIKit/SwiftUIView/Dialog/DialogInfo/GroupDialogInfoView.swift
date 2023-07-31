@@ -53,7 +53,7 @@ public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
                              dialogName: $viewModel.dialogName,
                              isValidDialogName: $viewModel.isValidDialogName,
                              isExistingImage: viewModel.isExistingImage,
-                             isShowFiles: false,
+                             isHiddenFiles: settings.editDialogAlert.isHiddenFiles,
                              isEdit: $isEdit,
                              onRemoveImage: {
                 viewModel.removeExistingImage()
@@ -84,9 +84,7 @@ public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
             }, disabled: isEdit))
             
             NavigationLink(isActive: $membersPresented) {
-                if let dialog = viewModel.dialog as? Dialog {
-                    RemoveMembersView(viewModel: MembersDialogViewModel(dialog: dialog))
-                }
+                Fabric.screen.members(to: viewModel.dialog)
             } label: {
                 EmptyView()
             }

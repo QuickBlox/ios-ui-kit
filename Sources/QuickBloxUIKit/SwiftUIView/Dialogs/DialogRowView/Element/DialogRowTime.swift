@@ -15,12 +15,14 @@ public struct DialogRowTime {
     public var time: String? = nil
     public var font: Font? = nil
     public var foregroundColor: Color? = nil
-    public var isShow: Bool
+    public var isHidden: Bool
 }
 
 extension DialogRowTime: View {
     public var body: some View {
-        if let time {
+        if settings.isHidden == true  {
+            EmptyView()
+        } else if let time {
             Text(time)
                 .font(font ?? settings.font)
                 .foregroundColor(foregroundColor ?? settings.foregroundColor)
@@ -34,12 +36,12 @@ extension DialogRowView {
     func time(_ time: String? = nil,
               font: Font? = nil,
               foregroundColor: Color? = nil,
-              isShow: Bool = true) -> Self {
+              isHidden: Bool = false) -> Self {
         var row = Self.init(self)
         row.timeView = DialogRowTime(time: time,
                                      font: font,
                                      foregroundColor: foregroundColor,
-                                     isShow: isShow)
+                                     isHidden: isHidden)
         return row
     }
 }
@@ -47,9 +49,9 @@ extension DialogRowView {
 struct DialogRowTime_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            DialogRowTime(time: "Yesterday", isShow: true)
-            DialogRowTime(time: "15:30", foregroundColor: .red, isShow: true)
-            DialogRowTime(time: "15 Jun", font: .footnote, isShow: true)
+            DialogRowTime(time: "Yesterday", isHidden: false)
+            DialogRowTime(time: "15:30", foregroundColor: .red, isHidden: false)
+            DialogRowTime(time: "15 Jun", font: .footnote, isHidden: false)
         }.previewLayout(.fixed(width: 375, height: 13))
     }
 }

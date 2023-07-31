@@ -76,14 +76,18 @@ open class DialogViewModel: DialogViewModelProtocol {
     
     private var typingObserve: TypingObserver<DialogsRepository>!
     private var stopTypingObserve: StopTypingObserver<DialogsRepository>!
+    private var updateDialogObserve: UpdateDialogObserver<Dialog, DialogsRepository>!
     
     public var cancellables = Set<AnyCancellable>()
     public var tasks = Set<Task<Void, Never>>()
     
     private var typingProvider: TypingProvider
     
+    private var isTypingEnable = true
+    
     init(dialog: Dialog) {
         self.dialog = dialog
+        isTypingEnable = QuickBloxUIKit.settings.dialogScreen.typing.enable
         
         typingProvider = TypingProvider(dialogId: dialog.id, usersRepo: usersRepo)
         
@@ -91,19 +95,25 @@ open class DialogViewModel: DialogViewModelProtocol {
             .objectWillChange
             .receive(on: RunLoop.main)
             .sink { [weak self] typing in
-                self?.typing = typing
+                if self?.isTypingEnable == true {
+                    self?.typing = typing
+                }
             }.store(in: &cancellables)
         
         typingObserve = TypingObserver(repo: dialogsRepo,
                                        dialogId: dialog.id)
         stopTypingObserve = StopTypingObserver(dialogsRepo: dialogsRepo,
                                                dialogId: dialog.id)
-
+        updateDialogObserve = UpdateDialogObserver(repo: dialogsRepo,
+                                                   dialogId: dialog.id)
+        
         typingObserve.execute()
             .receive(on: RunLoop.main)
             .sink { [weak self] userId in
                 prettyLog(label: "typing user.id", userId)
-                self?.typingProvider.typingUser(userId)
+                if self?.isTypingEnable == true {
+                    self?.typingProvider.typingUser(userId)
+                }
             }
             .store(in: &cancellables)
         
@@ -111,9 +121,22 @@ open class DialogViewModel: DialogViewModelProtocol {
             .receive(on: RunLoop.main)
             .sink { [weak self] userId in
                 prettyLog(label: "stop typing userId", userId)
-                self?.typingProvider.stopTypingUser(userId)
+                if self?.isTypingEnable == true {
+                    self?.typingProvider.stopTypingUser(userId)
+                }
             }
             .store(in: &cancellables)
+        
+        
+        
+        updateDialogObserve.execute()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] dialogId in
+                if dialogId == self?.dialog.id {
+                    self?.sync()
+                }
+            }
+        .store(in: &cancellables)
         
         audioPlayer
             .objectWillChange
@@ -190,10 +213,10 @@ open class DialogViewModel: DialogViewModelProtocol {
             guard let imageData = resizedImage?.pngData() else {
                 return
             }
-            sendAttachment(withData: imageData, ext: attachment.ext, name: attachment.name)
+            sendAttachment(withData: imageData, ext: attachment.ext, name: attachment.ext.name)
             
         } else if let data = attachment.data {
-            sendAttachment(withData: data, ext: attachment.ext, name: attachment.name)
+            sendAttachment(withData: data, ext: attachment.ext, name: attachment.ext.name)
         }
     }
     
@@ -358,6 +381,25 @@ extension MessageEntity {
     
     var isNotification: Bool {
         return eventType != .message
+    }
+}
+
+private extension FileExtension {
+    var name: String {
+        let timeStamp = Date().timeStamp
+        switch type {
+        case .image: return timeStamp + "_Image.\(self)"
+        case .video: return timeStamp + "_Video.\(self)"
+        case .audio: return timeStamp + "_Audio.\(self)"
+        case .file: return timeStamp + "_File.\(self)"
+        case .gif: return timeStamp + "_GIF.\(self)"
+        }
+    }
+}
+
+private extension Date {
+    var timeStamp: String {
+        return String(Int64(self.timeIntervalSince1970 * 1000))
     }
 }
 

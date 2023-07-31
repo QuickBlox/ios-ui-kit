@@ -22,7 +22,7 @@ public enum AttachmentType: String {
     case error = "error"
 }
 
-public protocol NewDialogProtocol: ObservableObject {
+public protocol NewDialogProtocol: QuickBloxUIKitViewModel {
     associatedtype DialogItem: DialogEntity
     
     var dialogName: String { get set }
@@ -52,14 +52,17 @@ open class NewDialogViewModel: NewDialogProtocol {
     
     @Published public var modelDialog: Dialog? = nil
     
-    private var publishers = Set<AnyCancellable>()
+    public var cancellables = Set<AnyCancellable>()
+    public var tasks = Set<Task<Void, Never>>()
     
     init() {
         isDialogNameValidPublisher
             .receive(on: RunLoop.main)
             .assign(to: \.isValidDialogName, on: self)
-            .store(in: &publishers)
+            .store(in: &cancellables)
     }
+    
+    public func sync() {}
     
     public func handleOnSelect(attachmentAsset: AttachmentAsset) {
         if let uiImage = attachmentAsset.image {
@@ -136,8 +139,6 @@ public extension String {
 }
 
 extension View {
-    // This function changes our View to UIView, then calls another function
-    // to convert the newly-made UIView to a UIImage.
     public func toUIImage() -> UIImage {
         let controller = UIHostingController(rootView: self)
         
@@ -149,7 +150,6 @@ extension View {
         controller.view.bounds = CGRect(origin: .zero, size: size)
         controller.view.sizeToFit()
         
-        // here is the call to the function that converts UIView to UIImage: `.toUIImage()`
         let image = controller.view.toUIImage()
         controller.view.removeFromSuperview()
         return image
@@ -157,7 +157,6 @@ extension View {
 }
 
 extension UIView {
-    // This is the function to convert UIView to UIImage
     public func toUIImage() -> UIImage {
         let renderer = UIGraphicsImageRenderer(bounds: bounds)
         return renderer.image { rendererContext in

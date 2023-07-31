@@ -12,7 +12,7 @@ import UniformTypeIdentifiers
 
 struct DialogNameHeaderToolbarContent: ToolbarContent {
     
-    private var header = QuickBloxUIKit.settings.dialogNameScreen.header
+    private var settings = QuickBloxUIKit.settings.dialogNameScreen.header
     
     let onDismiss: () -> Void
     let onNext: () -> Void
@@ -35,31 +35,38 @@ struct DialogNameHeaderToolbarContent: ToolbarContent {
             Button {
                 onDismiss()
             } label: {
-                if let title = header.leftButton.title {
+                if let title = settings.leftButton.title {
                     Text(title)
-                        .foregroundColor(header.leftButton.color)
+                        .foregroundColor(settings.leftButton.color)
                 } else {
-                    header.leftButton.image.tint(header.leftButton.color)
+                    settings.leftButton.image
+                        .resizable()
+                        .scaleEffect(settings.leftButton.scale)
+                        .tint(settings.leftButton.color)
+                        .padding(settings.leftButton.padding)
                 }
             }
         }
         
         ToolbarItem(placement: .principal) {
-            Text(header.title.text)
-                .font(header.title.font)
-                .foregroundColor(header.title.color)
+            Text(settings.title.text)
+                .font(settings.title.font)
+                .foregroundColor(settings.title.color)
         }
         
         ToolbarItem(placement: .navigationBarTrailing) {
             Button {
                 onNext()
             } label: {
-                if let create = header.rightButton.title,
-                   let next = header.rightButton.secondTitle {
-                    Text(type == .public ? create : next)
-                        .foregroundColor(header.rightButton.color.opacity(disabled == true ? header.opacity : 1.0))
+                if let next = settings.rightButton.title {
+                    Text(next)
+                        .foregroundColor(settings.rightButton.color.opacity(disabled == true ? settings.opacity : 1.0))
                 } else {
-                    header.rightButton.image.tint(header.rightButton.color.opacity(disabled == true ? header.opacity : 1.0))
+                    settings.rightButton.image
+                        .resizable()
+                        .scaleEffect(settings.rightButton.scale)
+                        .tint(settings.rightButton.color.opacity(disabled == true ? settings.opacity : 1.0))
+                        .padding(settings.rightButton.padding)
                 }
             }.disabled(disabled)
         }
@@ -67,7 +74,7 @@ struct DialogNameHeaderToolbarContent: ToolbarContent {
 }
 
 public struct DialogNameHeader: ViewModifier {
-    private var header = QuickBloxUIKit.settings.dialogNameScreen.header
+    private var settings = QuickBloxUIKit.settings.dialogNameScreen.header
     let onDismiss: () -> Void
     let onNext: () -> Void
     let type: DialogType
@@ -90,9 +97,10 @@ public struct DialogNameHeader: ViewModifier {
                                            onDismiss: onDismiss,
                                            onNext: onNext)
         }
-        .navigationTitle(header.title.text)
-        .navigationBarTitleDisplayMode(header.displayMode)
+        .navigationTitle(settings.title.text)
+        .navigationBarTitleDisplayMode(settings.displayMode)
         .navigationBarBackButtonHidden(true)
+        .navigationBarHidden(settings.isHidden)
     }
 }
 
@@ -104,7 +112,7 @@ public struct CustomMediaAlert: ViewModifier {
     @State var isCameraPresented: Bool = false
     @State var isFilePresented: Bool = false
     var isExistingImage: Bool
-    let isShowFiles: Bool
+    let isHiddenFiles: Bool
     let mediaTypes: [String]
     let onRemoveImage: () -> Void
     let onGetAttachment: (_ attachmentAsset: AttachmentAsset) -> Void
@@ -127,7 +135,7 @@ public struct CustomMediaAlert: ViewModifier {
                     Button(settings.gallery, role: .none, action: {
                         isImagePickerPresented = true
                     })
-                    if isShowFiles == true {
+                    if isHiddenFiles == false {
                         Button(settings.file, role: .none, action: {
                             isFilePresented = true
                         })
@@ -163,14 +171,14 @@ extension View {
     func mediaAlert(
         isAlertPresented: Binding<Bool>,
         isExistingImage: Bool,
-        isShowFiles: Bool,
+        isHiddenFiles: Bool,
         mediaTypes: [String],
         onRemoveImage: @escaping () -> Void,
         onGetAttachment: @escaping (_ attachmentAsset: AttachmentAsset) -> Void
     ) -> some View {
         self.modifier(CustomMediaAlert(isAlertPresented: isAlertPresented,
                                        isExistingImage: isExistingImage,
-                                       isShowFiles: isShowFiles,
+                                       isHiddenFiles: isHiddenFiles,
                                        mediaTypes: mediaTypes,
                                        onRemoveImage: onRemoveImage,
                                        onGetAttachment: onGetAttachment
@@ -221,7 +229,7 @@ public struct LargeFileSizeAlert: ViewModifier {
                         isPresented = false
                     })
                 } message: {
-                    Text(settings.largeSize)
+                    Text(settings.maxSize)
                 }
         }
     }
@@ -312,11 +320,12 @@ extension View {
 import UIKit
 
 struct FilePickerView: UIViewControllerRepresentable {
-    let mediaTypes: [UTType] = [.jpeg, .png, .heic, .heif, .gif, .webP, .mpeg4Movie, .mpeg4Audio, .aiff, .wav, .webArchive, .mp3, .pdf, .image, .video, .movie, .audio, .data, .diskImage]
+    public var settings = QuickBloxUIKit.settings.dialogNameScreen.mediaAlert
+    
     let onGetAttachment: (_ attachmentAsset: AttachmentAsset) -> Void
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes:mediaTypes)
+        let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: settings.fileMediaTypes)
         documentPicker.delegate = context.coordinator
         documentPicker.allowsMultipleSelection = false
         documentPicker.shouldShowFileExtensions = true

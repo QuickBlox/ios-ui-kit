@@ -10,7 +10,7 @@ import SwiftUI
 
 struct DialogListHeaderToolbarContent: ToolbarContent {
     
-    private var header = QuickBloxUIKit.settings.dialogsScreen.header
+    private var settings = QuickBloxUIKit.settings.dialogsScreen.header
     
     let onDismiss: () -> Void
     let onTapDialogType: () -> Void
@@ -27,28 +27,36 @@ struct DialogListHeaderToolbarContent: ToolbarContent {
             Button {
                 onDismiss()
             } label: {
-                if let title = header.leftButton.title {
-                    Text(title).foregroundColor(header.leftButton.color)
+                if let title = settings.leftButton.title {
+                    Text(title).foregroundColor(settings.leftButton.color)
                 } else {
-                    header.leftButton.image.tint(header.leftButton.color)
+                    settings.leftButton.image
+                        .resizable()
+                        .scaleEffect(settings.leftButton.scale)
+                        .tint(settings.leftButton.color)
+                        .padding(settings.leftButton.padding)
                 }
             }
         }
         
         ToolbarItem(placement: .principal) {
-            Text(header.title.text)
-                .font(header.title.font)
-                .foregroundColor(header.title.color)
+            Text(settings.title.text)
+                .font(settings.title.font)
+                .foregroundColor(settings.title.color)
         }
         
         ToolbarItem(placement: .navigationBarTrailing) {
             Button {
                 onTapDialogType()
             } label: {
-                if let title = header.rightButton.title {
-                    Text(title).foregroundColor(header.rightButton.color)
+                if let title = settings.rightButton.title {
+                    Text(title).foregroundColor(settings.rightButton.color)
                 } else {
-                    header.rightButton.image.tint(header.rightButton.color)
+                    settings.rightButton.image
+                        .resizable()
+                        .scaleEffect(settings.rightButton.scale)
+                        .tint(settings.rightButton.color)
+                        .padding(settings.rightButton.padding)
                 }
             }
         }
@@ -57,7 +65,7 @@ struct DialogListHeaderToolbarContent: ToolbarContent {
 
 public struct DialogListHeader: ViewModifier {
     
-    private var header = QuickBloxUIKit.settings.dialogsScreen.header
+    private var settings = QuickBloxUIKit.settings.dialogsScreen.header
     
     let onDismiss: () -> Void
     let onTapDialogType: () -> Void
@@ -73,8 +81,9 @@ public struct DialogListHeader: ViewModifier {
             DialogListHeaderToolbarContent(onDismiss: onDismiss,
                                            onTapDialogType: onTapDialogType)
         }
-        .navigationBarTitleDisplayMode(header.displayMode)
+        .navigationBarTitleDisplayMode(settings.displayMode)
         .navigationBarBackButtonHidden(true)
+        .navigationBarHidden(settings.isHidden)
     }
 }
 

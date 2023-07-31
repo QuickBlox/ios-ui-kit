@@ -1,8 +1,8 @@
 //
-//  OutboundGIFMessageRow.swift
+//  OutboundVideoMessageRow.swift
 //  QuickBloxUIKit
 //
-//  Created by Injoit on 12.05.2023.
+//  Created by Injoit on 07.05.2023.
 //  Copyright © 2023 QuickBlox. All rights reserved.
 //
 
@@ -12,7 +12,7 @@ import QuickBloxDomain
 import QuickBloxLog
 
 
-public struct OutboundGIFMessageRow<MessageItem: MessageEntity>: View {
+public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
     var settings = QuickBloxUIKit.settings.dialogScreen.messageRow
     
     var message: MessageItem
@@ -37,29 +37,26 @@ public struct OutboundGIFMessageRow<MessageItem: MessageEntity>: View {
             
             Spacer(minLength: settings.outboundSpacer)
             
-            VStack(alignment: .trailing) {
-                Spacer()
-                HStack(spacing: 3) {
-                    message.statusImage
-                        .resizable()
-                        .renderingMode(.template)
-                        .foregroundColor(message.statusForeground)
-                        .scaledToFit()
-                        .frame(width: 10, height: 5)
-                    Text("\(message.date, formatter: Date.formatter)")
-                        .foregroundColor(settings.time.foregroundColor)
-                        .font(settings.time.font)
+                VStack(alignment: .trailing) {
+                    Spacer()
+                    HStack(spacing: 3) {
+                        
+                        MessageRowStatus(message: message)
+                        
+                        MessageRowTime(date: message.date)
+                        
+                    }.padding(.bottom, 2)
                 }
-            }
-            
-            Button {
-                play()
-            } label: {
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Spacer()
                     
-                    ZStack(alignment: .center) {
+                    Button {
+                        play()
+                    } label: {
+                    
+                    ZStack {
+                        
                         if let image = fileTuple?.image {
                             image
                                 .resizable()
@@ -69,14 +66,17 @@ public struct OutboundGIFMessageRow<MessageItem: MessageEntity>: View {
                                 .cornerRadius(settings.attachmentRadius,
                                               corners: settings.outboundCorners)
                                 .padding(settings.outboundPadding)
-                            
+
                             settings.videoPlayBackground
                                 .frame(width: settings.imageIconSize.width,
                                        height: settings.imageIconSize.height)
                                 .cornerRadius(6)
-                            
-                            Text(settings.gifTitle)
-                                .font(settings.gifFontPlay)
+
+                            settings.play
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: settings.videoIconSize(isImage: true).width,
+                                       height: settings.videoIconSize(isImage: true).height)
                                 .foregroundColor(settings.videoPlayForeground)
                             
                         } else {
@@ -94,6 +94,7 @@ public struct OutboundGIFMessageRow<MessageItem: MessageEntity>: View {
                                     .padding([.top, .trailing])
                                 
                             } else {
+                                
                                 settings.outboundBackground
                                     .frame(width: settings.attachmentSize.width,
                                            height: settings.attachmentSize.height)
@@ -101,21 +102,25 @@ public struct OutboundGIFMessageRow<MessageItem: MessageEntity>: View {
                                                   corners: settings.outboundCorners)
                                     .padding(settings.outboundPadding)
                                 
-                                Text(settings.gifTitle)
-                                    .font(settings.gifFont)
+                                settings.play
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: settings.videoIconSize(isImage: false).width,
+                                           height: settings.videoIconSize(isImage: false).height)
                                     .foregroundColor(settings.outboundImageIconForeground)
-                                    .padding(.top)
+                                .padding(.top)
                             }
                         }
                     }
-                }
-            }.disabled(fileTuple?.image == nil)
-                .task {
-                    do { fileTuple = try await message.file(size: settings.imageSize) } catch { prettyLog(error)}
-                }
-        }
-        .fixedSize(horizontal: false, vertical: true)
-        .id(message.id)
+                    .task {
+                        do { fileTuple = try await message.file(size: settings.imageSize) } catch { prettyLog(error)}
+                    }
+                    }.disabled(fileTuple?.url == nil)
+                        
+            }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .id(message.id)
         
     }
     
@@ -131,41 +136,41 @@ public struct OutboundGIFMessageRow<MessageItem: MessageEntity>: View {
 
 import QuickBloxData
 
-struct OutboundGIFMessageRow_Previews: PreviewProvider {
-    
+struct OutboundVideoMessageRow_Previews: PreviewProvider {
+
     static var previews: some View {
         Group {
-            OutboundGIFMessageRow(message: Message(id: UUID().uuidString,
-                                                   dialogId: "1f2f3ds4d5d6d",
-                                                   text: "[Attachment]",
-                                                   userId: "2d3d4d5d6d",
-                                                   date: Date()),
-                                  onTap: { (_,_,_) in})
+            OutboundVideoMessageRow(message: Message(id: UUID().uuidString,
+                                                     dialogId: "1f2f3ds4d5d6d",
+                                                     text: "[Attachment]",
+                                                     userId: "2d3d4d5d6d",
+                                                     date: Date()),
+                                    onTap: { (_,_,_) in})
             .previewDisplayName("Video with Thumbnail")
-            
-            OutboundGIFMessageRow(message: Message(id: UUID().uuidString,
-                                                   dialogId: "1f2f3ds4d5d6d",
-                                                   text: "[Attachment]",
-                                                   userId: "2d3d4d5d6d",
-                                                   date: Date()),
-                                  onTap: { (_,_,_) in})
+
+            OutboundVideoMessageRow(message: Message(id: UUID().uuidString,
+                                                     dialogId: "1f2f3ds4d5d6d",
+                                                     text: "[Attachment]",
+                                                     userId: "2d3d4d5d6d",
+                                                     date: Date()),
+                                    onTap: { (_,_,_) in})
             .previewDisplayName("Video without Thumbnail")
-            
-            OutboundGIFMessageRow(message: Message(id: UUID().uuidString,
-                                                   dialogId: "1f2f3ds4d5d6d",
-                                                   text: "[Attachment]",
-                                                   userId: "2d3d4d5d6d",
-                                                   date: Date()),
-                                  onTap: { (_,_,_) in})
+
+            OutboundVideoMessageRow(message: Message(id: UUID().uuidString,
+                                                     dialogId: "1f2f3ds4d5d6d",
+                                                     text: "[Attachment]",
+                                                     userId: "2d3d4d5d6d",
+                                                     date: Date()),
+                                    onTap: { (_,_,_) in})
             .previewDisplayName("Video without Thumbnail")
             .preferredColorScheme(.dark)
-            
-            OutboundGIFMessageRow(message: Message(id: UUID().uuidString,
-                                                   dialogId: "1f2f3ds4d5d6d",
-                                                   text: "[Attachment]",
-                                                   userId: "2d3d4d5d6d",
-                                                   date: Date()),
-                                  onTap: { (_,_,_) in})
+
+            OutboundVideoMessageRow(message: Message(id: UUID().uuidString,
+                                                     dialogId: "1f2f3ds4d5d6d",
+                                                     text: "[Attachment]",
+                                                     userId: "2d3d4d5d6d",
+                                                     date: Date()),
+                                    onTap: { (_,_,_) in})
             .previewDisplayName("Video with Thumbnail")
             .preferredColorScheme(.dark)
         }

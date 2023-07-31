@@ -1,5 +1,5 @@
 //
-//  DialogView.swift
+//  GroupDialogView.swift
 //  QuickBloxUIKit
 //
 //  Created by Injoit on 15.03.2023.
@@ -12,7 +12,7 @@ import QuickBloxDomain
 import QuickBloxLog
 import UniformTypeIdentifiers
 
-public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
+public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View  {
     let settings = QuickBloxUIKit.settings.dialogScreen
     
     @Environment(\.dismiss) var dismiss
@@ -24,9 +24,11 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
     @State private var isAlertPresented: Bool = false
     @State private var isImagePresented: Bool = false
     @State private var isSizeAlertPresented: Bool = false
+    @State private var isFileExporterPresented = false
     
-    @State private var presentedImage: Image? = nil
+    @State private var presentedImage: UIImage? = nil
     @State private var videoUrl: URL? = nil
+    @State private var fileUrl: URL? = nil
     
     @State private var tappedMessage: ViewModel.DialogItem.MessageItem? = nil
     
@@ -52,18 +54,23 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
                                            playingMessageId: tappedMessage?.id ?? "",
                                            onTap: { action, image, url  in
                                 if message.isImageMessage, let image = image {
-                                    presentedImage = image
-                                    isImagePresented = true
-                                    tappedMessage = message
+                                    DispatchQueue.main.async {
+                                        presentedImage = image.toUIImage()
+                                        isImagePresented = true
+                                        tappedMessage = message
+                                    }
+                                    
                                 } else if message.isGIFMessage, let fileURL = url {
+                                    self.fileUrl = fileURL
+                                    isFileExporterPresented = true
                                     
-                                } else if message.isAudioMessage, let url = url {
-                                    
-                                } else if message.isVideoMessage, let url = url {
-                                    self.videoUrl = url
+                                } else if message.isVideoMessage, let videoUrl = url {
+                                    self.videoUrl = videoUrl
                                     isImagePresented = true
                                     tappedMessage = message
                                 } else if message.isAttachmentMessage, let fileURL = url {
+                                    self.fileUrl = fileURL
+                                    isFileExporterPresented = true
                                 }
                             }, onPlay: { action, data, url  in
                                 if message.isAudioMessage, let data = data {
@@ -107,11 +114,11 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
                         }
                     }
                     
-                    if viewModel.typing.isEmpty == false {
+                    if settings.typing.enable == true && viewModel.typing.isEmpty == false {
                         TypingView(typing: viewModel.typing)
                     }
                     
-                    MessageTextField(onSend: { text in
+                    InputView(onSend: { text in
                         viewModel.sendMessage(text)
                     }, onAttachment: {
                         isAlertPresented.toggle()
@@ -122,18 +129,18 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
                     }, onDeleteRecord: {
                         viewModel.deleteRecording()
                     }, onTyping: {
-                        viewModel.sendTyping()
+                        if settings.typing.enable == true {
+                            viewModel.sendTyping()
+                        }
                     }, onStopTyping: {
-                        viewModel.sendStopTyping()
+                        if settings.typing.enable == true {
+                            viewModel.sendStopTyping()
+                        }
                     })
                     .background(settings.backgroundColor)
                     
                     .if(isImagePresented, transform: { view in
                         view.mediaViewerView(isImagePresented: $isImagePresented, image: presentedImage, url: videoUrl ) {
-                            if let presentedImage {
-                                viewModel.saveImage(presentedImage)
-                            }
-                        } onDismiss: {
                             videoUrl = nil
                             presentedImage = nil
                             if let tappedMessage {
@@ -143,13 +150,14 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
                         }
                     })
                 }
+                
                 .resignKeyboardOnGesture()
                 
             }.background(settings.contentBackgroundColor)
             
                 .mediaAlert(isAlertPresented: $isAlertPresented,
                             isExistingImage: false,
-                            isShowFiles: true,
+                            isHiddenFiles: settings.isHiddenFiles,
                             mediaTypes: [UTType.movie.identifier, UTType.image.identifier],
                             onRemoveImage: {
                     
@@ -176,7 +184,13 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
                     viewModel.stopPlayng()
                     isInfoPresented = true
                 }))
-
+            
+                .sheet(isPresented: $isFileExporterPresented) {
+                    if let fileUrl = fileUrl {
+                        ActivityViewController(activityItems: [fileUrl.lastPathComponent , fileUrl])
+                    }
+                }
+            
             if isInfoPresented == true {
                 NavigationLink(isActive: $isInfoPresented) {
                     if let dialog = viewModel.dialog as? Dialog {
@@ -208,48 +222,3 @@ public struct DialogView<ViewModel: DialogViewModelProtocol>: View  {
             }
     }
 }
-
-public struct TypingView: View {
-    let settings = QuickBloxUIKit.settings.dialogScreen
-    var typing: String
-    
-    public var body: some View {
-        VStack(alignment: .leading) {
-            HStack {
-                Text(typing)
-                    .font(settings.typing.font)
-                    .foregroundColor(settings.typing.color)
-                    .lineLimit(1)
-                
-                Spacer()
-            }.padding([.leading, .trailing], 8)
-            
-            Spacer()
-        }
-        .frame(height: settings.typing.height)
-        .fixedSize(horizontal: false, vertical: true)
-        .padding(.top, 8)
-    }
-}
-
-public struct MessagesScrollView<Content: View>: View {
-    var content: Content
-    
-    init(@ViewBuilder builder: @escaping ()-> Content) {
-        self.content = builder()
-    }
-    
-    public var body: some View {
-        GeometryReader { proxy in
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 0) {
-                    Spacer()
-                    content
-                }
-                .frame(minWidth: proxy.size.width)
-                .frame(minHeight: proxy.size.height)
-            }
-        }
-    }
-}
-

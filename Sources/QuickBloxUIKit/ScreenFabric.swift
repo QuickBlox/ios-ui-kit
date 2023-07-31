@@ -37,3 +37,25 @@ public extension ScreenFabric {
                                     settings: settings)
     }
 }
+
+// Creating the screen for remove participants from a dialogue.
+public extension ScreenFabric {
+    func members<T: DialogEntity>(
+        to entity: T,
+        settings: MembersScreenSettings
+        = QuickBloxUIKit.settings.membersScreen
+    ) -> some View {
+        let model = MembersDialogViewModel(dialog: Dialog(entity))
+        return membersView(model: model,
+                              settings:settings)
+    }
+    
+    func membersView<T: MembersDialogProtocol>(
+        model: T,
+        settings: MembersScreenSettings
+        = QuickBloxUIKit.settings.membersScreen
+    ) -> some View {
+        return RemoveMembersView(viewModel: model,
+                                    settings: settings)
+    }
+}
