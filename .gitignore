@@ -1,29 +1,57 @@
 # Xcode
-.DS_Store
-build/
+# Files created by Xcode
 *.pbxuser
-!default.pbxuser
-*.mode1v3
-!default.mode1v3
-*.mode2v3
-!default.mode2v3
-*.perspectivev3
-!default.perspectivev3
-!default.xcworkspace
-xcuserdata
-profile
-*.moved-aside
-DerivedData
+*.xcuserstate
+*.xcworkspace/
+
+# Swift Package Manager
+# Build products
+.build/
+
+# Package Manager Dependencies
+# It's generally not a good idea to commit the entire 'Packages' directory
+# since it can be regenerated from the Package.swift manifest
+# Comment the following line if you want to include it in version control
+Packages/
+
+# Swift Package Manager Version
+# The current active version of the Swift Package Manager
+# Comment the following line if you want to include it in version control
+.pswiftpm
+.swiftpm/xcode/xcuserdata
+
+# Miscellaneous
+# Temporary files
+*~
+.DS_Store
+*.swp
+*.tmp
+*~
 .idea/
-Pods/
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcscmblueprint
+*.xcscheme
+
+# macOS
+# Build folder
+build/
+
+# iOS
+# Xcode build folder
+DerivedData/
+
+# Carthage
+# Carthage builds
 Carthage/Build/
-Podfile.lock
-# Obj-C/Swift specific
-*.hmap
-# App packaging
-*.ipa
-*.dSYM.zip
-*.dSYM
-# Playgrounds
-timeline.xctimeline
-playground.xcworkspace
+
+# SPM-generated
+.Package.resolved
+.build/
+
+# Integration Tests Config
+Config.swift
