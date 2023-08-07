@@ -98,7 +98,14 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
                         do { fileTuple = try await message.file(size: settings.imageSize) } catch { prettyLog(error)}
                     }
                     
-                    MessageRowTime(date: message.date)
+                    VStack(alignment: .leading) {
+                        Spacer()
+                        HStack {
+                            
+                            MessageRowTime(date: message.date)
+                            
+                        }.padding(.bottom, 2)
+                    }
                 }
             }
             Spacer(minLength: settings.inboundSpacer)

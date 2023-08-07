@@ -14,13 +14,14 @@ import UniformTypeIdentifiers
 
 public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View  {
     let settings = QuickBloxUIKit.settings.dialogScreen
+    let assistAnswer = QuickBloxUIKit.feature.ai.assistAnswer
     
     @Environment(\.dismiss) var dismiss
     
     @StateObject public var viewModel: ViewModel
     
     @State private var isInfoPresented: Bool = false
-    
+    @State private var isAIAlertPresented: Bool = false
     @State private var isAlertPresented: Bool = false
     @State private var isImagePresented: Bool = false
     @State private var isSizeAlertPresented: Bool = false
@@ -82,6 +83,12 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View  {
                                         tappedMessage = nil
                                     }
                                 }
+                            }, onAssistAnswer: { message in
+                                if let message, assistAnswer.enable == true {
+                                    viewModel.generateAnswer(message)
+                                } else {
+                                    isAIAlertPresented = true
+                                }
                             })
                             .offset(y: viewModel.typing.isEmpty == false ? (isNewTyping == true ? 0 : -settings.typing.offset) : 0)
                             .onAppear {
@@ -136,7 +143,8 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View  {
                         if settings.typing.enable == true {
                             viewModel.sendStopTyping()
                         }
-                    })
+                    }, waitingAnswer: $viewModel.waitingAnswer,
+                              aiAnswer: $viewModel.aiAnswer)
                     .background(settings.backgroundColor)
                     
                     .if(isImagePresented, transform: { view in
@@ -171,9 +179,9 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View  {
                 })
             
                 .largeFileSizeAlert(isPresented: $isSizeAlertPresented)
+                .aiFailAlert(isPresented: $isAIAlertPresented)
             
-                .modifier(DialogHeader(avatar: $viewModel.avatar,
-                                       dialog: viewModel.dialog,
+                .modifier(DialogHeader(dialog: viewModel.dialog,
                                        onDismiss: {
                     viewModel.sendStopTyping()
                     viewModel.unsubscribe()
@@ -222,3 +230,4 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View  {
             }
     }
 }
+

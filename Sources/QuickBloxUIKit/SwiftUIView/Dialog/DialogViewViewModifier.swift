@@ -15,18 +15,17 @@ struct DialogHeaderToolbarContent: ToolbarContent {
     
     private var settings = QuickBloxUIKit.settings.dialogScreen.header
     
-    var avatar: Image?
     var dialog: any DialogEntity
     let onDismiss: () -> Void
     let onTapInfo: () -> Void
     
+    @State var avatar: Image? = nil
+    
     public init(
-        avatar: Image?,
         dialog: any DialogEntity,
         onDismiss: @escaping () -> Void,
         onTapInfo: @escaping () -> Void
         ) {
-            self.avatar = avatar
             self.dialog = dialog
             self.onDismiss = onDismiss
             self.onTapInfo = onTapInfo
@@ -54,6 +53,9 @@ struct DialogHeaderToolbarContent: ToolbarContent {
                 AvatarView(image: avatar ?? dialog.placeholder,
                            height: settings.title.avatarHeight,
                            isHidden: settings.title.isHiddenAvatar)
+                .task {
+                    do { avatar = try await dialog.avatar } catch { prettyLog(error) }
+                }
                 
                 Text(dialog.name)
                     .font(settings.title.font)
@@ -83,17 +85,14 @@ public struct DialogHeader: ViewModifier {
     private var settings = QuickBloxUIKit.settings.dialogScreen.header
     
     var dialog: any DialogEntity
-    @Binding var avatar: Image?
     let onDismiss: () -> Void
     let onTapInfo: () -> Void
     
     public init(
-        avatar: Binding<Image?>,
         dialog: any DialogEntity,
         onDismiss: @escaping () -> Void,
         onTapInfo: @escaping () -> Void
         ) {
-            _avatar = avatar
             self.dialog = dialog
             self.onDismiss = onDismiss
             self.onTapInfo = onTapInfo
@@ -101,8 +100,7 @@ public struct DialogHeader: ViewModifier {
     
     public func body(content: Content) -> some View {
         content.toolbar {
-            DialogHeaderToolbarContent(avatar: avatar,
-                                       dialog: dialog,
+            DialogHeaderToolbarContent(dialog: dialog,
                                        onDismiss: onDismiss,
                                        onTapInfo: onTapInfo)
         }
@@ -237,6 +235,7 @@ public extension String {
                     pattern: .solid, color: linkColor)
             }
         }
+        
         return attributedString
     }
     

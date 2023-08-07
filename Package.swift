@@ -16,7 +16,8 @@ let package = Package(
             targets: ["QuickBloxUIKit", "QuickBloxData", "QuickBloxDomain"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/QuickBlox/ios-quickblox-sdk", .upToNextMajor(from: "2.19.0"))
+        .package(url: "https://github.com/QuickBlox/ios-quickblox-sdk", .upToNextMajor(from: "2.19.0")),
+        .package(url: "https://github.com/QuickBlox/ios-ai-answer-assistant.git", .upToNextMajor(from: "1.0.0"))
     ],
     targets: [
         .target(
@@ -27,12 +28,14 @@ let package = Package(
         .target(
             name: "QuickBloxData",
             dependencies: ["QuickBloxDomain",
-                           "QuickBloxLog",
-                           .product(name: "Quickblox",
-                                    package: "ios-quickblox-sdk")]),
+                           "QuickBloxLog"]),
         .target(
             name: "QuickBloxDomain",
-            dependencies: ["QuickBloxLog"]),
+            dependencies: ["QuickBloxLog",
+                           .product(name: "Quickblox",
+                                    package: "ios-quickblox-sdk"),
+                           .product(name: "QBAIAnswerAssistant",
+                                    package: "ios-ai-answer-assistant")]),
         .target(
             name: "QuickBloxLog",
             dependencies: []),

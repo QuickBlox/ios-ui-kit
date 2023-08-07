@@ -31,7 +31,6 @@ open class CreateDialogViewModel: CreateDialogProtocol {
     public typealias UserItem = User
     
     @Published public var search = ""
-    @MainActor
     @Published public var displayed: [User] = []
     @Published public var selected: Set<User> = []
     

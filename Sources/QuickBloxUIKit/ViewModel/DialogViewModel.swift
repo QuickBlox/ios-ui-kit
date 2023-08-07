@@ -13,6 +13,10 @@ import Combine
 import Photos
 import QuickBloxLog
 
+public enum Role {
+    case owner, opponent
+}
+
 public struct AttachmentAsset {
     var name: String
     var image: UIImage?
@@ -28,11 +32,11 @@ public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel {
     var audioPlayer: AudioPlayer { get set }
     var targetMessage: DialogItem.MessageItem? { get set }
     var dialog: DialogItem { get set }
-    var avatar: Image? { get set }
     var withAnimation: Bool { get set }
     var typing: String { get set }
+    var waitingAnswer: Bool { get set }
+    var aiAnswer: String { get set }
     
-    func saveImage(_ image: Image)
     func stopPlayng()
     func startRecording()
     func stopRecording()
@@ -44,15 +48,17 @@ public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel {
     func sendStopTyping()
     func sendTyping()
     func unsubscribe()
+    func generateAnswer(_ message: DialogItem.MessageItem)
 }
 
 open class DialogViewModel: DialogViewModelProtocol {
     @Published public var dialog: Dialog
-    @Published public var avatar: Image? = nil
     @Published public var targetMessage: Message?
     @Published public var audioPlayer = AudioPlayer()
     @Published public var deleteDialog: Bool = false
     @Published public var typing: String = ""
+    @Published public var waitingAnswer: Bool = false
+    @Published public var aiAnswer: String = ""
     
     private var isExistingImage: Bool {
         if dialog.photo == "null" { return false }
@@ -85,8 +91,11 @@ open class DialogViewModel: DialogViewModelProtocol {
     
     private var isTypingEnable = true
     
+    let assistAnswer = QuickBloxUIKit.feature.ai.assistAnswer
+    
     init(dialog: Dialog) {
         self.dialog = dialog
+        
         isTypingEnable = QuickBloxUIKit.settings.dialogScreen.typing.enable
         
         typingProvider = TypingProvider(dialogId: dialog.id, usersRepo: usersRepo)
@@ -145,8 +154,6 @@ open class DialogViewModel: DialogViewModelProtocol {
                 self?.objectWillChange.send()
             }.store(in: &cancellables)
         
-        getAvatar()
-        
         QuickBloxUIKit.syncState
             .receive(on: RunLoop.main)
             .sink { [weak self] syncState in
@@ -177,7 +184,6 @@ open class DialogViewModel: DialogViewModelProtocol {
                 if dialog.messages.isEmpty == false {
                     self?.dialog = dialog
                 }
-                self?.getAvatar()
                 self?.targetMessage = dialog.messages.last
             }
             .store(in: &cancellables)
@@ -298,20 +304,47 @@ open class DialogViewModel: DialogViewModelProtocol {
         }
     }
     
-    public func saveImage(_ image: Image) {
-        //FIXME: empty method
-    }
-    
-    private func getAvatar() {
+    public func generateAnswer(_ message: Message) {
+        if assistAnswer.enable == false {
+            return
+        }
+        waitingAnswer = true
+        aiAnswer = ""
+        
+        let proxyServerURL = assistAnswer.proxyServerURLPath // proxy Server URL
+        let apiKey = assistAnswer.openAIAPIKey
+        
+        let messages = filterTextHistory(from: message.date)
+        
+        var useCase: AssistAnswerByOpenAIProtocol?
+        if proxyServerURL.isEmpty == false {
+            useCase = AssistAnswerByOpenAIProxyServer(proxyServerURL, content: messages)
+        } else if apiKey.isEmpty == false {
+            useCase = AssistAnswerByOpenAIAPI(apiKey, content: messages)
+        }
+        
+        guard let useCase else { return }
+        
         Task { [weak self] in
             do {
-                let avatar = try await self?.dialog.avatar
-                await MainActor.run { [weak self, avatar] in
-                    guard let self = self else { return }
-                    self.avatar = avatar
-                }
-            } catch { prettyLog(error) }
+                let answer = try await useCase.execute()
+                self?.aiAnswer = answer
+            } catch {
+                prettyLog(error)
+            }
+            self?.waitingAnswer = false
         }
+    }
+    
+    private func filterTextHistory(from date: Date) -> [Message] {
+        let messages = dialog.messages.filter { message in
+            if message.isText == true, message.date <= date {
+                return true
+            }
+            return false
+        }
+        
+        return messages
     }
 }
 
@@ -374,6 +407,15 @@ extension MessageEntity {
     
     var isChat: Bool {
         if isNotification == true || type == .divider {
+            return false
+        }
+        return true
+    }
+    
+    var isText: Bool {
+        if isNotification == true
+            || type == .divider
+            || isAttachmentMessage == true {
             return false
         }
         return true

@@ -65,7 +65,7 @@ struct DialogListHeaderToolbarContent: ToolbarContent {
 
 public struct DialogListHeader: ViewModifier {
     
-    private var settings = QuickBloxUIKit.settings.dialogsScreen.header
+    private var settings = QuickBloxUIKit.settings.dialogsScreen
     
     let onDismiss: () -> Void
     let onTapDialogType: () -> Void
@@ -81,9 +81,10 @@ public struct DialogListHeader: ViewModifier {
             DialogListHeaderToolbarContent(onDismiss: onDismiss,
                                            onTapDialogType: onTapDialogType)
         }
-        .navigationBarTitleDisplayMode(settings.displayMode)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(settings.header.displayMode)
         .navigationBarBackButtonHidden(true)
-        .navigationBarHidden(settings.isHidden)
+        .navigationBarHidden(settings.header.isHidden)
     }
 }
 
@@ -96,17 +97,13 @@ public extension View {
         }
     }
     
-    func setupNavigationBarAppearance(titleColor: UIColor,
+    func navigationBar(titleColor: UIColor,
                                       barColor: UIColor,
-                                      shadowColor: UIColor) {
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = barColor
-        appearance.titleTextAttributes = [.foregroundColor: titleColor]
-        appearance.shadowColor = shadowColor
-        UINavigationBar.appearance().standardAppearance = appearance
-        UINavigationBar.appearance().compactAppearance = appearance
-        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+                                      shadowColor: UIColor) -> some View {
+        
+        self.modifier(NavigationBarColor(titleColor: titleColor,
+                                         barColor: barColor,
+                                         shadowColor: shadowColor))
     }
 }
 
@@ -116,4 +113,25 @@ public var isIphone: Bool {
 
 public var isIPad: Bool {
     UIDevice.current.userInterfaceIdiom == .pad
+}
+
+struct NavigationBarColor: ViewModifier {
+
+  init(titleColor: UIColor, barColor: UIColor, shadowColor: UIColor) {
+    let appearance = UINavigationBarAppearance()
+      appearance.configureWithOpaqueBackground()
+      appearance.backgroundColor = barColor
+      appearance.titleTextAttributes = [.foregroundColor: titleColor]
+      appearance.largeTitleTextAttributes = [.foregroundColor: titleColor]
+      appearance.shadowColor = shadowColor
+                   
+    UINavigationBar.appearance().standardAppearance = appearance
+    UINavigationBar.appearance().scrollEdgeAppearance = appearance
+    UINavigationBar.appearance().compactAppearance = appearance
+    UINavigationBar.appearance().tintColor = titleColor
+  }
+
+  func body(content: Content) -> some View {
+    content
+  }
 }

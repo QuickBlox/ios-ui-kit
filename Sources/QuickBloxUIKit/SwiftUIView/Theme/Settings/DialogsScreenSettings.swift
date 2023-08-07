@@ -20,7 +20,11 @@ public class DialogsScreenSettings {
     public var dialogRow: DialogRowSettings
     public var backgroundColor: Color
     public var itemsIsEmpty: String
+    public var itemsIsEmptyFont: Font
+    public var itemsIsEmptyColor: Color
     public var blurRadius: CGFloat = 12.0
+    public var messageImage: Image
+    public var messageImageColor: Color
     
     public init(_ theme: ThemeProtocol) {
         self.header = DialogsHeaderSettings(theme)
@@ -28,6 +32,10 @@ public class DialogsScreenSettings {
         self.dialogRow = DialogRowSettings(theme)
         self.backgroundColor = theme.color.mainBackground
         self.itemsIsEmpty = theme.string.dialogsEmpty
+        self.itemsIsEmptyFont = theme.font.title3
+        self.itemsIsEmptyColor = theme.color.caption
+        self.messageImage = theme.image.message
+        self.messageImageColor = theme.color.caption
     }
 }
 

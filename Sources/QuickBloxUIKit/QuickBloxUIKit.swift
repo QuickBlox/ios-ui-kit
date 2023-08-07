@@ -35,6 +35,7 @@ var previewAware: Bool {
 }
 
 public var settings: ScreensProtocol = ScreenSettings(Theme())
+public var feature: Feature = Feature()
 
 class Sync {
     var state: AnyPublisher<SyncState, Never> {
@@ -85,7 +86,7 @@ let imageCache = ImageCache.shared
 //FIXME: add dialogsView screen
 @ViewBuilder
 public func dialogsView(onExit: (() -> Void)? = nil) -> some View {
-    DialogsView(dialogsList: DialogsList(dialogsRepo: RepositoriesFabric.dialogs),
+    DialogsView(dialogsList: DialogsViewModel(dialogsRepo: RepositoriesFabric.dialogs),
                 content: { dialogsList in
         DialogsListView(dialogsList: dialogsList,
                         content: DialogsRowBuilder.defaultRow)

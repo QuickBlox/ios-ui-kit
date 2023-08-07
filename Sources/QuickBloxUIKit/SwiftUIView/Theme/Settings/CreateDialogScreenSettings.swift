@@ -22,14 +22,22 @@ public class CreateDialogScreenSettings {
     public var userRow: UserRowSettings
     public var backgroundColor: Color
     public var itemsIsEmpty: String
+    public var itemsIsEmptyFont: Font
+    public var itemsIsEmptyColor: Color
     public var blurRadius: CGFloat = 12.0
+    public var messageImage: Image
+    public var messageImageColor: Color
     
     public init(_ theme: ThemeProtocol) {
         self.header = CreateDialogHeaderSettings(theme)
         self.searchBar = DialogsSearchBarSettings(theme)
         self.userRow = UserRowSettings(theme)
         self.backgroundColor = theme.color.mainBackground
-        self.itemsIsEmpty = theme.string.usersEmpty
+        self.itemsIsEmpty = theme.string.noResults
+        self.itemsIsEmptyFont = theme.font.title3
+        self.itemsIsEmptyColor = theme.color.caption
+        self.messageImage = theme.image.magnifyingglass
+        self.messageImageColor = theme.color.caption
     }
 }
 

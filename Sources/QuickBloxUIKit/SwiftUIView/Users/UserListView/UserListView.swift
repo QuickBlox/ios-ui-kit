@@ -51,10 +51,19 @@ extension UserListView: View {
             settings.backgroundColor.ignoresSafeArea()
             
             if viewModel.displayed.isEmpty {
-                VStack {
-                    ProgressView().padding(.top)
-                    Spacer()
+                Spacer()
+                VStack(spacing: 16.0) {
+                    settings.messageImage
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundColor(settings.messageImageColor)
+                        .frame(width: 60, height: 60)
+                    Text(settings.itemsIsEmpty)
+                        .font(settings.itemsIsEmptyFont)
+                        .foregroundColor(settings.itemsIsEmptyColor)
+                    
                 }
+                Spacer()
             } else {
                 List {
                     ForEach(viewModel.displayed) { item in

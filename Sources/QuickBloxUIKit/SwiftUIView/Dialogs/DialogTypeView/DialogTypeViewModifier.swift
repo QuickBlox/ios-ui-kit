@@ -58,6 +58,7 @@ public struct DialogTypeHeader: ViewModifier {
         content.toolbar {
             DialogTypeHeaderToolbarContent(onCloseButtonTapped: onClose)
         }
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(settings.displayMode)
         .navigationBarHidden(settings.isHidden)
     }

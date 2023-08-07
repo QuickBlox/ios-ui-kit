@@ -10,6 +10,7 @@ import SwiftUI
 
 struct InputView: View {
     var settings = QuickBloxUIKit.settings.dialogScreen.textField
+    let assistAnswer = QuickBloxUIKit.feature.ai.assistAnswer
     
     let onSend: (_ text: String) -> Void
     let onAttachment: () -> Void
@@ -20,6 +21,8 @@ struct InputView: View {
     let onStopTyping: () -> Void
     
     @State private var text: String = ""
+    @Binding var waitingAnswer: Bool
+    @Binding var aiAnswer: String
     
     @State var isRecordState: Bool = false
     @State var isRecording: Bool = false
@@ -44,19 +47,37 @@ struct InputView: View {
             }) {
                 if isRecordState == true, isRecording == false {
                     settings.leftButton.stopImage.foregroundColor(settings.leftButton.stopColor)
-                } else if isRecording == false {
-                    settings.leftButton.image
-                        .foregroundColor(settings.leftButton.color)
+                } else if isRecording == false || aiAnswer.isEmpty == false {
+                    settings.leftButton.image.foregroundColor(settings.leftButton.color)
                 }
             }.frame(width: settings.leftButton.width, height: settings.barHeight)
             
             ZStack {
                 
-                TextField(isRecordState ? "" : settings.placeholderText, text: $text)
+                TextField(isRecordState || waitingAnswer ? "" : settings.placeholderText, text: aiAnswer.isEmpty == false ? $aiAnswer : $text)
+                    .onChange(of: aiAnswer, perform: { newValue in
+                        if newValue.isEmpty == false {
+                            text = ""
+                            onTyping()
+                            isHasMessage = true
+                        } else {
+                            onStopTyping()
+                            isHasMessage = false
+                        }
+                    })
                     .onChange(of: text, perform: { newValue in
                         if newValue.isEmpty == false {
                             onTyping()
                             isHasMessage = true
+                        } else {
+                            onStopTyping()
+                            isHasMessage = false
+                        }
+                    })
+                    .onChange(of: waitingAnswer, perform: { newValue in
+                        if newValue == true {
+                            text = ""
+                            aiAnswer = ""
                         }
                     })
                     .padding(settings.padding)
@@ -66,6 +87,18 @@ struct InputView: View {
                     .textFieldStyle(.plain)
                     .font(settings.placeholderFont)
                     .disabled(isRecordState == true)
+                    .if(waitingAnswer == true && aiAnswer.isEmpty == true) { view in
+                        view.overlay() {
+                            HStack(spacing: 10) {
+                                ProgressView()
+                                Text("Waiting...")
+                                Spacer()
+                            }
+                            .padding(.horizontal)
+                            .background(settings.backgroundColor)
+                            .cornerRadius(settings.radius)
+                        }
+                    }
                     .if(isRecordState == true) { view in
                         view.overlay() {
                             HStack {
@@ -74,13 +107,25 @@ struct InputView: View {
                                     .foregroundColor(settings.timer.foregroundColor)
                                     .font(settings.timer.font)
                                 Spacer()
-                            }.padding(.horizontal)
+                            }
+                            .padding(.horizontal)
+                            .background(settings.backgroundColor)
+                            .cornerRadius(settings.radius)
                         }
                     }
             }
             
             Button(action: {
-                if text.isEmpty, isHasMessage == false {
+                if isHasMessage == true || aiAnswer.isEmpty == false {
+                    isRecordState = false
+                    isHasMessage = false
+                    timer.reset()
+                    onSend(aiAnswer.isEmpty == false ? aiAnswer : text)
+                    text = ""
+                    aiAnswer = ""
+                    onStopTyping()
+                
+                } else  if text.isEmpty, isHasMessage == false {
                     if isRecordState == false, isRecording == false {
                         onRecord()
                         isRecordState = true
@@ -92,21 +137,14 @@ struct InputView: View {
                         onStopRecord()
                         timer.stop()
                     }
-                } else if isHasMessage == true {
-                    isRecordState = false
-                    isHasMessage = false
-                    timer.reset()
-                    onSend(text)
-                    text = ""
-                    onStopTyping()
                 }
+                
             }) {
-                if text.isEmpty, isHasMessage == false {
-                    settings.rightButton.micImage.foregroundColor(isRecording ? settings.timer.imageColor : settings.rightButton.micColor)
-                } else if isHasMessage == true {
-                    settings.rightButton.image
-                        .foregroundColor(settings.rightButton.color)
+                if isHasMessage == true || aiAnswer.isEmpty == false {
+                    settings.rightButton.image.foregroundColor(settings.rightButton.color)
                         .rotationEffect(Angle(degrees: settings.rightButton.degrees))
+                } else if text.isEmpty, isHasMessage == false {
+                    settings.rightButton.micImage.foregroundColor(isRecording ? settings.timer.imageColor : settings.rightButton.micColor)
                 }
             }
             .frame(width: settings.rightButton.width, height: settings.barHeight)
@@ -114,7 +152,8 @@ struct InputView: View {
         }
         .frame(height: settings.barHeight)
     }
-}
+    }
+
 
 struct MessageTextField_Previews: PreviewProvider {
     static var previews: some View {
@@ -133,7 +172,8 @@ struct MessageTextField_Previews: PreviewProvider {
                 
             }, onStopTyping: {
                 
-            })
+            }, waitingAnswer: Binding.constant(false),
+                      aiAnswer: Binding.constant(""))
             
             InputView(onSend: { _ in
                 
@@ -149,7 +189,8 @@ struct MessageTextField_Previews: PreviewProvider {
                 
             }, onStopTyping: {
                 
-            })
+            }, waitingAnswer: Binding.constant(false),
+                      aiAnswer: Binding.constant(""))
             .previewSettings(scheme: .dark, name: "Dark mode")
             
         }

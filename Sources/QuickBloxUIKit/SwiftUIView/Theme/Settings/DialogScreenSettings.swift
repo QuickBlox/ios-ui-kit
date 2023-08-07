@@ -278,9 +278,9 @@ public struct MessageRowSettings {
                                                        trailing: 16)
     
     public var audioPadding: EdgeInsets = EdgeInsets(top: 0,
-                                                       leading: 20,
-                                                       bottom: 0,
-                                                       trailing: 16)
+                                                     leading: 20,
+                                                     bottom: 0,
+                                                     trailing: 16)
     
     public var datePadding: EdgeInsets = EdgeInsets(top: 2,
                                                     leading: 8,
@@ -309,13 +309,13 @@ public struct MessageRowSettings {
     }
     
     public var outboundPadding: EdgeInsets = EdgeInsets(top: 18.0,
-                                                    leading: 0,
+                                                        leading: 0,
                                                         bottom: 0.0,
                                                         trailing: 16.0)
     public var outboundAudioPadding: EdgeInsets = EdgeInsets(top: 18.0,
-                                                    leading: 0,
-                                                        bottom: 0.0,
-                                                        trailing: 16.0)
+                                                             leading: 0,
+                                                             bottom: 0.0,
+                                                             trailing: 16.0)
     
     public var infoSpacer = Spacer(minLength: 8.0)
     public var infoSpacing: CGFloat = 2.0
@@ -329,6 +329,10 @@ public struct MessageRowSettings {
             endPoint: .bottomTrailing
         )
     }
+    
+    public var robot: Image
+    public var robotForeground: Color
+    public var robotSize: CGSize = CGSize(width: 44.0, height: 36.0)
     
     public init(_ theme: ThemeProtocol) {
         self.avatar = MessageAvatarSettings(theme)
@@ -381,6 +385,12 @@ public struct MessageRowSettings {
         self.linkFont = theme.font.callout
         self.inboundLinkForeground = theme.color.mainText
         self.outboundLinkForeground = theme.color.mainText
+        
+        self.robot = theme.image.robot
+        self.robotForeground = Color(uiColor: UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark ? UIColor(hexRGB: "#E7EFFF") ?? UIColor.white
+            : UIColor(hexRGB: "#3978FC") ?? UIColor.blue
+        })
     }
     
     public struct ProgressBarSettings {
@@ -425,7 +435,7 @@ public struct MessageRowSettings {
             self.attachmentPlaceholder = theme.image.attachmentPlaceholder
         }
     }
-
+    
     public struct MessageTimeSettings {
         public var foregroundColor: Color
         public var font: Font

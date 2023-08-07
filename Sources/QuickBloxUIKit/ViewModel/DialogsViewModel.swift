@@ -1,5 +1,5 @@
 //
-//  DialogsList.swift
+//  DialogsViewModel.swift
 //  QuickBloxUIKit
 //
 //  Created by Injoit on 23.02.2023.
@@ -28,7 +28,7 @@ public protocol DialogsListProtocol: QuickBloxUIKitViewModel {
     init(dialogsRepo: DialogsRepo)
 }
 
-open class DialogsList: DialogsListProtocol {
+open class DialogsViewModel: DialogsListProtocol {
     @Published public var selectedItem: Dialog? = nil
     @Published public var dialogs: [Dialog] = []
     @Published public var syncState: SyncState = .synced
@@ -94,7 +94,7 @@ open class DialogsList: DialogsListProtocol {
     }
 }
 
-extension DialogsList {
+extension DialogsViewModel {
     public func deleteDialog(withID dialogId: String) {
         guard let index = dialogs.firstIndex(where: {$0.id == dialogId}) else {
             return

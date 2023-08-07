@@ -32,9 +32,6 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
         self.detailContent = detailContent
         self.selectTypeContent = selectTypeContent
         self.onBack = onBack
-        setupNavigationBarAppearance(titleColor: UIColor(settings.header.title.color),
-                                     barColor: UIColor(settings.header.backgroundColor),
-                                     shadowColor: UIColor(settings.dialogRow.dividerColor))
     }
     
     private var content: (_ viewModel: ViewModel) -> ListView
@@ -75,6 +72,9 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
                 isDialogTypePresented = false
             }
         })
+        .navigationBar(titleColor: UIColor(settings.header.title.color),
+                       barColor: UIColor(settings.header.backgroundColor),
+                       shadowColor: UIColor(settings.dialogRow.dividerColor))
         .modifier(DialogListHeader(onDismiss: {
             onBack()
             dismiss()
@@ -117,7 +117,7 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
 //public struct DialogsViewViewBuilder<DialogItem: DialogEntity, UserItem: UserEntity, ListView: View, UserView: View> {
 //    @MainActor @ViewBuilder
 //    public static func `default`() -> some View {
-//        DialogsView(dialogsList: DialogsList(dialogs: PreviewModel.dialogs), content: { (dialogs, onTap, onAppear, onDelete)   in
+//        DialogsView(dialogsList: DialogsViewModel(dialogs: PreviewModel.dialogs), content: { (dialogs, onTap, onAppear, onDelete)   in
 //            DialogsViewBuilder.defaultListView(dialogs, onItemTap: { item in
 //
 //            }, onAppearItem: { itemId in

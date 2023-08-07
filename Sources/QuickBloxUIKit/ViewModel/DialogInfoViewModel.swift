@@ -99,7 +99,8 @@ open class DialogInfoViewModel: DialogInfoProtocol {
     public func removeDialogAvatar() {
         // TODO: remove dialog avatar method. Create remove avatar use case.
         dialog.photo = "null"
-        dialog.removeAvatar()
+        
+//        dialog.removeAvatar()
         updateDialog(dialog)
     }
     

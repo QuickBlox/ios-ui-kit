@@ -243,6 +243,39 @@ extension View {
     }
 }
 
+public struct AIFailAlert: ViewModifier {
+    public var settings = QuickBloxUIKit.settings.dialogScreen
+    
+    @Binding var isPresented: Bool
+    
+    public func body(content: Content) -> some View {
+        ZStack {
+            content.blur(radius: isPresented ? settings.blurRadius : 0.0)
+                .alert("", isPresented: $isPresented) {
+                    Button("Ok", action: {
+                        isPresented = false
+                    })
+                } message: {
+                    Text("""
+                         The [AI Assist Answer feature](https://docs.quickblox.com/docs/ios-uikit-ai-features#assist-answer) is currently not configured.
+                         
+                         To enable this functionality, you must set either the **.openAIAPIKey** or **.proxyServerURLPath** properties for QuickBloxUIKit.feature.ai.assistAnswer
+
+                         To disable the feature, simply set QuickBloxUIKit.feature.ai.assistAnswer.enable = false.
+                         """)
+                }
+        }
+    }
+}
+
+extension View {
+    func aiFailAlert(
+        isPresented: Binding<Bool>
+    ) -> some View {
+        self.modifier(AIFailAlert(isPresented: isPresented))
+    }
+}
+
 
 public struct ImagePicker: ViewModifier {
     

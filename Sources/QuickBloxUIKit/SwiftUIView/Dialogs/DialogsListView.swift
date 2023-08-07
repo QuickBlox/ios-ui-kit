@@ -85,7 +85,20 @@ extension DialogsListView: View {
     @ViewBuilder
     private func dialogsView() -> some View {
         if items.isEmpty && dialogsList.syncState == .synced {
-            Text(settings.itemsIsEmpty)
+            Spacer()
+            VStack(spacing: 16.0) {
+                settings.messageImage
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundColor(settings.messageImageColor)
+                    .frame(width: 60, height: 60)
+                Text(settings.itemsIsEmpty)
+                    .font(settings.itemsIsEmptyFont)
+                    .foregroundColor(settings.itemsIsEmptyColor)
+                
+            }
+            Spacer()
+            
         } else {
             List {
                 ForEach(items) { item in

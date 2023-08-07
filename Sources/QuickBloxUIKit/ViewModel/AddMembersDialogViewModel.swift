@@ -24,7 +24,6 @@ public protocol AddMembersDialogProtocol: QuickBloxUIKitViewModel {
 
 open class AddMembersDialogViewModel: AddMembersDialogProtocol {
     @Published public var search: String = ""
-    @MainActor
     @Published public var displayed: [User] = []
     @Published public var selected: User? = nil
     

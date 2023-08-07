@@ -80,7 +80,14 @@ public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
                             do { fileTuple = try await message.audioFile } catch { prettyLog(error)}
                         }
                         
-                        MessageRowTime(date: message.date)
+                        VStack(alignment: .leading) {
+                            Spacer()
+                            HStack {
+                                
+                                MessageRowTime(date: message.date)
+                                
+                            }.padding(.bottom, 2)
+                        }
                     }
                 }
             }

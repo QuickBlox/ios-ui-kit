@@ -58,4 +58,12 @@ extension MessagesRepositoryMock: MessagesRepositoryProtocol {
     func delete(messageFromLocal entity: Message) async throws {
         try await mock().callAcyncVoid()
     }
+    
+    func read(messageInRemote entity: Message) async throws {
+        try await mock().callAcyncVoid()
+    }
+    
+    func markAsDelivered(messageInRemote entity: Message) async throws {
+        try await mock().callAcyncVoid()
+    }
 }

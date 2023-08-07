@@ -102,4 +102,16 @@ extension DialogsRepositoryMock: DialogsRepositoryProtocol {
     public func cleareAll() async throws {
         try await mock().callAcyncVoid()
     }
+    
+    func subscribeToObserveTyping(dialog dialogId: String) async throws {
+        try await mock().callAcyncVoid()
+    }
+    
+    func sendTyping(dialogInRemote dialogId: String) async throws {
+        try await mock().callAcyncVoid()
+    }
+    
+    func sendStopTyping(dialogInRemote dialogId: String) async throws {
+        try await mock().callAcyncVoid()
+    }
 }

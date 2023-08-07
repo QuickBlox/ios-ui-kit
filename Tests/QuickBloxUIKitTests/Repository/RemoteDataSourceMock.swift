@@ -92,6 +92,18 @@ extension RemoteDataSourceMock: RemoteDataSourceProtocol {
         _ = try mock().get()
     }
     
+    func subscribeToObserveTyping(dialog dialogId: String) async throws {
+        _ = try mock().get()
+    }
+    
+    func sendTyping(dialog dialogId: String) async throws {
+        _ = try mock().get()
+    }
+    
+    func sendStopTyping(dialog dialogId: String) async throws {
+        _ = try mock().get()
+    }
+    
     func get(messages dto: RemoteMessagesDTO) async throws -> RemoteMessagesDTO {
         return try mock().getFirst()
     }
@@ -105,6 +117,14 @@ extension RemoteDataSourceMock: RemoteDataSourceProtocol {
     }
     
     func delete(message dto: RemoteMessageDTO) async throws {
+        _ = try mock().get()
+    }
+    
+    func read(message dto: RemoteMessageDTO) async throws {
+        _ = try mock().get()
+    }
+    
+    func markAsDelivered(message dto: RemoteMessageDTO) async throws {
         _ = try mock().get()
     }
     

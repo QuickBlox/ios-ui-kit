@@ -855,6 +855,10 @@ extension RemoteDataSource {
             return RemoteUsersDTO(users: users,
                                   pagination: tuple.pagination)
         } catch let nsError as NSError {
+            if nsError.code == 404 {
+                return RemoteUsersDTO(users: [],
+                                      pagination: dto.pagination)
+            } 
             throw try nsError.convertToRemoteException()
         } catch {
             throw DataSourceException.unexpected(error.localizedDescription)

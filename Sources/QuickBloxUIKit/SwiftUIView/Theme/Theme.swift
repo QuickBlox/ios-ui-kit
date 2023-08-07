@@ -33,6 +33,7 @@ public protocol ThemeFontProtocol {
     var callout: Font { get set }
     var largeTitle: Font { get set }
     var title1: Font { get set }
+    var title3: Font { get set }
 }
 
 public class ThemeFont: ThemeFontProtocol {
@@ -43,6 +44,7 @@ public class ThemeFont: ThemeFontProtocol {
     public var callout: Font = .callout
     public var largeTitle: Font = .largeTitle
     public var title1: Font = .title.weight(.semibold)
+    public var title3: Font = .title3
     
     public init() {}
 }
@@ -134,6 +136,8 @@ public protocol ThemeImageProtocol {
     var send: Image { get set }
     var doctext: Image { get set }
     var speakerwave: Image { get set }
+    var message: Image { get set }
+    var robot: Image { get set }
 }
 
 public class ThemeImage: ThemeImageProtocol {
@@ -175,6 +179,8 @@ public class ThemeImage: ThemeImageProtocol {
     public var send: Image = Image("send", bundle: .module)
     public var doctext: Image = Image(systemName: "doc.text.fill")
     public var speakerwave: Image = Image(systemName: "speaker.wave.1.fill")
+    public var message: Image = Image(systemName: "message")
+    public var robot: Image = Image("Robot", bundle: .module)
     
     public init() {}
 }
@@ -251,6 +257,8 @@ public protocol ThemeStringProtocol {
     var errorValidation: String { get set }
     var addUser: String { get set }
     var toDialog: String { get set }
+    var noResults: String { get set }
+    var noMembers: String { get set }
     
     var maxSize: String { get set }
     var maxSizeHint: String { get set }
@@ -313,6 +321,8 @@ public class ThemeString: ThemeStringProtocol {
     public var errorValidation: String = String(localized: "alert.message.errorValidation", bundle: .module)
     public var addUser: String = String(localized: "alert.message.addUser", bundle: .module)
     public var toDialog: String = String(localized: "alert.message.toDialog", bundle: .module)
+    public var noResults: String = String(localized: "alert.message.noResults", bundle: .module)
+    public var noMembers: String = String(localized: "alert.message.noMembers", bundle: .module)
     
     public var maxSize: String = String(localized: "attachment.maxSize.title", bundle: .module)
     public var maxSizeHint: String = String(localized: "attachment.maxSize.hint", bundle: .module)
