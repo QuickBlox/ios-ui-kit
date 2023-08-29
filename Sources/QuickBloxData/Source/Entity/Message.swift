@@ -22,6 +22,7 @@ public struct Message: MessageEntity {
     ///
     /// > Note: Returns an empty string by default
     public var text: String = ""
+    public var translatedText: String = ""
     
     public var userId: String = ""
     public var isOwnedByCurrentUser = false
@@ -49,6 +50,7 @@ public extension Message {
         self.init(id: value.id,
                   dialogId: value.dialogId,
                   text: value.text,
+                  translatedText: value.translatedText,
                   userId: value.userId,
                   date: value.date,
                   isOwnedByCurrentUser: value.isOwnedByCurrentUser,

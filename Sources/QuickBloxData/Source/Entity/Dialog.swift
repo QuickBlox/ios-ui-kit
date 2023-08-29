@@ -29,6 +29,7 @@ public struct Dialog: DialogEntity {
                                          userId: "")
     public var messages: [Message] = []
     public var unreadMessagesCount: Int
+    public var decrementCounter: Bool = false
     
     public init(id: String = "",
                 type: DialogType,
@@ -43,7 +44,8 @@ public struct Dialog: DialogEntity {
                             text: "",
                             userId: ""),
                 messages: [Message] = [],
-                unreadMessagesCount: Int = 0) {
+                unreadMessagesCount: Int = 0,
+                decrementCounter: Bool = false) {
         self.id = id
         self.type = type
         self.name = name
@@ -55,6 +57,7 @@ public struct Dialog: DialogEntity {
         self.lastMessage = lastMessage
         self.messages = messages
         self.unreadMessagesCount = unreadMessagesCount
+        self.decrementCounter = decrementCounter
     }
 }
 

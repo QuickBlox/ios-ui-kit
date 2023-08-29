@@ -42,6 +42,14 @@ where DialogItem == ViewModel.DialogItem, UserItem == ViewModel.UserItem {
             
             content(viewModel)
         }
+        
+        .disabled(viewModel.isProcessing == true)
+        .if(viewModel.isProcessing == true) { view in
+            view.overlay() {
+                CustomProgressView()
+            }
+        }
+        
         .modifier(CreateDialogHeader(onDismiss: {
             dismiss()
         }, onTapCreate: {

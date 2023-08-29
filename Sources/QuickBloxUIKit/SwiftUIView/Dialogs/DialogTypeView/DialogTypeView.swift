@@ -40,7 +40,7 @@ public struct DialogTypeView: View {
                     selection: $selectedSegment
                 ) {
                     if selectedSegment == .private {
-                        CreateDialogView(viewModel: CreateDialogViewModel(modeldDialog: Dialog(type: .private)),
+                        CreateDialogView(viewModel: CreateDialogViewModel(users: [], modeldDialog: Dialog(type: .private)),
                                      content: {
                             viewModel in
                             

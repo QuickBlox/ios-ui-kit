@@ -10,6 +10,15 @@
       }
     },
     {
+      "identity" : "ios-ai-translate",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/QuickBlox/ios-ai-translate.git",
+      "state" : {
+        "revision" : "3a224bec51097629589fcc0a33dbc4b81feb95d6",
+        "version" : "1.0.0"
+      }
+    },
+    {
       "identity" : "ios-quickblox-sdk",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/QuickBlox/ios-quickblox-sdk",

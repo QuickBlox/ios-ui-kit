@@ -19,6 +19,8 @@ public protocol CreateDialogProtocol: QuickBloxUIKitViewModel {
     var search: String { get set }
     var displayed: [UserItem] { get set }
     var selected: Set<UserItem> { get set }
+    var isProcessing: Bool { get set }
+    var isSynced: Bool { get set }
     
     var modeldDialog: DialogItem { get }
     
@@ -33,6 +35,8 @@ open class CreateDialogViewModel: CreateDialogProtocol {
     @Published public var search = ""
     @Published public var displayed: [User] = []
     @Published public var selected: Set<User> = []
+    @Published public var  isProcessing: Bool = false
+    @Published public var  isSynced: Bool = false
     
     public var modeldDialog: Dialog
     
@@ -61,7 +65,13 @@ open class CreateDialogViewModel: CreateDialogProtocol {
     }
     
     private func displayMembers(by text: String = "") {
+        if isProcessing == true {
+            return
+        }
+        
         if text.isEmpty || text.count > 2 {
+            isSynced = false
+            
             let getUsers = GetUsers(name: text, repo: RepositoriesFabric.users)
             
             taskUsers?.cancel()
@@ -87,9 +97,17 @@ open class CreateDialogViewModel: CreateDialogProtocol {
                         }
                         toDisplay.append(contentsOf: filtered)
                         self.displayed = toDisplay
+                        self.isSynced = true
                     }
                     
-                } catch { prettyLog(error) }
+                } catch {
+                    prettyLog(error)
+                    if error is RepositoryException {
+                        await MainActor.run { [weak self] in
+                            self?.isSynced = true
+                        }
+                    }
+                }
             }
         }
     }
@@ -107,6 +125,7 @@ open class CreateDialogViewModel: CreateDialogProtocol {
     
     // MARK: - Dialogs
     public func createDialog() {
+        isProcessing = true
         modeldDialog.participantsIds = selected.map { $0.id }
         createTask = Task { [weak self] in
             do {
@@ -114,8 +133,21 @@ open class CreateDialogViewModel: CreateDialogProtocol {
                 let create = CreateDialog(dialog: dialog,
                                           repo: RepositoriesFabric.dialogs)
                 try await create.execute()
-            } catch { prettyLog(error) }
-            self?.createTask = nil
+                
+                await MainActor.run { [weak self] in
+                    self?.isProcessing = false
+                }
+                self?.createTask = nil
+            } catch {
+                prettyLog(error)
+                if error is RepositoryException {
+                    await MainActor.run { [weak self] in
+                        self?.isProcessing = false
+                    }
+                    self?.createTask = nil
+                }
+            }
+            
         }
     }
 }
@@ -139,6 +171,7 @@ extension CreateDialogViewModel {
 }
 
 class CreateDialogViewModelMock: CreateDialogProtocol {
+    
     var cancellables: Set<AnyCancellable>
     
     var tasks: Set<Task<Void, Never>>
@@ -169,8 +202,9 @@ class CreateDialogViewModelMock: CreateDialogProtocol {
     
     @Published public var search = ""
     @Published public var selected: Set<User> = []
-    @Published public var isProcessing = CurrentValueSubject<Bool, Never>(false)
+    @Published public var isProcessing = false
     @Published public var displayed: [User] = []
+    @Published public var  isSynced: Bool = false
     
     func createDialog() {
         

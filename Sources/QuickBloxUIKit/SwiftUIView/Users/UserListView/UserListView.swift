@@ -50,7 +50,7 @@ extension UserListView: View {
         ZStack {
             settings.backgroundColor.ignoresSafeArea()
             
-            if viewModel.displayed.isEmpty {
+            if viewModel.displayed.isEmpty && viewModel.isSynced == true {
                 Spacer()
                 VStack(spacing: 16.0) {
                     settings.messageImage
@@ -64,6 +64,13 @@ extension UserListView: View {
                     
                 }
                 Spacer()
+            } else  if viewModel.isSynced == false {
+                VStack {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                    }.padding(.top)
+                    Spacer()
+                }
             } else {
                 List {
                     ForEach(viewModel.displayed) { item in

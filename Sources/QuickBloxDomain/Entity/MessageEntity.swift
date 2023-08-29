@@ -31,6 +31,7 @@ public protocol MessageEntity: Entity {
     var id: String { get set }
     /// This property hold the actual text that is being exchanged between the user and the system during the conversation.
     var text: String { get set }
+    var translatedText: String { get set }
     
     /// The unique ID of the conversation that the message belongs to.
     var dialogId: String { get }
@@ -53,6 +54,7 @@ extension MessageEntity {
     public init(id: String = UUID().uuidString,
                 dialogId: String,
                 text: String = "",
+                translatedText: String = "",
                 userId: String = "",
                 date: Date = Date(),
                 isOwnedByCurrentUser: Bool = false,
@@ -65,6 +67,7 @@ extension MessageEntity {
                 fileInfo: FileInfoItem? = nil) {
         self.init(id: id, dialogId: dialogId, type: type)
         self.text = text
+        self.translatedText = text
         self.userId = userId
         self.date = date
         self.isOwnedByCurrentUser = isOwnedByCurrentUser

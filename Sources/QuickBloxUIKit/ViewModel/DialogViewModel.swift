@@ -26,7 +26,24 @@ public struct AttachmentAsset {
     var size: Double
 }
 
-public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel {
+public struct TranslationInfo {
+    var id: String = ""
+    var waiting: Bool = false
+}
+
+public struct PermissionInfo {
+    var mediaType: AVMediaType
+    var notGranted: Bool = false
+}
+
+public protocol PermissionProtocol {
+    var permissionNotGranted: PermissionInfo { get set }
+    
+    func openSettings()
+    func requestPermission(_ mediaType: AVMediaType, completion: @escaping (_ granted: Bool) -> Void)
+}
+
+public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel, PermissionProtocol  {
     associatedtype DialogItem: DialogEntity
     
     var audioPlayer: AudioPlayer { get set }
@@ -36,6 +53,8 @@ public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel {
     var typing: String { get set }
     var waitingAnswer: Bool { get set }
     var aiAnswer: String { get set }
+    var waitingTranslation: TranslationInfo { get set }
+    var permissionNotGranted: PermissionInfo { get set }
     
     func stopPlayng()
     func startRecording()
@@ -48,10 +67,17 @@ public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel {
     func sendStopTyping()
     func sendTyping()
     func unsubscribe()
-    func generateAnswer(_ message: DialogItem.MessageItem)
+    func applyAIAnswerAssist(_ message: DialogItem.MessageItem)
+    func applyAITranslate(_ message: DialogItem.MessageItem)
+    func applyAIRephrase(_ toneType: String, content: String, needToUpdate: Bool)
+    func openSettings()
+    func requestPermission(_ mediaType: AVMediaType, completion: @escaping (_ granted: Bool) -> Void)
 }
 
 open class DialogViewModel: DialogViewModelProtocol {
+    
+    
+    @Published public var waitingTranslation: TranslationInfo = TranslationInfo()
     @Published public var dialog: Dialog
     @Published public var targetMessage: Message?
     @Published public var audioPlayer = AudioPlayer()
@@ -59,6 +85,7 @@ open class DialogViewModel: DialogViewModelProtocol {
     @Published public var typing: String = ""
     @Published public var waitingAnswer: Bool = false
     @Published public var aiAnswer: String = ""
+    @Published public var permissionNotGranted: PermissionInfo = PermissionInfo(mediaType: .audio)
     
     private var isExistingImage: Bool {
         if dialog.photo == "null" { return false }
@@ -73,6 +100,7 @@ open class DialogViewModel: DialogViewModelProtocol {
     
     private let dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs
     private let usersRepo: UsersRepository = RepositoriesFabric.users
+    private let permissionsRepo: PermissionsRepository = RepositoriesFabric.permissions
     
     private var syncDialog: SyncDialog<Dialog,
                                        DialogsRepository,
@@ -91,7 +119,9 @@ open class DialogViewModel: DialogViewModelProtocol {
     
     private var isTypingEnable = true
     
-    let assistAnswer = QuickBloxUIKit.feature.ai.assistAnswer
+    private var toneEditing: [String: String] = [:]
+    
+    let aiFeatures = QuickBloxUIKit.feature.aiFeature
     
     init(dialog: Dialog) {
         self.dialog = dialog
@@ -135,8 +165,6 @@ open class DialogViewModel: DialogViewModelProtocol {
                 }
             }
             .store(in: &cancellables)
-        
-        
         
         updateDialogObserve.execute()
             .receive(on: RunLoop.main)
@@ -288,13 +316,21 @@ open class DialogViewModel: DialogViewModelProtocol {
     }
     
     public func handleOnAppear(_ message: Message) {
+        if dialog.unreadMessagesCount == 0 { return }
         if message.isOwnedByCurrentUser { return }
-        if message.isRead == true { return }
-        if message.isDelivered == true { return }
+        if message.isRead { return }
         if message.userId.isEmpty == true { return }
         
-        let readMessage = ReadMessage(message: message,
-                                      messageRepo: RepositoriesFabric.messages)
+        var updatedMessage = message
+        updatedMessage.isRead = true
+        
+        var updated = dialog
+        updated.decrementCounter = true
+        
+        let readMessage = ReadMessage(message: updatedMessage,
+                                      messageRepo: RepositoriesFabric.messages,
+                                      dialogRepo: dialogsRepo,
+                                      dialog: updated)
         Task {
             do {
                 try await readMessage.execute()
@@ -304,19 +340,17 @@ open class DialogViewModel: DialogViewModelProtocol {
         }
     }
     
-    public func generateAnswer(_ message: Message) {
-        if assistAnswer.enable == false {
-            return
-        }
+    //MARK: - AI Features
+    public func applyAIAnswerAssist(_ message: DialogItem.MessageItem) {
         waitingAnswer = true
         aiAnswer = ""
         
-        let proxyServerURL = assistAnswer.proxyServerURLPath // proxy Server URL
-        let apiKey = assistAnswer.openAIAPIKey
+        let proxyServerURL = aiFeatures.assistAnswer.proxyServerURLPath // proxy Server URL
+        let apiKey = aiFeatures.assistAnswer.openAIAPIKey
         
         let messages = filterTextHistory(from: message.date)
         
-        var useCase: AssistAnswerByOpenAIProtocol?
+        var useCase: AIFeatureUseCaseProtocol?
         if proxyServerURL.isEmpty == false {
             useCase = AssistAnswerByOpenAIProxyServer(proxyServerURL, content: messages)
         } else if apiKey.isEmpty == false {
@@ -328,11 +362,103 @@ open class DialogViewModel: DialogViewModelProtocol {
         Task { [weak self] in
             do {
                 let answer = try await useCase.execute()
-                self?.aiAnswer = answer
+                await MainActor.run { [weak self, answer] in
+                    guard let self = self else { return }
+                    self.aiAnswer = answer
+                }
             } catch {
                 prettyLog(error)
             }
-            self?.waitingAnswer = false
+            await MainActor.run { [weak self] in
+                guard let self = self else { return }
+                self.waitingAnswer = false
+            }
+        }
+    }
+    
+    public func applyAITranslate(_ message: DialogItem.MessageItem) {
+        waitingTranslation = TranslationInfo(id: message.id, waiting: true)
+        
+        let proxyServerURL = aiFeatures.translate.proxyServerURLPath // proxy Server URL
+        let apiKey = aiFeatures.translate.openAIAPIKey
+        
+        var useCase: AIFeatureUseCaseProtocol?
+        if proxyServerURL.isEmpty == false {
+            useCase = TranslationByOpenAIProxyServer(proxyServerURL, content: message)
+        } else if apiKey.isEmpty == false {
+            useCase = TranslationByOpenAIAPI(apiKey, content: message)
+        }
+        
+        guard let useCase else { return }
+        
+        Task { [weak self] in
+            do {
+                let translatedText = try await useCase.execute()
+                var translatedMessage = message
+                translatedMessage.translatedText = translatedText
+                guard let self = self,
+                      let index = self.dialog.messages.firstIndex(where: { $0.id == message.id }) else {
+                    return
+                }
+                await MainActor.run { [self, index, translatedMessage] in
+                    self.dialog.messages[index] = translatedMessage
+                }
+            } catch {
+                prettyLog(error)
+            }
+            await MainActor.run { [weak self] in
+                guard let self = self else { return }
+                self.waitingTranslation = TranslationInfo(id: message.id, waiting: false)
+            }
+        }
+    }
+    
+    public func applyAIRephrase(_ toneType: String, content: String, needToUpdate: Bool) {
+        if aiFeatures.rephrase.enable == false {
+            return
+        }
+        
+        waitingAnswer = true
+        aiAnswer = ""
+        
+        if needToUpdate == true {
+            toneEditing = [:]
+            toneEditing["original"] = content
+        }
+
+        if let edited = toneEditing[toneType] {
+            waitingAnswer = false
+            self.aiAnswer = edited
+            return
+        }
+        
+        let proxyServerURL = aiFeatures.rephrase.proxyServerURLPath // proxy Server URL
+        let apiKey = aiFeatures.rephrase.openAIAPIKey
+
+        var useCase: AIFeatureUseCaseProtocol?
+        if proxyServerURL.isEmpty == false {
+            useCase = RephraseByOpenAIProxyServer(proxyServerURL, tone: toneType, content: content)
+        } else if apiKey.isEmpty == false {
+            useCase = RephraseByOpenAIAPI(apiKey, tone: toneType, content: content)
+        }
+
+        guard let useCase else { return }
+
+        Task { [weak self] in
+            do {
+                let edited = try await useCase.execute()
+                await MainActor.run { [weak self, edited] in
+                    guard let self = self else { return }
+                    self.toneEditing[toneType] = edited
+                    self.aiAnswer = edited
+                }
+            } catch {
+                prettyLog(error)
+            }
+            await MainActor.run { [weak self] in
+                guard let self = self else { return }
+                self.waitingAnswer = false
+            }
         }
     }
     
@@ -345,6 +471,36 @@ open class DialogViewModel: DialogViewModelProtocol {
         }
         
         return messages
+    }
+    
+    //MARK: - Media Permissions
+    public func requestPermission(_ mediaType: AVMediaType, completion: @escaping (_ granted: Bool) -> Void) {
+        let requestPermission = GetPermission(mediaType: mediaType, repo: permissionsRepo)
+        
+        Task {
+            do {
+                let granted = try await requestPermission.execute()
+                await MainActor.run { [weak self, granted] in
+                    self?.permissionNotGranted = PermissionInfo(mediaType: mediaType,
+                                                                notGranted: granted == false)
+                    completion(granted)
+                }
+            } catch {
+                prettyLog(error)
+            }
+        }
+    }
+    
+    public func openSettings() {
+        let openSettings = OpenSettings(repo: permissionsRepo)
+        
+        Task {
+            do {
+                try await openSettings.execute()
+            } catch {
+                prettyLog(error)
+            }
+        }
     }
 }
 

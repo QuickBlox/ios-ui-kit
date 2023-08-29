@@ -10,7 +10,7 @@ import Foundation
 import Quickblox
 import QBAIAnswerAssistant
 
-public class AssistAnswerByOpenAIProxyServer: AssistAnswerByOpenAIProtocol {
+public class AssistAnswerByOpenAIProxyServer: AIFeatureUseCaseProtocol {
     private let serverURLPath: String
     private let content: [any MessageEntity]
     

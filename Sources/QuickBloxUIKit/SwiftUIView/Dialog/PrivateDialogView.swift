@@ -11,10 +11,11 @@ import QuickBloxData
 import QuickBloxDomain
 import QuickBloxLog
 import UniformTypeIdentifiers
+import AVFoundation
 
 public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
     let settings = QuickBloxUIKit.settings.dialogScreen
-    let assistAnswer = QuickBloxUIKit.feature.ai.assistAnswer
+    let aiFeatures = QuickBloxUIKit.feature.aiFeature
     
     @Environment(\.dismiss) var dismiss
     
@@ -22,7 +23,7 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
     
     @State private var isInfoPresented: Bool = false
     @State private var isAIAlertPresented: Bool = false
-    @State private var isAlertPresented: Bool = false
+    @State private var isAttachmentAlertPresented: Bool = false
     @State private var isImagePresented: Bool = false
     @State private var isSizeAlertPresented: Bool = false
     @State private var isFileExporterPresented = false
@@ -83,17 +84,22 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
                                         tappedMessage = nil
                                     }
                                 }
-                            }, onAssistAnswer: { message in
-                                if let message, assistAnswer.enable == true {
-                                    viewModel.generateAnswer(message)
+                            }, onAIFeature: { type, message in
+                                if let message, aiFeatures.enable == true {
+                                    if type == .answerAssist {
+                                        viewModel.applyAIAnswerAssist(message)
+                                    } else if type == .translate {
+                                        viewModel.applyAITranslate(message)
+                                    }
                                 } else {
                                     isAIAlertPresented = true
                                 }
-                            })
-                            .offset(y: viewModel.typing.isEmpty == false ? (isNewTyping == true ? 0 : -settings.typing.offset) : 0)
+                            }, waitingTranslation: $viewModel.waitingTranslation)
                             .onAppear {
                                 viewModel.handleOnAppear(message)
                             }
+                            .offset(y: viewModel.typing.isEmpty == false ? (isNewTyping == true ? 0 : -settings.typing.offset) : -8)
+                            
                             .transition(.move(edge: .bottom))
                         }
                     }
@@ -125,26 +131,15 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
                         TypingView(typing: viewModel.typing)
                     }
                     
-                    InputView(onSend: { text in
-                        viewModel.sendMessage(text)
-                    }, onAttachment: {
-                        isAlertPresented.toggle()
-                    }, onRecord: {
-                        viewModel.startRecording()
-                    }, onStopRecord: {
-                        viewModel.stopRecording()
-                    }, onDeleteRecord: {
-                        viewModel.deleteRecording()
-                    }, onTyping: {
-                        if settings.typing.enable == true {
-                            viewModel.sendTyping()
+                    InputView(onAttachment: {
+                        isAttachmentAlertPresented.toggle()
+                    }, onApplyTone: { tone, content, needToUpdate in
+                        if content.isEmpty == false, aiFeatures.enable == true {
+                            viewModel.applyAIRephrase(tone, content: content, needToUpdate: needToUpdate)
+                        } else {
+                            isAIAlertPresented = true
                         }
-                    }, onStopTyping: {
-                        if settings.typing.enable == true {
-                            viewModel.sendStopTyping()
-                        }
-                    }, waitingAnswer: $viewModel.waitingAnswer,
-                              aiAnswer: $viewModel.aiAnswer)
+                    })
                     .background(settings.backgroundColor)
                     
                     .if(isImagePresented, transform: { view in
@@ -163,10 +158,11 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
                 
             }.background(settings.contentBackgroundColor)
             
-                .mediaAlert(isAlertPresented: $isAlertPresented,
+                .mediaAlert(isAlertPresented: $isAttachmentAlertPresented,
                             isExistingImage: false,
                             isHiddenFiles: settings.isHiddenFiles,
                             mediaTypes: [UTType.movie.identifier, UTType.image.identifier],
+                            viewModel: viewModel,
                             onRemoveImage: {
                     
                 }, onGetAttachment: { attachment in
@@ -180,24 +176,28 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
             
                 .largeFileSizeAlert(isPresented: $isSizeAlertPresented)
                 .aiFailAlert(isPresented: $isAIAlertPresented)
-            
-                .modifier(DialogHeader(dialog: viewModel.dialog,
-                                       onDismiss: {
-                    viewModel.sendStopTyping()
-                    viewModel.unsubscribe()
-                    viewModel.stopPlayng()
-                    dismiss()
-                }, onTapInfo: {
-                    viewModel.sendStopTyping()
-                    viewModel.stopPlayng()
-                    isInfoPresented = true
-                }))
-            
-                .sheet(isPresented: $isFileExporterPresented) {
+                .permissionAlert(isPresented: $viewModel.permissionNotGranted.notGranted,
+                                 viewModel: viewModel)
+                    
+                    .modifier(DialogHeader(dialog: viewModel.dialog,
+                                           onDismiss: {
+                        viewModel.sendStopTyping()
+                        viewModel.unsubscribe()
+                        viewModel.stopPlayng()
+                        dismiss()
+                    }, onTapInfo: {
+                        viewModel.sendStopTyping()
+                        viewModel.stopPlayng()
+                        isInfoPresented = true
+                    }))
+                    
+                        .sheet(isPresented: $isFileExporterPresented) {
                     if let fileUrl = fileUrl {
                         ActivityViewController(activityItems: [fileUrl.lastPathComponent , fileUrl])
                     }
                 }
+            
+                .environmentObject(viewModel)
             
             if isInfoPresented == true {
                 NavigationLink(isActive: $isInfoPresented) {

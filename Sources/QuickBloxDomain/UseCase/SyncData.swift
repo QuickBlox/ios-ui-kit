@@ -230,9 +230,13 @@ extension SyncData {
         taskEvents = Task {  [weak self] in
             let sub = await self?.dialogsRepo.remoteEventPublisher.sink { event in
                 switch event {
-                case .create(dialogWithId: let id):
+                case .create(let id, let isCurrent, let message):
                     Task { [weak self] in do {
-                        try await self?.sync(dialog: id)
+                        if isCurrent {
+                            try await self?.create(dialog: message)
+                        } else {
+                            try await self?.sync(dialog: id)
+                        }
                     } catch { prettyLog(error) } }
                 case .update(dialogWithId: let id):
                     Task { [weak self] in do {
@@ -243,11 +247,15 @@ extension SyncData {
                         if current {
                             try await self?.dialogsRepo.delete(dialogFromLocal: dialogId)
                         }
-                    } catch { prettyLog(error) } }
+                    } catch {
+                        prettyLog(error)
+                    } }
                 case .removed(let dialogId):
                     Task { [weak self] in do {
                         try await self?.dialogsRepo.delete(dialogFromLocal: dialogId)
-                    } catch { prettyLog(error) } }
+                    } catch {
+                        prettyLog(error)
+                    } }
                 case .newMessage(let message):
                     Task { [weak self] in do {
                         try await self?.update(dialog: message)
@@ -296,6 +304,22 @@ extension SyncData {
         try await dialogsRepo.update(dialogInLocal: dialog)
     }
     
+    func create(dialog newMessage: MessageItem) async throws {
+        var dialog = try await dialogsRepo.get(dialogFromRemote: newMessage.dialogId)
+        try await dialogsRepo.save(dialogToLocal: dialog)
+        if dialog.type == .private { return }
+        if dialog.lastMessage.id != newMessage.id,
+            newMessage.isOwnedByCurrentUser == false {
+            dialog.unreadMessagesCount += 1
+        }
+        dialog.lastMessage.id = newMessage.id
+        dialog.lastMessage.text = newMessage.text
+        dialog.lastMessage.dateSent = newMessage.date
+        dialog.lastMessage.userId = newMessage.userId
+        dialog.messages = [newMessage]
+        try await dialogsRepo.update(dialogInLocal: dialog)
+    }
+    
     func update(dialog newMessage: MessageItem) async throws {
         var dialog = try await dialogsRepo.get(dialogFromLocal: newMessage.dialogId)
         if dialog.lastMessage.id != newMessage.id,
@@ -312,7 +336,6 @@ extension SyncData {
     
     func update(byRead messageID: String, dialogID: String) async throws {
         var dialog = try await dialogsRepo.get(dialogFromLocal: dialogID)
-        
         guard let index = dialog.messages.firstIndex(where: { $0.id == messageID }) else {
             return
         }
@@ -320,9 +343,7 @@ extension SyncData {
             return
         }
         dialog.messages[index].isRead = true
-        if dialog.messages[index].isOwnedByCurrentUser == true {
-            dialog.unreadMessagesCount -= 1
-        }
+
         try await dialogsRepo.update(dialogInLocal: dialog)
     }
     
@@ -337,6 +358,11 @@ extension SyncData {
         }
         dialog.messages[index].isDelivered = true
         try await dialogsRepo.update(dialogInLocal: dialog)
+    }
+    
+    func save(dialog dialogId: String) async throws {
+        let dialog = try await dialogsRepo.get(dialogFromRemote: dialogId)
+        try await dialogsRepo.save(dialogToLocal: dialog)
     }
     
     func sync(dialog dialogId: String) async throws {

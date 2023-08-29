@@ -52,9 +52,13 @@ where Item == Repo.DialogEntityItem {
                 }) }
                 .sink { [weak self] dialog in
                     prettyLog(label: "dialog is owner", dialog.isOwnedByCurrentUser)
-                    guard dialog.isOwnedByCurrentUser else { return }
-                    self?.ids.remove(dialog.id)
-                    self?.subject.send(dialog)
+                    if dialog.type == .private  {
+                        self?.ids.remove(dialog.id)
+                        self?.subject.send(dialog)
+                    } else if dialog.type == .group, dialog.isOwnedByCurrentUser == true {
+                        self?.ids.remove(dialog.id)
+                        self?.subject.send(dialog)
+                    }
                 }
             guard let sub = sub, let strSelf = self else { return }
             strSelf.cancellables.insert(sub)
@@ -67,7 +71,7 @@ where Item == Repo.DialogEntityItem {
                 .receive(on: DialogQueue.create)
                 .sink { [weak self] event in
                     switch event {
-                    case .create(dialogWithId: let id):
+                    case .create(let id, _, _):
                         prettyLog(label: "create dialog with id \(id) event", id)
                         self?.ids.insert(id)
                     default:

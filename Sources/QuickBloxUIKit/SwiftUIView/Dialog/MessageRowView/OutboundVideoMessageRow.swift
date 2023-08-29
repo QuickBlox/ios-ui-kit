@@ -71,6 +71,7 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
                                 .frame(width: settings.imageIconSize.width,
                                        height: settings.imageIconSize.height)
                                 .cornerRadius(6)
+                                .padding(.top)
 
                             settings.play
                                 .resizable()
@@ -78,30 +79,31 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
                                 .frame(width: settings.videoIconSize(isImage: true).width,
                                        height: settings.videoIconSize(isImage: true).height)
                                 .foregroundColor(settings.videoPlayForeground)
+                                .padding(.top)
                             
                         } else {
-                            
+
                             if progress > 0 {
-                                
+
                                 settings.progressBarBackground()
                                     .frame(width: settings.attachmentSize.width,
                                            height: settings.attachmentSize.height)
                                     .cornerRadius(settings.attachmentRadius,
                                                   corners: settings.outboundCorners)
                                     .padding(settings.outboundPadding)
-                                
+
                                 SegmentedCircularProgressBar(progress: $progress)
                                     .padding([.top, .trailing])
-                                
+
                             } else {
-                                
+
                                 settings.outboundBackground
                                     .frame(width: settings.attachmentSize.width,
                                            height: settings.attachmentSize.height)
                                     .cornerRadius(settings.attachmentRadius,
                                                   corners: settings.outboundCorners)
                                     .padding(settings.outboundPadding)
-                                
+
                                 settings.play
                                     .resizable()
                                     .scaledToFit()

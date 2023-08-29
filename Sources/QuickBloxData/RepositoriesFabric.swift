@@ -13,6 +13,7 @@ public class RepositoriesFabric {
         static let remote = RemoteDataSource()
         static let local = LocalDataSource()
         static let localFiles = LocalFilesDataSource()
+        static let permissions = PermissionsSource()
     }
     
     static public var dialogs: DialogsRepository {
@@ -37,5 +38,9 @@ public class RepositoriesFabric {
     
     static public var connection: ConnectionRepository {
         ConnectionRepository(remote: Service.remote)
+    }
+    
+    static public var permissions: PermissionsRepository {
+        PermissionsRepository(repo: Service.permissions)
     }
 }

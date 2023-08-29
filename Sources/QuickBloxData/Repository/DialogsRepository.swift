@@ -29,9 +29,9 @@ extension DialogsRepository: DialogsRepositoryProtocol {
             await remote.eventPublisher
                 .compactMap { event in
                     switch event {
-                    case .create(withId: let dialogId): return .create(dialogId)
-                    case .update(witthDialogId: let dialogId): return .update(dialogId)
-                    case .leave( let dialogId, let isCurrentUser ):
+                    case .create(let dialogId, let isCurrent, let message): return .create(dialogId, byUser: isCurrent, message: Message(message))
+                    case .update(withDialogId: let dialogId): return .update(dialogId)
+                    case .leave( let dialogId, let isCurrentUser):
                         return .leave(dialogId, byUser: isCurrentUser)
                     case .removed(let dialogId):
                         return .removed(dialogId)
@@ -247,6 +247,7 @@ private extension LocalDialogDTO {
         lastMessageUserId = value.lastMessage.userId
         
         unreadMessagesCount = value.unreadMessagesCount
+        decrementCounter = value.decrementCounter
         isOwnedByCurrentUser = value.isOwnedByCurrentUser
     }
 }

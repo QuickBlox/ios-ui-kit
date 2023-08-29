@@ -17,6 +17,7 @@ public struct AddUserListView<UserItem: UserEntity> where UserItem: Hashable {
     let settings = QuickBloxUIKit.settings.createDialogScreen
     
     private var items: [UserItem]
+    private var isSynced: Bool
     @Binding private var searchText: String
     
     // Actions
@@ -27,11 +28,13 @@ public struct AddUserListView<UserItem: UserEntity> where UserItem: Hashable {
     @State private var visibleRows: Set<String> = []
     
     public init(items: [UserItem],
+                isSynced: Bool,
                 searchText: Binding<String> = Binding.constant(""),
                 onSelect: @escaping (UserItem) -> Void,
                 onAppearItem: @escaping (String) -> Void,
                 onNext: @escaping () -> Void) {
         self.items = items
+        self.isSynced = isSynced
         self._searchText = searchText
         self.onSelect = onSelect
         self.onAppearItem = onAppearItem
@@ -44,7 +47,7 @@ extension AddUserListView: View {
         ZStack {
             settings.backgroundColor.ignoresSafeArea()
             
-            if items.isEmpty {
+            if items.isEmpty && isSynced == true {
                 Spacer()
                 VStack(spacing: 16.0) {
                     settings.messageImage
@@ -58,7 +61,14 @@ extension AddUserListView: View {
                     
                 }
                 Spacer()
-            } else {
+            } else  if isSynced == false {
+                VStack {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                    }.padding(.top)
+                    Spacer()
+                }
+            }else {
                 List {
                     ForEach(items) { item in
                         ZStack {

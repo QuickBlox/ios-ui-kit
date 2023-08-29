@@ -8,7 +8,7 @@
 
 
 public enum RemoteDialogEvent<MessageItem: MessageEntity> {
-    case create(_ dialogId: String)
+    case create(_ dialogId: String, byUser: Bool, message: MessageItem)
     case update(_ dialogId: String)
     case leave(_ dialogId: String, byUser: Bool)
     case removed(_ dialogId: String)

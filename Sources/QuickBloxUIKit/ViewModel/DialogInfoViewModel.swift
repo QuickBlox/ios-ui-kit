@@ -11,20 +11,24 @@ import Combine
 import QuickBloxDomain
 import QuickBloxData
 import QuickBloxLog
+import AVFoundation
 
-public protocol DialogInfoProtocol: ObservableObject {
+public protocol DialogInfoProtocol: ObservableObject, PermissionProtocol  {
     associatedtype Item: DialogEntity
     var dialog: Item { get set }
     var dialogName: String { get set }
     var error: String { get set }
     var isValidDialogName: Bool { get set }
     var isExistingImage: Bool { get }
-    var isProcessing: CurrentValueSubject<Bool, Never> { get set }
+    var isProcessing: Bool { get set }
+    var permissionNotGranted: PermissionInfo { get set }
     
     func removeExistingImage()
     func handleOnSelect(attachmentAsset: AttachmentAsset)
     func handleOnSelect(newName: String)
     func deleteDialog()
+    func openSettings()
+    func requestPermission(_ mediaType: AVMediaType, completion: @escaping (_ granted: Bool) -> Void)
 }
 
 open class DialogInfoViewModel: DialogInfoProtocol {
@@ -35,11 +39,15 @@ open class DialogInfoViewModel: DialogInfoProtocol {
     @Published public var dialogName = ""
     @Published public var error = ""
     @Published public var isValidDialogName = false
-    @Published public var isProcessing = CurrentValueSubject<Bool, Never>(false)
+    @Published public var isProcessing: Bool = false
+    @Published public var permissionNotGranted: PermissionInfo = PermissionInfo(mediaType: .video)
+    
     public var isExistingImage: Bool {
         if dialog.photo == "null" { return false }
         return dialog.photo.isEmpty == false
     }
+    
+    private let permissionsRepo: PermissionsRepository = RepositoriesFabric.permissions
     
     private var attachmentAsset: AttachmentAsset? = nil
     
@@ -61,7 +69,7 @@ open class DialogInfoViewModel: DialogInfoProtocol {
     }
     
     public func updateDialog(_ modeldDialog: Dialog) {
-        isProcessing.value = true
+        isProcessing = true
         taskUpdate = Task { [weak self] in
             do {
                 let update = UpdateDialog(dialog: modeldDialog,
@@ -71,21 +79,43 @@ open class DialogInfoViewModel: DialogInfoProtocol {
                 
                 await MainActor.run { [weak self] in
                     if let uuid = self?.attachmentAsset?.name {
+                        self?.dialog.removeAvatar()
                         self?.dialog.photo = uuid
                     } else {
                         self?.dialog.photo = "null"
                         self?.dialog.removeAvatar()
                     }
-                    self?.isProcessing.value = false
                 }
-            } catch { prettyLog(error) }
-            self?.taskUpdate = nil
+                self?.setAvatarCompletion()
+                await MainActor.run { [weak self] in
+                    guard let self = self else { return }
+                    self.isProcessing = true
+                }
+                self?.taskUpdate = nil
+            } catch {
+                prettyLog(error)
+                if error is RepositoryException {
+                    self?.setAvatarCompletion()
+                    await MainActor.run { [weak self] in
+                        guard let self = self else { return }
+                        self.isProcessing = true
+                    }
+                    self?.taskUpdate = nil
+                }
+            }
+        }
+    }
+    
+    private func setAvatarCompletion() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            self.isProcessing = false
         }
     }
     
     public func handleOnSelect(attachmentAsset: AttachmentAsset) {
         if let uiImage = attachmentAsset.image {
-            self.isProcessing.value = true
+            dialog.removeAvatar()
+            isProcessing = true
             self.attachmentAsset = attachmentAsset
             updateDialog(avatar: uiImage, name: dialogName)
         }
@@ -97,10 +127,9 @@ open class DialogInfoViewModel: DialogInfoProtocol {
     }
     
     public func removeDialogAvatar() {
-        // TODO: remove dialog avatar method. Create remove avatar use case.
+        self.isProcessing = true
         dialog.photo = "null"
-        
-//        dialog.removeAvatar()
+        dialog.removeAvatar()
         updateDialog(dialog)
     }
     
@@ -125,6 +154,7 @@ open class DialogInfoViewModel: DialogInfoProtocol {
                 await MainActor.run { [weak self, uuid] in
                     guard let self = self else { return }
                     self.dialog.photo = uuid
+                    self.dialog.removeAvatar()
                     self.updateDialog(dialog)
                 }
             }
@@ -142,25 +172,62 @@ open class DialogInfoViewModel: DialogInfoProtocol {
     }
     
     public func deleteDialog() {
-        isProcessing.value = true
-        taskDelete = Task { [weak self] in
+        if isProcessing == true {
+            return
+        }
+        isProcessing = true
+        taskDelete = Task {
             do {
-                guard let dialog = self?.dialog else { return }
                 let leave = LeaveDialog(dialog: dialog,
                                         repo: RepositoriesFabric.dialogs)
                 try await leave.execute()
+                
                 await MainActor.run { [weak self] in
                     guard let self = self else { return }
-                    self.isProcessing.value = false
+                    self.isProcessing = false
+                }
+                self.taskDelete = nil
+            } catch {
+                prettyLog(error)
+                if error is RepositoryException {
+                    await MainActor.run { [weak self] in
+                        guard let self = self else { return }
+                        self.error = error.localizedDescription
+                        self.isProcessing = false
+                    }
+                    self.taskDelete = nil
+                }
+            }
+        }
+    }
+    
+    //MARK: - Media Permissions
+    public func requestPermission(_ mediaType: AVMediaType, completion: @escaping (_ granted: Bool) -> Void) {
+        let requestPermission = GetPermission(mediaType: mediaType, repo: permissionsRepo)
+        
+        Task {
+            do {
+                let granted = try await requestPermission.execute()
+                await MainActor.run { [weak self, granted] in
+                    self?.permissionNotGranted = PermissionInfo(mediaType: mediaType,
+                                                                notGranted: granted == false)
+                    completion(granted)
                 }
             } catch {
                 prettyLog(error)
-                await MainActor.run { [weak self] in
-                    guard let self = self else { return }
-                    self.error = error.localizedDescription
-                }
             }
-            self?.taskDelete = nil
+        }
+    }
+    
+    public func openSettings() {
+        let openSettings = OpenSettings(repo: permissionsRepo)
+        
+        Task {
+            do {
+                try await openSettings.execute()
+            } catch {
+                prettyLog(error)
+            }
         }
     }
 }
