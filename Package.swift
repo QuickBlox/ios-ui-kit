@@ -17,7 +17,8 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/QuickBlox/ios-quickblox-sdk", .upToNextMajor(from: "2.19.0")),
-        .package(url: "https://github.com/QuickBlox/ios-ai-answer-assistant.git", .upToNextMajor(from: "1.0.0"))
+        .package(url: "https://github.com/QuickBlox/ios-ai-answer-assistant.git", .upToNextMajor(from: "1.0.0")),
+        .package(url: "https://github.com/QuickBlox/ios-ai-translate.git", .upToNextMajor(from: "1.0.0"))
     ],
     targets: [
         .target(
@@ -35,7 +36,9 @@ let package = Package(
                            .product(name: "Quickblox",
                                     package: "ios-quickblox-sdk"),
                            .product(name: "QBAIAnswerAssistant",
-                                    package: "ios-ai-answer-assistant")]),
+                                    package: "ios-ai-answer-assistant"),
+                           .product(name: "QBAITranslate",
+                                    package: "ios-ai-translate")]),
         .target(
             name: "QuickBloxLog",
             dependencies: []),

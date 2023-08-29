@@ -25,6 +25,8 @@ public class DialogScreenSettings {
     public var textField: MessageTextFieldSettings
     public var zoomedImage: ZoomedImageSettings
     public var typing: TypingSettings
+    public var permissions: AVPermissionsSettings
+    public var stringUtils: StringUtilsConstant
     public var itemsIsEmpty: String
     public var blurRadius: CGFloat = 12.0
     public var maximumMB: Double = 10
@@ -32,6 +34,7 @@ public class DialogScreenSettings {
     public var maxSize: String
     public var avatarSize: AvatarSizeSettings = AvatarSizeSettings()
     public var isHiddenFiles = false
+    public var invalidAI: String
     
     public init(_ theme: ThemeProtocol) {
         self.header = DialogHeaderSettings(theme)
@@ -39,10 +42,87 @@ public class DialogScreenSettings {
         self.textField = MessageTextFieldSettings(theme)
         self.zoomedImage = ZoomedImageSettings(theme)
         self.typing = TypingSettings(theme)
+        self.permissions = AVPermissionsSettings(theme)
+        self.stringUtils = StringUtilsConstant(theme)
         self.backgroundColor = theme.color.mainBackground
         self.contentBackgroundColor = theme.color.secondaryBackground
         self.itemsIsEmpty = theme.string.messegesEmpty
         self.maxSize = theme.string.maxSize
+        self.invalidAI = theme.string.invalidAI
+    }
+}
+
+public struct StringUtilsConstant {
+    public var createdGroupChat: String = "created the group chat"
+    public var dialogRenamedByUser: String = "The dialog renamed by user"
+    public var avatarWasChanged: String = "The avatar was changed"
+    public var addedBy: String = "added by"
+    public var removedBy: String = "removed by"
+    public var hasLeft: String = "has left"
+    
+    public var createdGroupChatLocalize: String
+    public var dialogRenamedByUserLocalize: String
+    public var avatarWasChangedLocalize: String
+    public var addedByLocalize: String
+    public var removedByLocalize: String
+    public var hasLeftLocalize: String
+    
+    public init(_ theme: ThemeProtocol) {
+        self.createdGroupChatLocalize = theme.string.createdGroupChat
+        self.dialogRenamedByUserLocalize = theme.string.dialogRenamedByUser
+        self.avatarWasChangedLocalize = theme.string.avatarWasChanged
+        self.addedByLocalize = theme.string.addedBy
+        self.removedByLocalize = theme.string.removedBy
+        self.hasLeftLocalize = theme.string.hasLeft
+    }
+}
+
+public struct AIUISettings {
+    public var translate: AITranslateUISettings
+    public var answerAssist: AIAnswerAssistUISettings
+    
+    public init(_ theme: ThemeProtocol) {
+        self.translate = AITranslateUISettings(theme)
+        self.answerAssist = AIAnswerAssistUISettings(theme)
+    }
+}
+
+public struct AIAnswerAssistUISettings {
+    public var title: String
+    
+    public init(_ theme: ThemeProtocol) {
+        self.title = theme.string.answerAssistTitle
+    }
+}
+
+public struct AVPermissionsSettings {
+    public var cameraErrorTitle: String
+    public var cameraErrorMessage: String
+    public var microphoneErrorTitle: String
+    public var microphoneErrorMessage: String
+    public var alertCancelAction: String
+    public var alertSettingsAction: String
+    public var blurRadius: CGFloat = 12.0
+    
+    public init(_ theme: ThemeProtocol) {
+        self.cameraErrorTitle = theme.string.permissionCameraTitle
+        self.cameraErrorMessage = theme.string.permissionCameraMessage
+        self.microphoneErrorTitle = theme.string.permissionMicrophoneTitle
+        self.microphoneErrorMessage = theme.string.permissionMicrophoneMessage
+        self.alertCancelAction = theme.string.permissionActionCancel
+        self.alertSettingsAction = theme.string.permissionActionSettings
+    }
+}
+
+public struct AITranslateUISettings {
+    public var showOriginal: String
+    public var showTranslation: String
+    public var width: CGFloat
+    
+    public init(_ theme: ThemeProtocol) {
+        self.showOriginal = theme.string.showOriginal
+        self.showTranslation = theme.string.showTranslation
+        self.width = max(self.showTranslation, self.showOriginal).size(withAttributes: [.font: UIFont.preferredFont(forTextStyle: .caption2)]).width + 24.0
     }
 }
 
@@ -209,6 +289,7 @@ public struct MessageRowSettings {
     public var time: MessageTimeSettings
     public var message: MessageSettings
     public var progressBar: ProgressBarSettings
+    public var ai: AIUISettings
     public var inboundForeground: Color
     public var inboundBackground: Color
     public var inboundFont: Font
@@ -243,6 +324,7 @@ public struct MessageRowSettings {
     public var dateFont: Font
     public var infoForeground: Color
     public var infoFont: Font
+    public var translateFont: Font
     public var gifTitle: String
     public var gifFont: Font
     public var gifFontPlay: Font
@@ -332,7 +414,7 @@ public struct MessageRowSettings {
     
     public var robot: Image
     public var robotForeground: Color
-    public var robotSize: CGSize = CGSize(width: 44.0, height: 36.0)
+    public var robotSize: CGSize = CGSize(width: 24.0, height: 24.0)
     
     public init(_ theme: ThemeProtocol) {
         self.avatar = MessageAvatarSettings(theme)
@@ -340,6 +422,7 @@ public struct MessageRowSettings {
         self.time = MessageTimeSettings(theme)
         self.message = MessageSettings(theme)
         self.progressBar = ProgressBarSettings(theme)
+        self.ai = AIUISettings(theme)
         self.inboundBackground = theme.color.incomingBackground
         self.outboundBackground = theme.color.outgoingBackground
         self.inboundForeground = theme.color.mainText
@@ -351,6 +434,7 @@ public struct MessageRowSettings {
         self.dateFont = theme.font.caption
         self.infoForeground = theme.color.tertiaryElements
         self.infoFont = theme.font.caption
+        self.translateFont = theme.font.caption2
         self.gifFont = theme.font.title1
         self.gifFontPlay = theme.font.headline
         self.waveImage = theme.image.wave
@@ -383,14 +467,17 @@ public struct MessageRowSettings {
             : UIColor(theme.color.tertiaryElements)
         })
         self.linkFont = theme.font.callout
-        self.inboundLinkForeground = theme.color.mainText
-        self.outboundLinkForeground = theme.color.mainText
-        
-        self.robot = theme.image.robot
-        self.robotForeground = Color(uiColor: UIColor { traitCollection in
-            traitCollection.userInterfaceStyle == .dark ? UIColor(hexRGB: "#E7EFFF") ?? UIColor.white
+        self.inboundLinkForeground = Color(uiColor: UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark ? UIColor(theme.color.mainText)
             : UIColor(hexRGB: "#3978FC") ?? UIColor.blue
         })
+        self.outboundLinkForeground = Color(uiColor: UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark ? UIColor(theme.color.mainText)
+            : UIColor(hexRGB: "#3978FC") ?? UIColor.blue
+        })
+        
+        self.robot = theme.image.robot
+        self.robotForeground = theme.color.mainElements
     }
     
     public struct ProgressBarSettings {
@@ -468,7 +555,10 @@ public struct MessageTextFieldSettings {
     public var placeholderText: String
     public var placeholderFont: Font
     public var placeholderColor: Color
+    public var placeholderBackgroundColor: Color
     public var backgroundColor: Color
+    public var contentBackgroundColor: Color
+    public var lineLimit: Int = 15
     public var leftButton: AttachmentButton
     public var rightButton: SendButton
     public var emojiButton: EmojiButton
@@ -486,7 +576,9 @@ public struct MessageTextFieldSettings {
         self.placeholderText = theme.string.typeMessage
         self.placeholderColor = theme.color.secondaryText
         self.placeholderFont = theme.font.callout
-        self.backgroundColor = theme.color.inputBackground
+        self.placeholderBackgroundColor = theme.color.inputBackground
+        self.backgroundColor = theme.color.mainBackground
+        self.contentBackgroundColor = theme.color.secondaryBackground
         self.leftButton = AttachmentButton(theme)
         self.rightButton = SendButton(theme)
         self.emojiButton = EmojiButton(theme)

@@ -259,11 +259,30 @@ public protocol ThemeStringProtocol {
     var toDialog: String { get set }
     var noResults: String { get set }
     var noMembers: String { get set }
+    var invalidAI: String { get set }
     
     var maxSize: String { get set }
     var maxSizeHint: String { get set }
     var fileTitle: String { get set }
     var gif: String { get set }
+    
+    var showOriginal: String { get set }
+    var showTranslation: String { get set }
+    var answerAssistTitle: String { get set }
+    
+    var permissionCameraTitle: String { get set }
+    var permissionCameraMessage: String { get set }
+    var permissionMicrophoneTitle: String { get set }
+    var permissionMicrophoneMessage: String { get set }
+    var permissionActionCancel: String { get set }
+    var permissionActionSettings: String { get set }
+    
+    var createdGroupChat: String { get set }
+    var dialogRenamedByUser: String { get set }
+    var avatarWasChanged: String { get set }
+    var addedBy: String { get set }
+    var removedBy: String { get set }
+    var hasLeft: String { get set }
 }
 
 public class ThemeString: ThemeStringProtocol {
@@ -323,11 +342,30 @@ public class ThemeString: ThemeStringProtocol {
     public var toDialog: String = String(localized: "alert.message.toDialog", bundle: .module)
     public var noResults: String = String(localized: "alert.message.noResults", bundle: .module)
     public var noMembers: String = String(localized: "alert.message.noMembers", bundle: .module)
+    public var invalidAI: String = String(localized: "alert.message.invalidAI", bundle: .module)
     
     public var maxSize: String = String(localized: "attachment.maxSize.title", bundle: .module)
     public var maxSizeHint: String = String(localized: "attachment.maxSize.hint", bundle: .module)
     public var fileTitle: String  = String(localized: "attachment.title.file", bundle: .module)
     public var gif: String = String(localized: "attachment.title.gif", bundle: .module)
+    
+    public var showOriginal: String = String(localized: "ai.translate.showOriginal", bundle: .module)
+    public var showTranslation: String = String(localized: "ai.translate.showTranslation", bundle: .module)
+    public var answerAssistTitle: String = String(localized: "ai.answerAssist.title", bundle: .module)
+    
+    public var permissionCameraTitle: String = String(localized: "permission.camera.title", bundle: .module)
+    public var permissionCameraMessage: String = String(localized: "permission.camera.message", bundle: .module)
+    public var permissionMicrophoneTitle: String = String(localized: "permission.microphone.title", bundle: .module)
+    public var permissionMicrophoneMessage: String = String(localized: "permission.microphone.message", bundle: .module)
+    public var permissionActionCancel: String = String(localized: "permission.actions.cancel", bundle: .module)
+    public var permissionActionSettings: String = String(localized: "permission.actions.settings", bundle: .module)
+    
+    public var createdGroupChat: String = String(localized: "utils.string.createdGroupChat", bundle: .module)
+    public var dialogRenamedByUser: String = String(localized: "utils.string.dialogRenamedByUser", bundle: .module)
+    public var avatarWasChanged: String = String(localized: "utils.string.avatarWasChanged", bundle: .module)
+    public var addedBy: String = String(localized: "utils.string.addedBy", bundle: .module)
+    public var removedBy: String = String(localized: "utils.string.removedBy", bundle: .module)
+    public var hasLeft: String = String(localized: "utils.string.hasLeft", bundle: .module)
     
     public init() {}
 }

@@ -17,6 +17,8 @@ public protocol AddMembersDialogProtocol: QuickBloxUIKitViewModel {
     
     var displayed: [UserItem] { get set }
     var selected: UserItem? { get set }
+    var isProcessing: Bool { get set }
+    var isSynced: Bool { get set }
     
     var search: String { get set }
     func addSelectedUser()
@@ -26,6 +28,8 @@ open class AddMembersDialogViewModel: AddMembersDialogProtocol {
     @Published public var search: String = ""
     @Published public var displayed: [User] = []
     @Published public var selected: User? = nil
+    @Published public var isProcessing: Bool = false
+    @Published public var  isSynced: Bool = false
     
     private var dialog: Dialog
     
@@ -53,6 +57,8 @@ open class AddMembersDialogViewModel: AddMembersDialogProtocol {
     
     private func displayDialogMembers(by text: String = "") {
         if text.isEmpty || text.count > 2 {
+            isSynced = false
+            
             let getUsers = GetUsers(name: text, repo: RepositoriesFabric.users)
             let ids = dialog.participantsIds
             
@@ -72,8 +78,19 @@ open class AddMembersDialogViewModel: AddMembersDialogProtocol {
                     await MainActor.run { [weak self, filtered] in
                         guard let self = self else { return }
                         self.displayed = filtered
+                        self.isProcessing = false
+                        self.isSynced = true
                     }
-                } catch { prettyLog(error) }
+                } catch {
+                    prettyLog(error)
+                    if error is RepositoryException {
+                        await MainActor.run { [weak self] in
+                            guard let self = self else { return }
+                            self.isProcessing = false
+                            self.isSynced = true
+                        }
+                    }
+                }
             }
         }
     }
@@ -90,6 +107,7 @@ open class AddMembersDialogViewModel: AddMembersDialogProtocol {
     //MARK: - Public Methods
     @MainActor public func addSelectedUser() {
         guard let user = selected else { return }
+        isProcessing = true
         let updateDialog = UpdateDialog(dialog: dialog,
                                         users: [user],
                                         repo: RepositoriesFabric.dialogs)
@@ -104,8 +122,17 @@ open class AddMembersDialogViewModel: AddMembersDialogProtocol {
                     guard let self = self else { return }
                     self.dialog.participantsIds.append(user.id)
                     self.displayed = self.displayed.filter({ $0.id != user.id })
+                    self.isProcessing = false
                 }
-            }  catch { prettyLog(error) }
+            }  catch {
+                prettyLog(error)
+                if error is RepositoryException {
+                    await MainActor.run { [weak self] in
+                        guard let self = self else { return }
+                        self.isProcessing = false
+                    }
+                }
+            }
         }
     }
 }

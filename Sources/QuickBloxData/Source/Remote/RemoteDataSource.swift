@@ -45,7 +45,6 @@ private actor Chat {
     
     private func join(_ dialog: QBChatDialog) async {
         guard let id = dialog.id, dialog.type == .group else { return }
-        guard dialog.isJoined() == false else { return }
         do {
             try await dialog.joinAsync()
             try Task.checkCancellation()
@@ -86,15 +85,24 @@ private actor Chat {
     
     func send(_ message: QBChatMessage) async {
         guard let id = dialog.id, id == message.dialogID else { return }
-        if dialog.type != .private, dialog.isJoined() == false {
-            await subscribe()
-        }
+        
         do {
-            try await Task.wait(second: 1.3)
-            try Task.checkCancellation()
-            message.dateSent = Date()
-            try await dialog.send(message)
-            try Task.checkCancellation()
+            if dialog.type != .private {
+                if dialog.isJoined() == false {
+                    await join(dialog)
+                    try await Task.wait(second: 1.3)
+                }
+                try Task.checkCancellation()
+                message.dateSent = Date()
+                try await dialog.send(message)
+                try Task.checkCancellation()
+            } else {
+                try await Task.wait(second: 1.3)
+                try Task.checkCancellation()
+                message.dateSent = Date()
+                try await dialog.send(message)
+                try Task.checkCancellation()
+            }
         } catch {
             prettyLog(label: "Send to \(id)", error)
         }
@@ -467,17 +475,16 @@ extension RemoteDataSource: QBChatReceiveMessageProtocol {
                             fromDialogID dialogID: String) {
         message.dialogID = dialogID
         if message.senderID == currentUserId { return }
-        
-        if message.type == .leave || message.type == .removed || message.type == .update {
+        if message.type == .removed || message.type == .update {
             let withId = RemoteDialogDTO(id: dialogID)
             Task {
                 try await getAndUpdate(dialog: withId)
                 await stream.process(message)
-                return
             }
-        }
-        Task {
-            await stream.process(message)
+        } else {
+            Task {
+                await stream.process(message)
+            }
         }
     }
     
@@ -487,10 +494,12 @@ extension RemoteDataSource: QBChatReceiveMessageProtocol {
     }
     
     func chatDidReadMessage(withID messageID: String, dialogID: String, readerID: UInt) {
+        if readerID == QBSession.current.currentUserID { return }
         Task { await stream.didRead(messageID, dialogID: dialogID, readerID: String(readerID)) }
     }
     
     func chatDidDeliverMessage(withID messageID: String, dialogID: String, toUserID userID: UInt) {
+        if userID == QBSession.current.currentUserID { return }
         Task { await stream.didDilivered(messageID, dialogID: dialogID, toUserID: String(userID)) }
     }
 }
@@ -531,6 +540,9 @@ extension RemoteDataSource {
         }
         
         await stream.send(qbChatMessage)
+
+        await stream.process(RemoteEvent.create(created.id ?? "", byUser: true, message: RemoteMessageDTO(qbChatMessage)))
+        
         
         let system = QBChatMessage()
         let params = NSMutableDictionary()
@@ -544,7 +556,7 @@ extension RemoteDataSource {
         system.dateSent = Date()
         
         system.recipientID = QBSession.current.currentUserID
-        await stream.process(system)
+//        await stream.process(system)
         
         for id in dto.participantsIds {
             system.recipientID = UInt(id) ?? 0
@@ -640,6 +652,7 @@ extension RemoteDataSource {
                                                     type: .chat,
                                                     eventType: .update)
         await stream.send(QBChatMessage(message, toSend: true))
+       
         
         var system = RemoteMessageDTO.eventMessage(text.value,
                                                    dialogId: dialogId,
@@ -653,12 +666,14 @@ extension RemoteDataSource {
             system.eventType = .removed
             ids.formUnion(pullIds)
         }
+        system.recipientId = String(user.id)
+        await stream.process(QBChatMessage(system, toSend: true))
+        
         for id in ids {
             system.recipientId = id
             try? await qbChat.sendSystemMessage(QBChatMessage(system, toSend: true))
         }
-        system.recipientId = String(user.id)
-        await stream.process(QBChatMessage(system, toSend: true))
+        
         
         return RemoteDialogDTO(updated)
     }
@@ -756,11 +771,8 @@ extension RemoteDataSource {
             let dialog = try await stream.qbChat(with: dto.id)
             try await QBRequest.leave(dialog: dialog)
         }
-        
-        try await Task.wait(second: 0.6)
-        await stream.remove(chat: dto.id)
-        
         await stream.process(.leave(dto.id, byUser: true))
+        await stream.remove(chat: dto.id)
     }
     
     func subscribeToObserveTyping(dialog dialogId: String) async throws {
@@ -814,7 +826,6 @@ extension RemoteDataSource {
         if dto.readIds.contains(String(userId)) == true { return }
         let message = QBChatMessage(dto, toSend: false)
         try await readAsync(message)
-        await stream.didRead(dto.id, dialogID: dto.dialogId, readerID: String(userId))
     }
     
     func markAsDelivered(message dto: RemoteMessageDTO) async throws {
@@ -1085,8 +1096,12 @@ private extension QBChatDialog {
             (continuation: CheckedContinuation<Void, Error>) in
             joinWithCompletion { (error) in
                 if let error = error {
-                    prettyLog(error)
-                    continuation.resume(throwing:error)
+                    if error._code != -1006 {
+                        continuation.resume()
+                    } else {
+                        prettyLog(error)
+                        continuation.resume(throwing:error)
+                    }
                 } else {
                     continuation.resume()
                 }
@@ -1185,33 +1200,40 @@ private extension QBRequest {
             QBRequest.update(dialog, successBlock: { _, dialog in
                 continuation.resume(returning: dialog)
             }, errorBlock: { response in
-                continuation.resume(throwing: response.error?.error
-                                    ?? DataSourceException.unexpected())
+                if (response.status == .notFound || response.status == .forbidden),
+                   dialog.type != .publicGroup {
+                    continuation.resume(returning: dialog)
+                } else {
+                    continuation.resume(throwing: response.error?.error
+                                        ?? DataSourceException.unexpected())
+                }
             })
         }
     }
-    
+
     static func leave(dialog: QBChatDialog) async throws {
         let userId = QBSession.current.currentUserID
         dialog.pullOccupantsIDs = [(NSNumber(value: userId)).stringValue]
         _ = try await QBRequest.update(dialog: dialog)
     }
-    
+
     static func delete(dialog id: String, force: Bool) async throws {
         return try await withCheckedThrowingContinuation({
             (continuation: CheckedContinuation<Void, Error>) in
-            print("remove Force \(force)")
             QBRequest.deleteDialogs(withIDs: Set([id]),
                                     forAllUsers: force,
                                     successBlock: { _,_,_,_ in
                 continuation.resume()
             }, errorBlock: { response in
-                continuation.resume(throwing: response.error?.error
-                                    ?? DataSourceException.unexpected())
+                if (response.status == .notFound || response.status == .forbidden) {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: response.error?.error
+                                        ?? DataSourceException.unexpected())
+                }
             })
         })
     }
-    
     
     static func updateUserInfo(withId id: UInt) async throws {
         return try await withCheckedThrowingContinuation({

@@ -1,7 +1,7 @@
 <div align="center">
 
 <p>
-        <a href="https://discord.gg/Yc56F9KG"><img src="https://img.shields.io/discord/1042743094833065985?color=5865F2&logo=discord&logoColor=white&label=QuickBlox%20Discord%20server&style=for-the-badge" alt="Discord server" /></a>
+        <a href="https://discord.gg/8EbwsnaX"><img src="https://img.shields.io/discord/1042743094833065985?color=5865F2&logo=discord&logoColor=white&label=QuickBlox%20Discord%20server&style=for-the-badge" alt="Discord server" /></a>
 </p>
 
 </div>
@@ -129,74 +129,7 @@ class CustomThemeColor: QuickBloxUIKit.ThemeColorProtocol {
 You can create and use your own string theme. To do this you need to create class that implements QuickBloxUIKit.ThemeStringProtocol
 
 ```
-public class CustomThemeString: ThemeStringProtocol {
-    public var dialogsEmpty: String = String(localized: "dialog.items.empty")
-    public var usersEmpty: String = String(localized: "dialog.members.empty")
-    public var messegesEmpty: String = String(localized: "dialog.messages.empty")
-    
-    public var privateDialog: String = String(localized: "dialog.type.private")
-    public var groupDialog: String = String(localized: "dialog.type.group")
-    public var publicDialog: String = String(localized: "dialog.type.group")
-    
-    public var typingOne: String = String(localized: "dialog.typing.one")
-    public var typingTwo: String = String(localized: "dialog.typing.two")
-    public var typingFour: String = String(localized: "dialog.typing.four")
-    
-    public var enterName: String = String(localized: "alert.actions.enterName")
-    public var nameHint: String = String(localized: "dialog.name.hint")
-    public var create: String = String(localized: "dialog.name.create")
-    public var next: String = String(localized: "dialog.name.next")
-    public var search: String = String(localized: "dialog.name.search")
-    public var edit: String = String(localized: "dialog.info.edit")
-    public var members: String = String(localized: "dialog.info.members")
-    public var notification: String = String(localized: "dialog.info.notification")
-    public var searchInDialog: String = String(localized: "dialog.info.searchInDialog")
-    public var leaveDialog: String = String(localized: "dialog.info.leaveDialog")
-    
-    public var you: String = String(localized: "dialog.info.you")
-    public var admin: String = String(localized: "dialog.info.admin")
-    public var typeMessage: String = String(localized: "dialog.action.typeMessage")
-    
-    public var dialogs: String = String(localized: "screen.title.dialogs")
-    public var dialog: String = String(localized: "screen.title.dialog")
-    public var dialogType: String = String(localized: "screen.title.dialogType")
-    public var newDialog: String = String(localized: "screen.title.newDialog")
-    public var createDialog: String = String(localized: "screen.title.createDialog")
-    public var addMembers: String = String(localized: "screen.title.addMembers")
-    public var dialogInformation: String = String(localized: "screen.title.dialogInformation")
-    
-    public var add: String = String(localized: "alert.actions.add")
-    public var dialogName: String = String(localized: "alert.actions.dialogName")
-    public var changeImage: String = String(localized: "alert.actions.changeImage")
-    public var changeDialogName: String = String(localized: "alert.actions.changeDialogName")
-    
-    public var photo: String = String(localized: "alert.actions.photo")
-    public var removePhoto: String = String(localized: "alert.actions.removePhoto")
-    public var camera: String = String(localized: "alert.actions.camera")
-    public var gallery: String = String(localized: "alert.actions.gallery")
-    public var file: String = String(localized: "alert.actions.file")
-    
-    public var remove: String = String(localized: "alert.actions.remove")
-    public var cancel: String = String(localized: "alert.actions.cancel")
-    public var ok: String = String(localized: "alert.actions.ok")
-    public var removeUser: String = String(localized: "alert.message.removeUser")
-    public var questionMark: String = String(localized: "alert.message.questionMark")
-    public var errorValidation: String = String(localized: "alert.message.errorValidation")
-    public var addUser: String = String(localized: "alert.message.addUser")
-    public var toDialog: String = String(localized: "alert.message.toDialog")
-    
-    public var maxSize: String = String(localized: "attachment.maxSize.title")
-    public var maxSizeHint: String = String(localized: "attachment.maxSize.hint")
-    public var fileTitle: String  = String(localized: "attachment.title.file")
-    public var gif: String = String(localized: "attachment.title.gif")
-    
-    public init() {}
-}
-```
-with such default strings:
-
-```
-"dialog.items.empty" = "You don’t have any dialogs.";
+"dialog.items.empty" = "There are no dialogs";
 "dialog.members.empty" = "You don’t have any users.";
 "dialog.messages.empty" = "You don’t have any messages.";
 "dialog.type.private" = "Private";
@@ -245,11 +178,32 @@ with such default strings:
 "alert.message.errorValidation" = "Error Validation";
 "alert.message.addUser" = "Are you sure you want to add ";
 "alert.message.toDialog" = " to this dialog?";
+"alert.message.noResults" = "No results found";
+"alert.message.noMembers" = "There are no members";
+"alert.message.invalidAI" = "The [AI Answer Assist feature](https://docs.quickblox.com/docs/ios-uikit-ai-features#assist-answer) is currently not configured. To enable this functionality, you must set either the **.openAIAPIKey** or **.proxyServerURLPath** properties for QuickBloxUIKit.feature.ai.assistAnswer. To disable the feature, simply set QuickBloxUIKit.feature.ai.assistAnswer.enable = false.";
 
 "attachment.maxSize.title" = "The uploaded file exceeds maximum file size (10MB)";
 "attachment.maxSize.hint" = "Please select a smaller attachment.";
 "attachment.title.file" = "file";
 "attachment.title.gif" = "GIF";
+
+"ai.translate.showOriginal" = "Show original";
+"ai.translate.showTranslation" = "Show translation";
+"ai.answerAssist.title" = "AI Answer Assist";
+
+"permission.camera.title" = "Camera error";
+"permission.camera.message" = "The app doesn't have access to the camera, please go to settings and enable it.";
+"permission.microphone.title" = "Microphone error";
+"permission.microphone.message" = "The app doesn't have access to the microphone, please go to settings and enable it.";
+"permission.actions.cancel" = "Cancel";
+"permission.actions.settings" = "Settings";
+
+"utils.string.createdGroupChat" = "created the group chat";
+"utils.string.dialogRenamedByUser" = "The dialog renamed by user";
+"utils.string.avatarWasChanged" = "The avatar was changed";
+"utils.string.addedBy" = "added by";
+"utils.string.removedBy" = "removed by";
+"utils.string.hasLeft" = "has left";
 ```
 
 #### Use Localization to expand the capabilities of your application.
@@ -263,7 +217,7 @@ For custom localization, customize your application by adding the necessary loca
  For example, add a localization file for Spanish to your project:
  
 ``` 
-"dialog.items.empty" = "No tiene ningún cuadro de diálogo.";
+"dialog.items.empty" = "No tiene ningún cuadro de canal.";
 "dialog.members.empty" = "No tiene ningún usuario.";
 "dialog.messages.empty" = "No tiene ningún mensaje.";
 "dialog.type.private" = "Privado";
@@ -280,25 +234,25 @@ For custom localization, customize your application by adding the necessary loca
 "dialog.info.edit" = "Editar";
 "dialog.info.members" = "Miembros";
 "dialog.info.notification" = "Notificación";
-"dialog.info.searchInDialog" = "Buscar en diálogo";
-"dialog.info.leaveDialog" = "Salir del cuadro de diálogo";
+"dialog.info.searchInDialog" = "Buscar en canal";
+"dialog.info.leaveDialog" = "Salir del cuadro de canal";
 "dialog.info.you" = " (usted)";
 "dialog.info.admin" = "Admin";
 "dialog.action.typeMessage" = "Escribir mensaje";
 
-"screen.title.dialogs" = "Diálogos";
-"screen.title.dialog" = "Diálogo";
-"screen.title.dialogType" = "Tipo de diálogo";
-"screen.title.newDialog" = "Diálogo nuevo";
-"screen.title.createDialog" = "Crear diálogo";
+"screen.title.dialogs" = "Canales";
+"screen.title.dialog" = "Canal";
+"screen.title.dialogType" = "Tipo de canal";
+"screen.title.newDialog" = "Canal nuevo";
+"screen.title.createDialog" = "Crear canal";
 "screen.title.addMembers" = "Agregar miembros";
-"screen.title.dialogInformation" = "Información de diálogo";
+"screen.title.dialogInformation" = "Información de canal";
 
 "alert.actions.add" = "Agregar";
-"alert.actions.dialogName" = "Nombre del diálogo";
+"alert.actions.dialogName" = "Nombre del canal";
 "alert.actions.enterName" = "Ingrese el nombre";
 "alert.actions.changeImage" = "Cambiar imagen";
-"alert.actions.changeDialogName" = "Cambiar nombre de diálogo";
+"alert.actions.changeDialogName" = "Cambiar nombre de canal";
 "alert.actions.photo" = "Foto";
 "alert.actions.removePhoto" = "Eliminar foto";
 "alert.actions.camera" = "Cámara";
@@ -311,12 +265,33 @@ For custom localization, customize your application by adding the necessary loca
 "alert.message.questionMark" = "?";
 "alert.message.errorValidation" = "Error de validación";
 "alert.message.addUser" = "¿Está seguro de que desea agregar ";
-"alert.message.toDialog" = "¿a este cuadro de diálogo?";
+"alert.message.toDialog" = "¿a este cuadro de canal?";
+"alert.message.noResults" = "No results found";
+"alert.message.noMembers" = "There are no members";
+"alert.message.invalidAI" = "La [función AI Assist Answer](https://docs.quickblox.com/docs/ios-uikit-ai-features#assist-answer) no está configurada actualmente. Para habilitar esta función, debe configurar ** Propiedades .openAIAPIKey** o **.proxyServerURLPath** para QuickBloxUIKit.feature.ai.assistAnswer. Para deshabilitar la función, simplemente establezca QuickBloxUIKit.feature.ai.assistAnswer.enable = false.";
 
 "attachment.maxSize.title" = "El archivo cargado supera el tamaño máximo de archivo (10 MB)";
 "attachment.maxSize.hint" = "Seleccione un archivo adjunto más pequeño.";
 "attachment.title.file" = "archivo";
 "attachment.title.gif" = "GIF";
+
+"ai.translate.showOriginal" = "Mostrar original";
+"ai.translate.showTranslation" = "Mostrar traducción";
+"ai.answerAssist.title" = "Asistente de respuesta AI";
+
+"permission.camera.title" = "Error de cámara";
+"permission.camera.message" = "La aplicación no tiene acceso a la cámara, vaya a configuración y habilítela.";
+"permission.microphone.title" = "Error de micrófono";
+"permission.microphone.message" = "La aplicación no tiene acceso al micrófono, vaya a configuración y habilítelo.";
+"permission.actions.cancel" = "Cancelar";
+"permission.actions.settings" = "Configuración";
+
+"utils.string.createdGroupChat" = "creó el chat grupal";
+"utils.string.dialogRenamedByUser" = "El diálogo renombrado por el usuario";
+"utils.string.avatarWasChanged" = "El avatar fue cambiado";
+"utils.string.addedBy" = "agregado por";
+"utils.string.removedBy" = "eliminado por";
+"utils.string.hasLeft" = "se ha ido";
 ```
 
 
@@ -331,3 +306,188 @@ var customTheme: CustomTheme = CustomTheme(color: CustomThemeColor(),
 QuickBloxUIKit.settings.theme = customTheme
 ```
 
+# AI Features
+
+## Overview
+
+QuickBloxUIKit comes with a range of AI features that enhance the capabilities of your chat application. These AI features leverage cutting-edge technologies to assist users, translate messages, summarize content, and more.
+
+| Feature       | Group Dialog | Private Dialog |
+| :------------ | :----------- | :------------- |
+| Assist Answer | ✓            | ✓              |
+
+## Assist Answer
+
+The AI Assist Answer feature in QuickBloxUIKit allows you to generate answers in a chat based on the chat history using the [QBAIAnswerAssistant](https://github.com/QuickBlox/ios-ai-answer-assistant) Swift package. This feature leverages the OpenAI [API key](https://platform.openai.com/account/api-keys) or [proxy server](https://github.com/QuickBlox/qb-ai-assistant-proxy-server) to generate responses more securely and efficiently.
+
+[block:image]
+{
+  "images": [
+    {
+      "image": [
+        "https://files.readme.io/735a346-ios-ai-assist-answer-robot-light.gif",
+        "",
+        ""
+      ],
+      "align": "center",
+      "border": true
+    }
+  ]
+}
+[/block]
+
+### How to use
+
+To use the AI Assist Answer feature in your QuickBloxUIKit project, follow these steps:
+
+1. Enable the AI Assist Answer feature:
+   ```swift
+   QuickBloxUIKit.feature.ai.assistAnswer.enable = true
+   ```
+
+If enabled, a button will appear next to each incoming message in the chat interface.
+
+[block:image]
+{
+  "images": [
+    {
+      "image": [
+        "https://files.readme.io/741c88d-robot-little-not-touch.png",
+        "",
+        ""
+      ],
+      "align": "center",
+      "sizing": "400px"
+    }
+  ]
+}
+[/block]
+
+When the button is clicked, the Assist Answer feature will be launched, and a response will be generated based on the chat history.
+
+[block:image]
+{
+  "images": [
+    {
+      "image": [
+        "https://files.readme.io/4373421-robot-little-touch.png",
+        "",
+        ""
+      ],
+      "align": "center",
+      "sizing": "400px"
+    }
+  ]
+}
+[/block]
+
+2. Set up the AI settings by providing either the OpenAI [API key](https://platform.openai.com/account/api-keys):
+
+   ```swift
+   QuickBloxUIKit.feature.ai.assistAnswer.openAIAPIKey = "YOUR_OPENAI_API_KEY"
+   ```
+
+Or set up with a proxy server:
+
+```swift
+QuickBloxUIKit.feature.ai.assistAnswer.proxyServerURLPath = "https://your-proxy-server-url"
+```
+
+> 👍 We recommend using a proxy server like the [QuickBlox AI Assistant Proxy Server](https://github.com/QuickBlox/qb-ai-assistant-proxy-server) offers significant benefits in terms of security and functionality:
+> 
+> - When making direct requests to the OpenAI API from the client-side, sensitive information like API keys may be exposed. By using a proxy server, the API keys are securely stored on the server-side, reducing the risk of unauthorized access or potential breaches. 
+> - The proxy server can implement access control mechanisms, ensuring that only authenticated and authorized users with valid QuickBlox user tokens can access the OpenAI API. This adds an extra layer of security to the communication.
+
+## Translate
+
+The AI Translate feature in QuickBloxUIKit empowers you to seamlessly integrate AI translation capabilities into your chat-based application using the [QBAITranslate Swift package](https://github.com/QuickBlox/ios-ai-translate). This feature leverages the OpenAI [API key](https://platform.openai.com/account/api-keys) or [proxy server](https://github.com/QuickBlox/qb-ai-assistant-proxy-server) to generate responses more securely and efficiently.
+
+[block:image]
+{
+  "images": [
+    {
+      "image": [
+        "https://files.readme.io/ee71cb8-ios-ai-translate.gif",
+        "",
+        ""
+      ],
+      "align": "center",
+      "sizing": "350px",
+      "border": true
+    }
+  ]
+}
+[/block]
+
+### How to Use
+
+To use the AI Translate feature in your QuickBloxUIKit project, adhere to the following steps:
+
+1. Enable the AI Translate feature:
+
+```swift
+QuickBloxUIKit.feature.ai.translate.enable = true
+```
+
+If this option is enabled, the "Show translation" button will be displayed at the bottom of every incoming message in the chat interface.
+
+[block:image]
+{
+  "images": [
+    {
+      "image": [
+        "https://files.readme.io/dd2fa91-IMG_1164.jpeg",
+        null,
+        "Translation Button"
+      ],
+      "align": "center",
+      "sizing": "600px",
+      "border": true
+    }
+  ]
+}
+[/block]
+
+When you click on it, this message will be translated into the language set for translation, and the "Show original" button will be displayed, when clicked, the text of the message will immediately take the original version.
+
+[block:image]
+{
+  "images": [
+    {
+      "image": [
+        "https://files.readme.io/d7eabca-File.jpg",
+        "",
+        ""
+      ],
+      "align": "center",
+      "sizing": "600px",
+      "border": true
+    }
+  ]
+}
+[/block]
+
+2. Set up the AI settings by providing either the OpenAI [API key](https://platform.openai.com/account/api-keys):
+
+   ```swift
+   QuickBloxUIKit.feature.ai.translate.openAIAPIKey = "YOUR_OPENAI_API_KEY"
+   ```
+
+Or set up with a proxy server:
+
+```swift
+QuickBloxUIKit.feature.ai.translate.proxyServerURLPath = "https://your-proxy-server-url"
+```
+
+3. Set the translation language (default is English):
+
+```swift Swift
+QuickBloxUIKit.feature.ai.translate.setCustom(language: .spanish)
+```
+
+Incorporate AI Translate into your iOS chat application seamlessly using the QBAITranslate Swift package. Unlock the potential of AI-driven interactions and provide your users with real-time translation capabilities, enhancing user communication and experience.  
+For additional resources, explore the QuickBlox AI Assistant Proxy Server and the QBAITranslate Swift package repositories.  
+Resources:
+
+- [QBAIProxy Server](https://github.com/QuickBlox/qb-ai-assistant-proxy-server)
+- [QBAITranslate Swift Package](https://github.com/QuickBlox/QBAITranslate)

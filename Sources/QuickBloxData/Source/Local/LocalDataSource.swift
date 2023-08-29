@@ -81,7 +81,9 @@ extension LocalDataSource {
         
         dialog.updatedAt = dto.updatedAt
         
-        if dto.unreadMessagesCount != 0 {
+        if dto.decrementCounter == true {
+            dialog.unreadMessagesCount -= 1
+        } else if dto.unreadMessagesCount != 0 {
             dialog.unreadMessagesCount = dto.unreadMessagesCount
         }
         

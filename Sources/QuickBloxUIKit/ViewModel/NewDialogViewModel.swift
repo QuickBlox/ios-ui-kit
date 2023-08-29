@@ -10,6 +10,8 @@ import SwiftUI
 import Combine
 import QuickBloxDomain
 import QuickBloxData
+import AVFoundation
+import QuickBloxLog
 
 public enum AttachmentType: String {
     case image = "image"
@@ -22,13 +24,15 @@ public enum AttachmentType: String {
     case error = "error"
 }
 
-public protocol NewDialogProtocol: QuickBloxUIKitViewModel {
+public protocol NewDialogProtocol: QuickBloxUIKitViewModel, PermissionProtocol  {
     associatedtype DialogItem: DialogEntity
     
     var dialogName: String { get set }
     var isValidDialogName: Bool { get set }
     var isExistingImage: Bool { get }
     var selectedImage: Image? { get set }
+    var isProcessing: Bool { get set }
+    var permissionNotGranted: PermissionInfo { get set }
 
     var modelDialog: DialogItem? { get set }
     
@@ -36,6 +40,8 @@ public protocol NewDialogProtocol: QuickBloxUIKitViewModel {
     func handleOnSelect(attachmentAsset: AttachmentAsset)
     func createPublicDialog()
     func createDialogModel()
+    func openSettings()
+    func requestPermission(_ mediaType: AVMediaType, completion: @escaping (_ granted: Bool) -> Void)
 }
 
 open class NewDialogViewModel: NewDialogProtocol {
@@ -44,9 +50,14 @@ open class NewDialogViewModel: NewDialogProtocol {
     @Published public var dialogName = ""
     @Published public var isValidDialogName = false
     @Published public var selectedImage: Image? = nil
+    @Published public var  isProcessing: Bool = false
+    @Published public var permissionNotGranted: PermissionInfo = PermissionInfo(mediaType: .video)
+    
     public var isExistingImage: Bool {
         return selectedImage != nil
     }
+    
+    private let permissionsRepo: PermissionsRepository = RepositoriesFabric.permissions
     
     private var attachmentAsset: AttachmentAsset? = nil
     
@@ -85,6 +96,7 @@ open class NewDialogViewModel: NewDialogProtocol {
     public func createDialogModel() {
         //TODO: implement
         if let uiImage = attachmentAsset?.image {
+            isProcessing = true
             Task { [weak self] in
                 var compressionQuality: CGFloat = 1.0
                 let maxFileSize: Int = 10 * 1024 * 1024 // 10MB in bytes
@@ -103,14 +115,48 @@ open class NewDialogViewModel: NewDialogProtocol {
                     let fileInfo =  try await uploadAvatar.execute()
                     guard let uuid = fileInfo.info.path.uuid else { return }
                     await MainActor.run { [weak self, uuid] in
-                            self?.modelDialog = Dialog(type: .group,
-                                                       name: name,
-                                                       photo:uuid)
+                        self?.modelDialog = Dialog(type: .group,
+                                                   name: name,
+                                                   photo:uuid)
+                        self?.isProcessing = false
                     }
+                }
+                await MainActor.run { [weak self] in
+                    self?.isProcessing = false
                 }
             }
         } else {
             modelDialog = Dialog(type: .group, name: dialogName, photo:"")
+        }
+    }
+    
+    //MARK: - Media Permissions
+    public func requestPermission(_ mediaType: AVMediaType, completion: @escaping (_ granted: Bool) -> Void) {
+        let requestPermission = GetPermission(mediaType: mediaType, repo: permissionsRepo)
+        
+        Task {
+            do {
+                let granted = try await requestPermission.execute()
+                await MainActor.run { [weak self, granted] in
+                    self?.permissionNotGranted = PermissionInfo(mediaType: mediaType,
+                                                                notGranted: granted == false)
+                    completion(granted)
+                }
+            } catch {
+                prettyLog(error)
+            }
+        }
+    }
+    
+    public func openSettings() {
+        let openSettings = OpenSettings(repo: permissionsRepo)
+        
+        Task {
+            do {
+                try await openSettings.execute()
+            } catch {
+                prettyLog(error)
+            }
         }
     }
 }

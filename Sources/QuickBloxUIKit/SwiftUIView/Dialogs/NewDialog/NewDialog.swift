@@ -54,6 +54,7 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
                         isExistingImage: viewModel.isExistingImage,
                         isHiddenFiles: settings.isHiddenFiles,
                         mediaTypes: [UTType.image.identifier],
+                        viewModel: viewModel,
                         onRemoveImage: {
                 viewModel.removeExistingImage()
             }, onGetAttachment: { attachmentAsset in
@@ -66,6 +67,8 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
                 
                 viewModel.handleOnSelect(attachmentAsset: asset)
             })
+            .permissionAlert(isPresented: $viewModel.permissionNotGranted.notGranted,
+                             viewModel: viewModel)
             
             .modifier(DialogNameHeader(type: type, disabled: !viewModel.isValidDialogName, onDismiss: {
                 dismiss()
@@ -79,12 +82,19 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
                 }
             }))
             
+            .disabled(viewModel.isProcessing == true)
+            .if(viewModel.isProcessing == true) { view in
+                view.overlay() {
+                    CustomProgressView()
+                }
+            }
+            
             if let modelDialog = viewModel.modelDialog {
                 NavigationLink (
                     tag: modelDialog,
                     selection: $viewModel.modelDialog
                 ) {
-                    CreateDialogView(viewModel: CreateDialogViewModel(modeldDialog: Dialog(type: modelDialog.type,
+                    CreateDialogView(viewModel: CreateDialogViewModel(users: [], modeldDialog: Dialog(type: modelDialog.type,
                                                                                        name: modelDialog.name,
                                                                                        photo: modelDialog.photo)),
                                  content: {

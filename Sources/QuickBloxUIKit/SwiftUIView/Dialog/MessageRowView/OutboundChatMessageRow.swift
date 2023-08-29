@@ -56,7 +56,7 @@ struct OutboundChatMessageRow_Previews: PreviewProvider {
     
     static var previews: some View {
         Group {
-            OutboundChatMessageRow(message: Message(id: UUID().uuidString, dialogId: "1f2f3ds4d5d6d", text: "Test text Message", userId: "testid", date: Date()))
+            OutboundChatMessageRow(message: Message(id: UUID().uuidString, dialogId: "1f2f3ds4d5d6d", text: "Test text https://quickblox.com/blog/how-to-build-chat-app-with-ios-ui-kit/ Message", userId: "testid", date: Date()))
                 .previewDisplayName("Out Message")
             
             OutboundChatMessageRow(message: Message(id: UUID().uuidString, dialogId: "1f2f3ds4d5d6d", text: "Test text Message", userId: "2d3d4d5d6d", date: Date()))
@@ -66,7 +66,7 @@ struct OutboundChatMessageRow_Previews: PreviewProvider {
             OutboundChatMessageRow(message: Message(id: UUID().uuidString, dialogId: "1f2f3ds4d5d6d", text: "T", userId: "2d3d4d5d6d", date: Date()))
                 .previewDisplayName("1")
             
-            OutboundChatMessageRow(message: Message(id: UUID().uuidString, dialogId: "1f2f3ds4d5d6d", text: "Test text Message Test text Message Test text Message Test text Message Test text Message Test text Message ", userId: "2d3d4d5d6d", date: Date()))
+            OutboundChatMessageRow(message: Message(id: UUID().uuidString, dialogId: "1f2f3ds4d5d6d", text: "Test text https://quickblox.com/blog/how-to-build-chat-app-with-ios-ui-kit/ Message", userId: "2d3d4d5d6d", date: Date()))
                 .previewDisplayName("In Dark Message")
                 .preferredColorScheme(.dark)
         }

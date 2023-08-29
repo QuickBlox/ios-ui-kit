@@ -53,6 +53,8 @@ public protocol DialogEntity: Entity {
     
     var unreadMessagesCount: Int { get set }
     
+    var decrementCounter: Bool { get set }
+    
     var time: String { get }
     
     var date: Date { get }

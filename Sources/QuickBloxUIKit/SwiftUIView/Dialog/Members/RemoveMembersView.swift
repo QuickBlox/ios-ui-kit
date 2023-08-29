@@ -74,6 +74,13 @@ public struct RemoveMembersView<ViewModel: MembersDialogProtocol>: View {
             isAddPresented.toggle()
         })
         
+        .disabled(viewModel.isProcessing == true)
+        .if(viewModel.isProcessing == true) { view in
+            view.overlay() {
+                CustomProgressView()
+            }
+        }
+        
         NavigationLink(isActive: $isAddPresented) {
             Fabric.screen.addMembers(to: viewModel.dialog)
         } label: {
@@ -97,6 +104,8 @@ struct RemoveMembersView_Previews: PreviewProvider {
 
 import Combine
 private class MembersPreviewModel: MembersDialogProtocol {
+    var isProcessing: Bool = false
+    
     var dialog: QuickBloxData.Dialog = Dialog(id:"2b3c4d5e",
                                               type: .group,
                                               name: "Group Dialog",

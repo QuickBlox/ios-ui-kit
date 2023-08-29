@@ -135,3 +135,44 @@ struct NavigationBarColor: ViewModifier {
     content
   }
 }
+
+public struct DeleteDialogAlert: ViewModifier {
+    public var settings = QuickBloxUIKit.settings.membersScreen.removeUser
+    
+    @Binding var isPresented: Bool
+    var name: String
+    let onCancel: () -> Void
+    let onTap: () -> Void
+    
+    public func body(content: Content) -> some View {
+        ZStack {
+            content
+                .alert(settings.alertTitle(name), isPresented: $isPresented) {
+                    Button(settings.cancel, role: .cancel, action: {
+                        onCancel()
+                        isPresented = false
+                    })
+                    Button("Delete", role: .destructive, action: {
+                        onTap()
+                        isPresented = false
+                    })
+                } message: {
+                    Text( "Are you sure you want to delete that dialog?")
+                }
+        }
+    }
+}
+
+extension View {
+    func deleteDialogAlert(
+        isPresented: Binding<Bool>,
+        name: String,
+        onCancel: @escaping () -> Void,
+        onTap: @escaping () -> Void
+    ) -> some View {
+        self.modifier(RemoveUserAlert(isPresented: isPresented,
+                                      name: name,
+                                      onCancel: onCancel,
+                                      onTap: onTap))
+    }
+}

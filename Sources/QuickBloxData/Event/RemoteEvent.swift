@@ -8,7 +8,7 @@
 
 
 public enum RemoteEvent {
-    case create(_ dialogId: String)
+    case create(_ dialogId: String, byUser: Bool, message: RemoteMessageDTO)
     case update(_ dialogId: String)
     case leave(_ dialogId: String, byUser: Bool)
     case removed(_ dialogId: String)
@@ -23,7 +23,7 @@ public enum RemoteEvent {
         if message.type == .event {
             switch message.eventType {
             case .create:
-                self = .create(message.dialogId)
+                self = .create(message.dialogId, byUser: message.isOwnedByCurrentUser, message: message)
             case .update:
                 self = .update(message.dialogId)
             case .leave:

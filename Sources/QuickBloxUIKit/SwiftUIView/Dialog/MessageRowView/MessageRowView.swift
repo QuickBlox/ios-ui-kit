@@ -33,7 +33,9 @@ public struct MessageRowView<MessageItem: MessageEntity>: View {
     var playingMessageId: String
     let onTap: (_ action: MessageAttachmentAction, _ image: Image?, _ url: URL?) -> Void
     let onPlay: (_ action: MessageAttachmentAction, _ data: Data?, _ url: URL?) -> Void
-    let onAssistAnswer: (_ message: MessageItem?) -> Void
+    let onAIFeature: (_ type: AIFeatureType, _ message: MessageItem?) -> Void
+    @Binding var waitingTranslation: TranslationInfo
+    
 
     @ViewBuilder
     public var body: some View {
@@ -42,7 +44,7 @@ public struct MessageRowView<MessageItem: MessageEntity>: View {
         case .dateDivider: DateDividerMessageRowView(message: message)
         case .event: EventMessageRow(message: message)
         case .inboundAudio: InboundAudioMessageRow(message: message, onTap: onPlay, playingMessageId: playingMessageId, isPlaying: isPlaying)
-        case .inboundChat: InboundChatMessageRow(message: message, onAssistAnswer: onAssistAnswer)
+        case .inboundChat: InboundChatMessageRow(message: message, onAIFeature: onAIFeature, waitingTranslation: waitingTranslation)
         case .inboundImage: InboundImageMessageRow(message: message, onTap: onTap)
         case .inboundVideo: InboundVideoMessageRow(message: message, onTap: onTap)
         case .inboundPDF: InboundFileMessageRow(message: message, onTap: onTap)

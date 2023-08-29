@@ -42,7 +42,6 @@ extension DialogEntity {
     var avatar: Image {
         get async throws {
             if QuickBloxUIKit.previewAware {  return placeholder }
-            
             if let uiImage = imageCache.imageFromCache(id) {
                 return Image(uiImage: uiImage)
             }
@@ -173,7 +172,13 @@ extension DialogEntity {
             let divideDate = Calendar.current.startOfDay(for: message.date)
             if dividers.contains(divideDate) {
                 if tempMessages.contains(where: { $0.id == message.id }) == false {
-                    tempMessages.append(message)
+                    if message.isNotification == true {
+                        var update = message
+                        update.text = notificationText(message.text)
+                        tempMessages.append(update)
+                    } else {
+                        tempMessages.append(message)
+                    }
                 }
                 continue
             }
@@ -190,7 +195,13 @@ extension DialogEntity {
                 tempMessages.append(dividerMessage)
             }
             if tempMessages.contains(where: { $0.id == message.id }) == false {
-                tempMessages.append(message)
+                if message.isNotification == true {
+                    var update = message
+                    update.text = notificationText(message.text)
+                    tempMessages.append(update)
+                } else {
+                    tempMessages.append(message)
+                }
             }
         }
         displayed = tempMessages
@@ -211,6 +222,26 @@ extension DialogEntity {
             return  "Yesterday"
         } else {
             return formatter.string(from: divideDate)
+        }
+    }
+    
+    private func notificationText(_ text: String) -> String {
+        let stringUtils = QuickBloxUIKit.settings.dialogScreen.stringUtils
+        
+        if text.contains(stringUtils.createdGroupChat) == true {
+            return text.replacingOccurrences(of: stringUtils.createdGroupChat, with: stringUtils.createdGroupChatLocalize)
+        } else if text.contains(stringUtils.dialogRenamedByUser) == true {
+            return text.replacingOccurrences(of: stringUtils.dialogRenamedByUser, with: stringUtils.dialogRenamedByUserLocalize)
+        } else if text.contains(stringUtils.avatarWasChanged) == true {
+            return text.replacingOccurrences(of: stringUtils.avatarWasChanged, with: stringUtils.avatarWasChangedLocalize)
+        } else if text.contains(stringUtils.addedBy) == true {
+            return text.replacingOccurrences(of: stringUtils.addedBy, with: stringUtils.addedByLocalize)
+        } else if text.contains(stringUtils.removedBy) == true {
+            return text.replacingOccurrences(of: stringUtils.removedBy, with: stringUtils.removedByLocalize)
+        } else if text.contains(stringUtils.hasLeft) == true {
+            return text.replacingOccurrences(of: stringUtils.hasLeft, with: stringUtils.hasLeftLocalize)
+        } else {
+            return text
         }
     }
 }

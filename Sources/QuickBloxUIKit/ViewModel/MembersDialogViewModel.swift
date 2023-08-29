@@ -19,6 +19,7 @@ public protocol MembersDialogProtocol: QuickBloxUIKitViewModel {
     var displayed: [UserItem] { get set }
     var dialog: DialogItem { get set }
     var selectedUser: UserItem? { get set }
+    var isProcessing: Bool { get set }
     
     func removeUserFromDialog()
 }
@@ -28,6 +29,7 @@ open class MembersDialogViewModel: MembersDialogProtocol {
     @Published public var displayed: [User] = []
     @Published public var selectedUser: User? = nil
     @Published public var dialog: Dialog
+    @Published public var isProcessing: Bool = false
     
     public var cancellables = Set<AnyCancellable>()
     public var tasks = Set<Task<Void, Never>>()
@@ -89,6 +91,7 @@ open class MembersDialogViewModel: MembersDialogProtocol {
     //MARK: - Users
     //MARK: - Public Methods
     public func removeUserFromDialog() {
+        isProcessing = true
         taskUpdate = Task { [weak self] in
             do {
                 guard let user = self?.selectedUser else { return }
@@ -101,8 +104,15 @@ open class MembersDialogViewModel: MembersDialogProtocol {
                     guard let self = self else { return }
                     self.sync()
                 }
-            }  catch { prettyLog(error) }
-            self?.taskUpdate = nil
+            }  catch {
+                prettyLog(error)
+                self?.taskUpdate = nil
+                await MainActor.run { [weak self] in
+                    guard let self = self else { return }
+                    self.isProcessing = false
+                }
+            }
+           
         }
     }
     
@@ -130,8 +140,15 @@ open class MembersDialogViewModel: MembersDialogProtocol {
                 await MainActor.run { [weak self, users] in
                     guard let self = self else { return }
                     self.displayed = users
+                    self.isProcessing = false
                 }
-            } catch { prettyLog(error) }
+            } catch { prettyLog(error)
+                await MainActor.run { [weak self] in
+                    guard let self = self else { return }
+                    self.isProcessing = false
+                }
+            }
+            
         }
     }
     

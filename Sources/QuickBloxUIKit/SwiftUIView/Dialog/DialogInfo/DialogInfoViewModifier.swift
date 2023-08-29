@@ -211,8 +211,10 @@ public struct InfoSegment<Item: DialogEntity>: View {
     }
 }
 
-public struct EditDialogAlert: ViewModifier {
+public struct EditDialogAlert<ViewModel: PermissionProtocol>: ViewModifier {
     public var settings = QuickBloxUIKit.settings.dialogInfoScreen.editDialogAlert
+    
+    let viewModel: ViewModel
     
     @Binding var isPresented: Bool
     @Binding var dialogName: String
@@ -258,6 +260,7 @@ public struct EditDialogAlert: ViewModifier {
                             isExistingImage: isExistingImage,
                             isHiddenFiles: isHiddenFiles,
                             mediaTypes: [UTType.image.identifier],
+                            viewModel: viewModel,
                             onRemoveImage: {
                     onRemoveImage()
                     isEdit = false
@@ -305,8 +308,9 @@ public struct EditDialogAlert: ViewModifier {
 }
 
 extension View {
-    func editDialogAlert(
+    func editDialogAlert<ViewModel: PermissionProtocol>(
         isPresented: Binding<Bool>,
+        viewModel: ViewModel,
         dialogName: Binding<String>,
         isValidDialogName: Binding<Bool>,
         isExistingImage: Bool,
@@ -316,7 +320,8 @@ extension View {
         onGetAttachment: @escaping (_ attachmentAsset: AttachmentAsset) -> Void,
         onGetName: @escaping  (_ name: String) -> Void
     ) -> some View {
-        self.modifier(EditDialogAlert(isPresented: isPresented,
+        self.modifier(EditDialogAlert(viewModel: viewModel,
+                                      isPresented: isPresented,
                                       dialogName: dialogName,
                                       isValidDialogName: isValidDialogName,
                                       isExistingImage: isExistingImage,
@@ -491,5 +496,17 @@ extension View {
                                            isValidDialogName: isValidDialogName,
                                            onGetName: onGetName,
                                            onCancel: onCancel))
+    }
+}
+
+extension Binding {
+    func didSet(_ didSet: @escaping (Value) -> Void) -> Binding<Value> {
+        Binding(
+            get: { wrappedValue },
+            set: { newValue in
+                self.wrappedValue = newValue
+                didSet(newValue)
+            }
+        )
     }
 }

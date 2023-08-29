@@ -29,12 +29,11 @@ public struct LocalDialogDTO: Equatable, Identifiable, Hashable {
     var lastMessageDateSent = Date(timeIntervalSince1970: 0.0)
     var lastMessageUserId: String = ""
     var unreadMessagesCount: Int = 0
+    var decrementCounter: Bool = false
 }
 
 extension LocalDialogDTO: Dated {
     var date: Date {
         return updatedAt
     }
-    
-    
 }

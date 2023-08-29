@@ -9,11 +9,11 @@
 import Foundation
 import QBAIAnswerAssistant
 
-public protocol AssistAnswerByOpenAIProtocol {
+public protocol AIFeatureUseCaseProtocol {
     func execute() async throws -> String
 }
 
-public class AssistAnswerByOpenAIAPI: AssistAnswerByOpenAIProtocol {
+public class AssistAnswerByOpenAIAPI: AIFeatureUseCaseProtocol {
     private let apiKey: String
     private let content: [any MessageEntity]
     

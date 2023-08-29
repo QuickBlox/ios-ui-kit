@@ -25,11 +25,15 @@ public protocol DialogsListProtocol: QuickBloxUIKitViewModel {
     
     func deleteDialog(withID dialogId: String)
     
+    var dialogToBeDeleted: Item? { get set }
+    
     init(dialogsRepo: DialogsRepo)
 }
 
 open class DialogsViewModel: DialogsListProtocol {
+    
     @Published public var selectedItem: Dialog? = nil
+    @Published public var dialogToBeDeleted: Dialog? = nil
     @Published public var dialogs: [Dialog] = []
     @Published public var syncState: SyncState = .synced
     
@@ -50,9 +54,9 @@ open class DialogsViewModel: DialogsListProtocol {
         createDialogObserve.execute()
             .receive(on: RunLoop.main)
             .sink { [weak self] dialog in
-                prettyLog(label: "set selectedItem", dialog)
-                self?.dialogs.insert(dialog, at: 0)
-                self?.selectedItem = dialog
+                if self?.selectedItem == nil {
+                    self?.selectedItem = dialog
+                }
             }
             .store(in: &cancellables)
         
@@ -71,6 +75,9 @@ open class DialogsViewModel: DialogsListProtocol {
             await strSelf.dialogsUpdates?.execute()
                 .receive(on: RunLoop.main)
                 .sink { [weak self] updated in
+                    if self?.deleteDialog != nil {
+                        return
+                    }
                     self?.dialogs = updated
                 }
                 .store(in: &strSelf.cancellables)
@@ -90,29 +97,46 @@ open class DialogsViewModel: DialogsListProtocol {
     public var tasks = Set<Task<Void, Never>>()
     
     public func sync() {
-        
     }
 }
 
 extension DialogsViewModel {
     public func deleteDialog(withID dialogId: String) {
-        guard let index = dialogs.firstIndex(where: {$0.id == dialogId}) else {
+        guard let dialogToBeDeleted = dialogToBeDeleted else {
             return
         }
-        let leaveDialogCase = LeaveDialog(dialog: dialogs[index],
+        
+        let leaveDialogCase = LeaveDialog(dialog: dialogToBeDeleted,
                                           repo: RepositoriesFabric.dialogs)
         updateDialogs = Task { [weak self] in
             do {
                 try await leaveDialogCase.execute()
+                self?.updateDialogs = nil
                 await MainActor.run { [weak self] in
                     guard let strSelf = self else { return }
-                    strSelf.dialogs.remove(at: index)
+                    if let index = strSelf.dialogs.firstIndex(where: {$0.id == dialogId}) {
+                        strSelf.dialogs.remove(at: index)
+                    }
+                    
+                    strSelf.dialogToBeDeleted = nil
                 }
-            } catch { prettyLog(error) }
-            self?.updateDialogs = nil
+            } catch {
+                prettyLog(error)
+                if error is RepositoryException {
+                    self?.updateDialogs = nil
+                    await MainActor.run { [weak self] in
+                        guard let strSelf = self else { return }
+                        if let index = strSelf.dialogs.firstIndex(where: {$0.id == dialogId}) {
+                            strSelf.dialogs.remove(at: index)
+                        }
+                        strSelf.dialogToBeDeleted = nil
+                    }
+                }
+            }
         }
     }
 }
+
 
 //class DialogsListMock: DialogsListProtocol {
 //    @Published var selectedItem: Dialog? = nil

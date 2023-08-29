@@ -21,9 +21,16 @@ public struct DialogsListView<DialogsList: DialogsListProtocol, DialogItemView: 
     private var content: (DialogsList.Item) -> DialogItemView
     @State private var searchText = ""
     @State private var submittedSearchTerm = ""
+    @State private var onAppear: Bool = false
+    @State private var isDeleteAlertPresented: Bool = false
+    
+    @State private var dialogForDeleting: DialogsList.Item? = nil
     
     private var items: [DialogsList.Item] {
         var dialogs: [DialogsList.Item] = []
+        if onAppear == true {
+            return dialogs
+        }
         if settings.searchBar.isSearchable == false || submittedSearchTerm.isEmpty {
             dialogs = dialogsList.dialogs
         } else {
@@ -65,8 +72,24 @@ extension DialogsListView: View {
                 dialogsView()
             }
         }
-        .if(settings.searchBar.isSearchable &&
-            dialogsList.dialogs.isEmpty == false,
+        .deleteDialogAlert(isPresented: $isDeleteAlertPresented,
+                           name: dialogForDeleting?.name ?? "",
+                         onCancel: {
+            dialogForDeleting = nil
+        }, onTap: {
+            dialogsList.dialogToBeDeleted = dialogForDeleting
+            if let dialogId = dialogsList.dialogToBeDeleted?.id {
+                dialogsList.deleteDialog(withID: dialogId)
+            }
+            dialogForDeleting = nil
+        })
+        .onAppear {
+            onAppear = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                onAppear = false
+            }
+        }
+        .if(settings.searchBar.isSearchable,
             transform: { view in
             view.searchable(text: $searchText,
                             prompt: settings.searchBar.searchTextField.placeholderText)
@@ -84,21 +107,11 @@ extension DialogsListView: View {
     
     @ViewBuilder
     private func dialogsView() -> some View {
-        if items.isEmpty && dialogsList.syncState == .synced {
-            Spacer()
-            VStack(spacing: 16.0) {
-                settings.messageImage
-                    .resizable()
-                    .scaledToFit()
-                    .foregroundColor(settings.messageImageColor)
-                    .frame(width: 60, height: 60)
-                Text(settings.itemsIsEmpty)
-                    .font(settings.itemsIsEmptyFont)
-                    .foregroundColor(settings.itemsIsEmptyColor)
-                
-            }
-            Spacer()
-            
+        if items.isEmpty,
+           dialogsList.syncState == .synced,
+           onAppear == false,
+           dialogsList.dialogToBeDeleted == nil {
+            EmptyDialogsView()
         } else {
             List {
                 ForEach(items) { item in
@@ -107,10 +120,12 @@ extension DialogsListView: View {
                     } label: {
                         ZStack {
                             content(item)
-                                .if((item).type != .public , transform: { view in
+                                .if(item.type != .public && dialogsList.dialogToBeDeleted == nil, transform: { view in
                                     view.swipeActions(edge: .trailing) {
                                         Button(role: .destructive, action: {
-                                            dialogsList.deleteDialog(withID: item.id)
+                                            dialogForDeleting = item
+                                            
+                                            isDeleteAlertPresented = true
                                         } ) {
                                             settings.dialogRow.leaveImage
                                         }
@@ -120,14 +135,28 @@ extension DialogsListView: View {
                         }
                     }
                 }
-                .onDelete { _ in }
+                .if(dialogsList.dialogToBeDeleted == nil, transform: { view in
+                    view.onDelete { _ in }
+                })
                 .listRowInsets(EdgeInsets())
                 .listRowSeparator(.hidden)
-            }.listStyle(.plain)
+            }
+            .listStyle(.plain)
+            .deleteDisabled(dialogForDeleting != nil)
         }
     }
 }
 
+struct CustomProgressView: View {
+    var body: some View {
+        ZStack {
+            Color.black.frame(width: 100, height: 100)
+                .cornerRadius(12)
+                .opacity(0.6)
+            ProgressView().controlSize(.large).tint(Color.white)
+        }
+    }
+}
 
 struct Separator: View {
     let settings = QuickBloxUIKit.settings.dialogsScreen.dialogRow
@@ -144,6 +173,26 @@ struct Separator: View {
                     .frame(maxWidth: .infinity)
             }
         }
+    }
+}
+
+struct EmptyDialogsView: View {
+    let settings = QuickBloxUIKit.settings.dialogsScreen
+    
+    var body: some View {
+        Spacer()
+        VStack(spacing: 16.0) {
+            settings.messageImage
+                .resizable()
+                .scaledToFit()
+                .foregroundColor(settings.messageImageColor)
+                .frame(width: 60, height: 60)
+            Text(settings.itemsIsEmpty)
+                .font(settings.itemsIsEmptyFont)
+                .foregroundColor(settings.itemsIsEmptyColor)
+            
+        }
+        Spacer()
     }
 }
 

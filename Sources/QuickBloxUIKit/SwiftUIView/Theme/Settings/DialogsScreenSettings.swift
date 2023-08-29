@@ -111,6 +111,24 @@ public struct DialogsHeaderSettings {
     }
 }
 
+public struct DeleteDialogAlertSettings {
+    private var theme: ThemeProtocol
+    public var cancel: String
+    public var remove: String
+    public var message: String = ""
+    public func alertTitle(_ name: String) -> String {
+        return theme.string.removeUser
+        + name
+        + theme.string.questionMark
+    }
+    
+    public init(_ theme: ThemeProtocol) {
+        self.theme = theme
+        self.cancel = theme.string.cancel
+        self.remove = theme.string.remove
+    }
+}
+
 public struct DialogsSearchBarSettings: SearchBarSettingsProtocol {
     public var isSearchable: Bool = true
     public var searchTextField: DialogsSearchTextField

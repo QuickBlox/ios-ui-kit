@@ -104,8 +104,10 @@ public struct DialogNameHeader: ViewModifier {
     }
 }
 
-public struct CustomMediaAlert: ViewModifier {
+public struct CustomMediaAlert<ViewModel: PermissionProtocol>: ViewModifier {
     public var settings = QuickBloxUIKit.settings.dialogNameScreen.mediaAlert
+    
+    let viewModel: ViewModel
     
     @Binding var isAlertPresented: Bool
     @State var isImagePickerPresented: Bool = false
@@ -129,8 +131,12 @@ public struct CustomMediaAlert: ViewModifier {
                         }
                     }
                     Button(settings.camera, role: .none) {
-                        isImagePickerPresented = true
-                        isCameraPresented = true
+                        viewModel.requestPermission(.video) { granted in
+                            if granted {
+                                isImagePickerPresented = true
+                                isCameraPresented = true
+                            }
+                        }
                     }
                     Button(settings.gallery, role: .none, action: {
                         isImagePickerPresented = true
@@ -168,15 +174,17 @@ public struct CustomMediaAlert: ViewModifier {
 }
 
 extension View {
-    func mediaAlert(
+    func mediaAlert<ViewModel: PermissionProtocol>(
         isAlertPresented: Binding<Bool>,
         isExistingImage: Bool,
         isHiddenFiles: Bool,
         mediaTypes: [String],
+        viewModel: ViewModel,
         onRemoveImage: @escaping () -> Void,
         onGetAttachment: @escaping (_ attachmentAsset: AttachmentAsset) -> Void
     ) -> some View {
-        self.modifier(CustomMediaAlert(isAlertPresented: isAlertPresented,
+        self.modifier(CustomMediaAlert(viewModel: viewModel,
+                                       isAlertPresented: isAlertPresented,
                                        isExistingImage: isExistingImage,
                                        isHiddenFiles: isHiddenFiles,
                                        mediaTypes: mediaTypes,
@@ -243,27 +251,84 @@ extension View {
     }
 }
 
-public struct AIFailAlert: ViewModifier {
-    public var settings = QuickBloxUIKit.settings.dialogScreen
+public struct PermissionAlert<ViewModel: PermissionProtocol>: ViewModifier {
+    public var settings = QuickBloxUIKit.settings.dialogScreen.permissions
+    
+   let viewModel: ViewModel
     
     @Binding var isPresented: Bool
     
     public func body(content: Content) -> some View {
         ZStack {
             content.blur(radius: isPresented ? settings.blurRadius : 0.0)
-                .alert("", isPresented: $isPresented) {
-                    Button("Ok", action: {
+                .alert(viewModel.permissionNotGranted.mediaType == .video ?
+                       settings.cameraErrorTitle :
+                        settings.microphoneErrorTitle, isPresented: $isPresented) {
+                    Button(settings.alertCancelAction, action: {
+                        isPresented = false
+                    })
+                    Button(settings.alertSettingsAction, action: {
+                        viewModel.openSettings()
                         isPresented = false
                     })
                 } message: {
-                    Text("""
-                         The [AI Assist Answer feature](https://docs.quickblox.com/docs/ios-uikit-ai-features#assist-answer) is currently not configured.
-                         
-                         To enable this functionality, you must set either the **.openAIAPIKey** or **.proxyServerURLPath** properties for QuickBloxUIKit.feature.ai.assistAnswer
-
-                         To disable the feature, simply set QuickBloxUIKit.feature.ai.assistAnswer.enable = false.
-                         """)
+                    Text(viewModel.permissionNotGranted.mediaType == .video ?
+                         settings.cameraErrorMessage : settings.microphoneErrorMessage)
                 }
+        }
+    }
+}
+
+extension View {
+    func permissionAlert<ViewModel: PermissionProtocol>(
+        isPresented: Binding<Bool>,
+        viewModel: ViewModel
+    ) -> some View {
+        self.modifier(PermissionAlert(viewModel: viewModel,
+                                      isPresented: isPresented))
+    }
+}
+
+
+struct CustomAIFailAlert: ViewModifier {
+    public var settings = QuickBloxUIKit.settings.dialogInfoScreen.editNameAlert
+    public var answer = QuickBloxUIKit.settings.dialogScreen
+    
+    @Binding var isPresented: Bool
+    
+    func body(content: Content) -> some View {
+        ZStack(alignment: .center) {
+            content.blur(radius: isPresented ? settings.blurRadius : 0.0).background(settings.background)
+                .disabled(isPresented)
+            if isPresented {
+                VStack() {
+                    Text(try! AttributedString(markdown:answer.invalidAI))
+                        .font(settings.textFont)
+                        .padding(.top, settings.textfieldPadding)
+                        .multilineTextAlignment(.leading)
+                        .padding([.horizontal, .bottom])
+                    
+                    VStack(spacing: 0) {
+                        Divider().background(settings.divider)
+                        
+                        Button() {
+                            withAnimation {
+                                isPresented = false
+                            }
+                        } label: {
+                            Text(settings.ok)
+                                .font(settings.okFont)
+                                .foregroundColor(settings.okForeground)
+                        }
+                        .frame(width: settings.size.width, height: settings.buttonHeight)
+                    }.frame(height: settings.buttonHeight)
+                    
+                }
+                
+                .background(settings.background)
+                .frame(width: settings.size.width)
+                .cornerRadius(settings.cornerRadius)
+            }
         }
     }
 }
@@ -272,7 +337,7 @@ extension View {
     func aiFailAlert(
         isPresented: Binding<Bool>
     ) -> some View {
-        self.modifier(AIFailAlert(isPresented: isPresented))
+        self.modifier(CustomAIFailAlert(isPresented: isPresented))
     }
 }
 
@@ -351,6 +416,7 @@ extension View {
 }
 
 import UIKit
+import AVFoundation
 
 struct FilePickerView: UIViewControllerRepresentable {
     public var settings = QuickBloxUIKit.settings.dialogNameScreen.mediaAlert

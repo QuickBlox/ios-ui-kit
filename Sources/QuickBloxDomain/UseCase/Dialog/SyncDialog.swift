@@ -61,13 +61,7 @@ where Dialog == DialogsRepo.DialogEntityItem,
                    users.isEmpty != false {
                     try? await usersRepo.save(usersToLocal: users)
                 }
-                
-                let saved = try? await dialogsRepo.get(dialogFromLocal: dialogId)
-                if saved != nil {
-                    try await dialogsRepo.update(dialogInLocal: dialog)
-                } else {
-                    try await dialogsRepo.save(dialogToLocal: dialog)
-                }
+                try await dialogsRepo.save(dialogToLocal: dialog)
             } catch { prettyLog(error) } }
         taskSyncUsers = nil
     }
@@ -76,7 +70,7 @@ where Dialog == DialogsRepo.DialogEntityItem,
         //TODO: Update Pagination logic
         taskSyncMessages = Task { [weak self] in
             do {
-                var page = Pagination(skip: 100, limit: 100, total: 0)
+                var page = Pagination(skip: 0, limit: 100, total: 0)
                 repeat {
                     try Task.checkCancellation()
                     guard let newPage = try await self?.syncMessages(with: page) else {
@@ -84,7 +78,7 @@ where Dialog == DialogsRepo.DialogEntityItem,
                     }
                     page = newPage
                 } while page.hasNextPage
-                page = Pagination(skip: 0, limit: 100, total: 0)
+                page = Pagination(skip: page.skip, limit: 100, total: 0)
                 _ = try await self?.syncMessages(with: page)
             } catch { prettyLog(error) }
             self?.taskSyncMessages = nil

@@ -20,7 +20,8 @@ where DialogItem == Repo.DialogEntityItem {
     
     public func execute() async throws {
         do {
-            _ = try await repo.create(dialogInRemote: dialog)
+            let dialog = try await repo.create(dialogInRemote: dialog)
+            try await repo.save(dialogToLocal: dialog)
         } catch  {
             prettyLog(error)
             throw error

@@ -9,24 +9,31 @@
 import Foundation
 import QuickBloxLog
 
-public class ReadMessage<Item: MessageEntity ,
-                         Repo: MessagesRepositoryProtocol>
-where Item == Repo.MessageEntityItem {
-    private let messageRepo: Repo
-    private let message: Item
+public class ReadMessage<MessageItem: MessageEntity ,
+                         MessageRepo: MessagesRepositoryProtocol,
+                         DialogItem: DialogEntity,
+                         DialogRepo: DialogsRepositoryProtocol>
+where MessageItem == MessageRepo.MessageEntityItem,
+      DialogItem == DialogRepo.DialogEntityItem {
+    private let messageRepo: MessageRepo
+    private var message: MessageItem
+    private let dialogRepo: DialogRepo
+    private var dialog: DialogItem
     
     
-    public init(message: Item,
-                messageRepo: Repo) {
+    public init(message: MessageItem,
+                messageRepo: MessageRepo,
+                dialogRepo: DialogRepo,
+                dialog: DialogItem) {
         self.messageRepo = messageRepo
         self.message = message
+        self.dialogRepo = dialogRepo
+        self.dialog = dialog
     }
     
     public func execute() async throws {
-        if message.text.isEmpty {
-            let info = "Unable to send empty message."
-            throw RepositoryException.incorrectData(description: info)
-        }
         try await messageRepo.read(messageInRemote: message)
+        try await dialogRepo.update(dialogInLocal: dialog)
+        _ = try await messageRepo.update(messageInLocal: message)
     }
 }

@@ -43,7 +43,7 @@ public struct AddMembersDialogView<ViewModel: AddMembersDialogProtocol>: View {
         ZStack {
             settings.backgroundColor.ignoresSafeArea()
             
-            AddUserListView(items: viewModel.displayed, searchText: $viewModel.search,
+            AddUserListView(items: viewModel.displayed, isSynced: viewModel.isSynced, searchText: $viewModel.search,
                             onSelect: { item in
                 viewModel.selected = item
                 isPresented.toggle()
@@ -60,9 +60,17 @@ public struct AddMembersDialogView<ViewModel: AddMembersDialogProtocol>: View {
                     viewModel.addSelectedUser()
                 })
         }
+        
         .addMembersHeader(onDismiss: {
             dismiss()
         })
+        
+        .disabled(viewModel.isProcessing == true)
+        .if(viewModel.isProcessing == true) { view in
+            view.overlay() {
+                CustomProgressView()
+            }
+        }
     }
 }
 
@@ -81,6 +89,9 @@ struct AddMembersView_Previews: PreviewProvider {
 
 import Combine
 private class AddMembersPreviewModel: AddMembersDialogProtocol {
+    var  isSynced: Bool = false
+    var isProcessing: Bool = false
+    
     var displayed: [QuickBloxData.User] = PreviewModel.users
     
     var selected: QuickBloxData.User?
