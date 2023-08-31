@@ -35,4 +35,5 @@ public struct LocalFileInfoDTO: Equatable, Identifiable, Hashable {
     var ext: FileExtension = .json
     var name: String = ""
     var path: FilePath = FilePath()
+    public var uid: String = ""
 }

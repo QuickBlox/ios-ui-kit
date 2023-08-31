@@ -66,6 +66,7 @@ open class DialogsViewModel: DialogsListProtocol {
                 if dialogId == self?.selectedItem?.id {
                     self?.selectedItem = nil
                 }
+                self?.dialogToBeDeleted = nil
             }
             .store(in: &cancellables)
         

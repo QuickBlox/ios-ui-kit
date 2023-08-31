@@ -44,6 +44,7 @@ extension LocalMessageDTO {
             fileInfo?.name = new.name
             fileInfo?.ext = new.ext
             fileInfo?.path = new.path
+            fileInfo?.uid = new.uid
         }
     }
 }
@@ -68,7 +69,8 @@ private extension RemoteMessageDTO {
                     id: file.id,
                     name: file.name,
                     type: file.ext.type.rawValue,
-                    path: file.path.remote
+                    path: file.path.remote,
+                    uid: file.uid
                 ))
         }
     }
@@ -105,6 +107,7 @@ extension Message {
                                 name: filesInfo.name)
             }
             fileInfo?.path.remote = filesInfo.path
+            fileInfo?.uid = filesInfo.uid
         }
     }
     
@@ -126,6 +129,7 @@ extension Message {
                             ext: info.ext,
                             name: info.name)
             fileInfo?.path = info.path
+            fileInfo?.uid = info.uid
         }
     }
 }

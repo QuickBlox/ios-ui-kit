@@ -76,6 +76,7 @@ private extension LocalFileDTO {
         type = value.type
         data = value.data
         path = value.path
+        uid = value.uid
     }
 }
 
@@ -85,7 +86,8 @@ private extension File {
         info = FileInfo(id: value.id,
                         ext: value.ext,
                         name: value.name,
-                        path: value.path)
+                        path: value.path,
+                        uid: value.uid)
         data = value.data
     }
 }
@@ -96,7 +98,8 @@ private extension File {
         info = FileInfo(id: value.id,
                         ext: value.ext,
                         name: value.name,
-                        path: value.path)
+                        path: value.path,
+                        uid: value.uid)
         data = value.data
     }
 }
@@ -109,5 +112,6 @@ private extension LocalFileDTO {
         type = value.info.type
         path = value.info.path
         data = value.data
+        uid = value.info.uid
     }
 }

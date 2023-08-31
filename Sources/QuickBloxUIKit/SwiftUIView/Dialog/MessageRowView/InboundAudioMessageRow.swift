@@ -96,6 +96,13 @@ public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .id(message.id)
+        .contextMenu {
+            Button {
+                save()
+            } label: {
+                Label("Save", systemImage: "folder")
+            }
+        }
     }
     
     private func play() {
@@ -105,6 +112,11 @@ public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
         } else {
             onTap(.play, data, url)
         }
+    }
+    
+    private func save() {
+        guard let url = fileTuple?.url, let data = fileTuple?.data else { return }
+        onTap(.save, data, url)
     }
 }
 

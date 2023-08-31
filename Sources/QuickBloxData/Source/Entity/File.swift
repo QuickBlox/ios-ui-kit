@@ -30,6 +30,7 @@ public struct FileInfo: FileInfoEntity {
     public var name: String
     public var type: FileType
     public var path: FilePath
+    public var uid: String
     
     public init(id: String,
                 ext: FileExtension,
@@ -44,6 +45,7 @@ public struct FileInfo: FileInfoEntity {
         }
         type = ext.type
         path = FilePath()
+        uid = ""
     }
 }
 
@@ -52,7 +54,8 @@ public extension FileInfo {
         self.init(id: value.id,
                   ext: value.ext,
                   name: value.name,
-                  path: FilePath(value.path))
+                  path: FilePath(value.path),
+                  uid: value.uid)
     }
 }
 

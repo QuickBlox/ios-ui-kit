@@ -20,4 +20,5 @@ public struct LocalFileDTO: DataStringConvertible {
     public var type: FileType = .file
     public var data: Data = Data()
     public var path: FilePath = FilePath()
+    public var uid: String = ""
 }
