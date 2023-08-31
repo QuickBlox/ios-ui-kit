@@ -39,4 +39,5 @@ public struct RemoteFileInfoDTO: Equatable {
     var name = ""
     var type = ""
     var path = ""
+    var uid = ""
 }

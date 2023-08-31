@@ -28,6 +28,7 @@ public protocol FileInfoEntity: Entity {
     var name: String { get set }
     var type: FileType { get set }
     var path: PathItem { get set }
+    var uid: String { get set }
     
     init(id: String, ext: FileExtension, name: String)
 }
@@ -36,12 +37,13 @@ extension FileInfoEntity {
     public init(id: String,
                 ext: FileExtension,
                 name: String,
-                path: PathItem) {
+                path: PathItem,
+                uid: String) {
         self.init(id: id, ext: ext, name: name)
-        self.name = name
         self.name = name
         self.type = ext.type
         self.path = path
+        self.uid = uid
     }
 }
 

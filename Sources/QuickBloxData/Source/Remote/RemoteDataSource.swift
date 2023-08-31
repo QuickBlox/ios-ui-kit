@@ -556,7 +556,6 @@ extension RemoteDataSource {
         system.dateSent = Date()
         
         system.recipientID = QBSession.current.currentUserID
-//        await stream.process(system)
         
         for id in dto.participantsIds {
             system.recipientID = UInt(id) ?? 0
@@ -893,6 +892,7 @@ extension RemoteDataSource {
             
             let fileName = blob.name ?? "file"
             let fileId = String(blob.id)
+            let fileUID = blob.uid ?? ""
             
             var fileExtension: FileExtension
             if let extStr = fileName.components(separatedBy: ".").last,
@@ -916,7 +916,8 @@ extension RemoteDataSource {
                                  name: fileName,
                                  type: fileExtension.type,
                                  data: dto.data,
-                                 path: filePath)
+                                 path: filePath,
+                                 uid: fileUID)
         } catch let nsError as NSError {
             throw try nsError.convertToRemoteException()
         } catch {
@@ -974,6 +975,7 @@ extension RemoteDataSource {
                 uploaded.name = fileName
                 uploaded.type = fileExtension.type
                 uploaded.path = filePath
+                uploaded.uid = uuid
                 return uploaded
             } catch let nsError as NSError {
                 throw try nsError.convertToRemoteException()
@@ -982,6 +984,10 @@ extension RemoteDataSource {
             }
         } else {
             var uploaded = try await get(fileWithPath: dto.id)
+            if uploaded.name.contains("json"), uploaded.ext != .json {
+                uploaded.name = uploaded.name.replacingOccurrences(of: "json",
+                                                             with: uploaded.ext.rawValue)
+            }
             if dto.name.contains(dto.ext.rawValue) {
                 let fileName = dto.name.replacingOccurrences(of: dto.ext.rawValue,
                                                              with: "")
@@ -1425,7 +1431,8 @@ private extension QBRequest {
                              name: fileName,
                              type: fileExt.type,
                              data: data,
-                             path: filePath)
+                             path: filePath,
+                             uid: uuid ?? "")
     }
     
     static func delete(file id: UInt) async throws {
@@ -1645,7 +1652,9 @@ extension QBChatMessage {
         }
         
         attachments = value.filesInfo.compactMap {
-            return QBChatAttachment($0)
+            var attachment = QBChatAttachment($0)
+            attachment["uid"] = $0.uid
+            return attachment
         }
         
         delayed = value.delayed
@@ -1658,15 +1667,26 @@ extension QBChatMessage {
 
 private extension RemoteFileInfoDTO {
     init (_ value: QBChatAttachment) throws {
-        guard let id = value.id else {
-            let info = "\(String(describing: QBChatAttachment.self)) id is missing"
-            throw MapperException.incorrectData(description: info)
+        if let id = value.id {
+            self.id = id
+        } else {
+            if let urlPath = value.url, let url = URL(string: urlPath) {
+                self.id = url.lastPathComponent
+            }
+            if let uid = value.customParameters?["uid"] {
+                self.id = uid
+            }
+            if let contentType = value["content-type"] {
+                type = contentType
+            }
         }
-        self.id = id
         
         name = value.name ?? ""
         type = value.type ?? ""
         path = value.url ?? ""
+        if let uid = value.customParameters?["uid"] {
+            self.uid = uid
+        }
     }
 }
 

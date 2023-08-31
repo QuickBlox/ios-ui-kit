@@ -79,9 +79,12 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
                                     if action == .play {
                                         viewModel.playAudio(data, action: action)
                                         tappedMessage = message
-                                    } else {
+                                    } else if action == .stop {
                                         viewModel.stopPlayng()
                                         tappedMessage = nil
+                                    } else if action == .save {
+                                        self.fileUrl = url
+                                        isFileExporterPresented = true
                                     }
                                 }
                             }, onAIFeature: { type, message in
@@ -188,9 +191,9 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
                     viewModel.sendStopTyping()
                     viewModel.stopPlayng()
                     isInfoPresented = true
-                    }))
-                    
-                        .sheet(isPresented: $isFileExporterPresented) {
+                }))
+            
+                .sheet(isPresented: $isFileExporterPresented) {
                     if let fileUrl = fileUrl {
                         ActivityViewController(activityItems: [fileUrl.lastPathComponent , fileUrl])
                     }
