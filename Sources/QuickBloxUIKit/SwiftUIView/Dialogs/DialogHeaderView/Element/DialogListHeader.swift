@@ -24,20 +24,24 @@ struct DialogListHeaderToolbarContent: ToolbarContent {
     
     public var body: some ToolbarContent {
         ToolbarItem(placement: .navigationBarLeading) {
-            Button {
-                onDismiss()
-            } label: {
-                if let title = settings.leftButton.title {
-                    Text(title).foregroundColor(settings.leftButton.color)
-                } else {
-                    settings.leftButton.image
-                        .resizable()
-                        .scaleEffect(settings.leftButton.scale)
-                        .tint(settings.leftButton.color)
-                        .padding(settings.leftButton.padding)
-                }
+            if settings.leftButton.hidden == false {
+                Button {
+                    onDismiss()
+                } label: {
+                    if let title = settings.leftButton.title {
+                        Text(title).foregroundColor(settings.leftButton.color)
+                    } else {
+                        settings.leftButton.image
+                            .resizable()
+                            .scaledToFit()
+                            .scaleEffect(settings.leftButton.scale)
+                            .tint(settings.leftButton.color)
+                            .padding(settings.leftButton.padding)
+                    }
+                }.frame(width: 32, height: 44)
             }
         }
+        
         
         ToolbarItem(placement: .principal) {
             Text(settings.title.text)
@@ -54,11 +58,12 @@ struct DialogListHeaderToolbarContent: ToolbarContent {
                 } else {
                     settings.rightButton.image
                         .resizable()
+                        .scaledToFit()
                         .scaleEffect(settings.rightButton.scale)
                         .tint(settings.rightButton.color)
                         .padding(settings.rightButton.padding)
                 }
-            }
+            }.frame(width: 44, height: 44)
         }
     }
 }

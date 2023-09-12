@@ -70,15 +70,15 @@ public class DialogInfoScreenSettings {
 }
 
 public struct NonEditInfoHeaderSettings {
-    public var displayMode: NavigationBarItem.TitleDisplayMode = .automatic
+    public var displayMode: NavigationBarItem.TitleDisplayMode = .inline
     public var backgroundColor: Color
-    public var leftButton: CancelButton
+    public var leftButton: BackButton
     public var title: DialogInfoTitle
     public var isHidden: Bool = false
     
     public init(_ theme: ThemeProtocol) {
         self.backgroundColor = theme.color.mainBackground
-        self.leftButton = CancelButton(theme)
+        self.leftButton = BackButton(theme)
         self.title = DialogInfoTitle(theme)
     }
     
@@ -96,18 +96,18 @@ public struct NonEditInfoHeaderSettings {
         }
     }
     
-    public struct CancelButton: ButtonSettingsProtocol {
+    public struct BackButton: ButtonSettingsProtocol {
         public var imageSize: CGSize?
         public var frame: CGSize?
         
         public var title: String? = nil
         public var image: Image
         public var color: Color
-        public var scale: Double = 1.0
+        public var scale: Double = 0.6
         public var padding: EdgeInsets = EdgeInsets(top: 0.0,
                                                     leading: 0.0,
                                                     bottom: 0.0,
-                                                    trailing: 0.0)
+                                                    trailing: 10.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.back
@@ -117,7 +117,7 @@ public struct NonEditInfoHeaderSettings {
 }
 
 public struct PrivateDialogInfoHeaderSettings {
-    public var displayMode: NavigationBarItem.TitleDisplayMode = .automatic
+    public var displayMode: NavigationBarItem.TitleDisplayMode = .inline
     public var backgroundColor: Color
     public var leftButton: CancelButton
     public var title: DialogInfoTitle
@@ -150,11 +150,11 @@ public struct PrivateDialogInfoHeaderSettings {
         public var title: String? = nil
         public var image: Image
         public var color: Color
-        public var scale: Double = 1.0
+        public var scale: Double = 0.6
         public var padding: EdgeInsets = EdgeInsets(top: 0.0,
                                                     leading: 0.0,
                                                     bottom: 0.0,
-                                                    trailing: 0.0)
+                                                    trailing: 10.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.back
@@ -164,7 +164,7 @@ public struct PrivateDialogInfoHeaderSettings {
 }
 
 public struct DialogInfoHeaderSettings {
-    public var displayMode: NavigationBarItem.TitleDisplayMode = .automatic
+    public var displayMode: NavigationBarItem.TitleDisplayMode = .inline
     public var backgroundColor: Color
     public var leftButton: CancelButton
     public var title: DialogInfoTitle
@@ -186,9 +186,9 @@ public struct DialogInfoHeaderSettings {
         public var title: String?
         public var image: Image
         public var color: Color
-        public var scale: Double = 1.0
+        public var scale: Double = 0.5
         public var padding: EdgeInsets = EdgeInsets(top: 0.0,
-                                                    leading: 0.0,
+                                                    leading: 16.0,
                                                     bottom: 0.0,
                                                     trailing: 0.0)
         
@@ -220,11 +220,11 @@ public struct DialogInfoHeaderSettings {
         public var title: String? = nil
         public var image: Image
         public var color: Color
-        public var scale: Double = 1.0
+        public var scale: Double = 0.6
         public var padding: EdgeInsets = EdgeInsets(top: 0.0,
                                                     leading: 0.0,
                                                     bottom: 0.0,
-                                                    trailing: 0.0)
+                                                    trailing: 10.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.back

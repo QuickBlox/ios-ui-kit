@@ -17,16 +17,14 @@ public struct InboundVideoMessageRow<MessageItem: MessageEntity>: View {
     
     var message: MessageItem
     
-    let onTap: (_ action: MessageAttachmentAction, _ image: Image?, _ url: URL?) -> Void
+    let onTap: (_ action: MessageAttachmentAction, _ url: URL?) -> Void
     
     @State public var fileTuple: (type: String, image: Image?, url: URL?)? = nil
-    
-    @State private var isPlaying: Bool = false
     
     @State private var progress: CGFloat = 0.5
     
     public init(message: MessageItem,
-                onTap: @escaping  (_ action: MessageAttachmentAction, _ image: Image?, _ url: URL?) -> Void) {
+                onTap: @escaping  (_ action: MessageAttachmentAction, _ url: URL?) -> Void) {
         self.message = message
         self.onTap = onTap
     }
@@ -45,7 +43,7 @@ public struct InboundVideoMessageRow<MessageItem: MessageEntity>: View {
                 HStack(spacing: 8) {
                     
                     Button {
-                        play()
+                        open()
                     } label: {
                         
                         ZStack(alignment: .center) {
@@ -126,13 +124,9 @@ public struct InboundVideoMessageRow<MessageItem: MessageEntity>: View {
         
     }
     
-    private func play() {
+    private func open() {
         guard let url = fileTuple?.url else { return }
-        if isPlaying == true {
-            onTap(.stop, nil, url)
-        } else {
-            onTap(.play, nil, url)
-        }
+        onTap(.open, url)
     }
 }
 
@@ -147,7 +141,7 @@ struct InboundVideoMessageRow_Previews: PreviewProvider {
                                                     text: "[Attachment]",
                                                     userId: "2d3d4d5d6d",
                                                     date: Date()),
-                                   onTap: { (_,_,_) in})
+                                   onTap: { (_,_) in})
             .previewDisplayName("Video with Thumbnail")
             
             InboundVideoMessageRow(message: Message(id: UUID().uuidString,
@@ -155,7 +149,7 @@ struct InboundVideoMessageRow_Previews: PreviewProvider {
                                                     text: "[Attachment]",
                                                     userId: "2d3d4d5d6d",
                                                     date: Date()),
-                                   onTap: { (_,_,_) in})
+                                   onTap: { (_,_) in})
             .previewDisplayName("Video without Thumbnail")
             
             InboundVideoMessageRow(message: Message(id: UUID().uuidString,
@@ -163,7 +157,7 @@ struct InboundVideoMessageRow_Previews: PreviewProvider {
                                                     text: "[Attachment]",
                                                     userId: "2d3d4d5d6d",
                                                     date: Date()),
-                                   onTap: { (_,_,_) in})
+                                   onTap: { (_,_) in})
             .previewDisplayName("Video without Thumbnail")
             .preferredColorScheme(.dark)
             
@@ -172,7 +166,7 @@ struct InboundVideoMessageRow_Previews: PreviewProvider {
                                                     text: "[Attachment]",
                                                     userId: "2d3d4d5d6d",
                                                     date: Date()),
-                                   onTap: { (_,_,_) in})
+                                   onTap: { (_,_) in})
             .previewDisplayName("Video with Thumbnail")
             .preferredColorScheme(.dark)
         }

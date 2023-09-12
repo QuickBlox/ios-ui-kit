@@ -16,12 +16,12 @@ public struct InboundFileMessageRow<MessageItem: MessageEntity>: View {
     
     var message: MessageItem
     
-    let onTap: (_ action: MessageAttachmentAction, _ image: Image?, _ url: URL?) -> Void
+    let onTap: (_ action: MessageAttachmentAction, _ url: URL?) -> Void
     
     @State public var fileTuple: (type: String, image: Image?, url: URL?)? = nil
     
     public init(message: MessageItem,
-                onTap: @escaping  (_ action: MessageAttachmentAction, _ image: Image?, _ url: URL?) -> Void) {
+                onTap: @escaping  (_ action: MessageAttachmentAction, _ url: URL?) -> Void) {
         self.message = message
         self.onTap = onTap
     }
@@ -39,9 +39,7 @@ public struct InboundFileMessageRow<MessageItem: MessageEntity>: View {
                 
                 HStack(alignment: .center, spacing: 8) {
                     Button {
-                        if let url = fileTuple?.url {
-                            onTap(.save, nil, url)
-                        }
+                        open()
                     } label: {
                     
                         HStack(alignment: .center, spacing: 8) {
@@ -87,6 +85,11 @@ public struct InboundFileMessageRow<MessageItem: MessageEntity>: View {
         .fixedSize(horizontal: false, vertical: true)
         .id(message.id)
     }
+    
+    private func open() {
+        guard let url = fileTuple?.url else { return }
+        onTap(.open, url)
+    }
 }
 
 private struct InboundFilePlaceholder: View {
@@ -121,7 +124,7 @@ struct InboundFileMessageRow_Previews: PreviewProvider {
                                                    text: "[Attachment]",
                                                    userId: "2d3d4d5d6d",
                                                    date: Date()),
-                                  onTap: { (_,_,_) in})
+                                  onTap: { (_,_) in})
             .previewDisplayName("Out Message")
             
             
@@ -130,7 +133,7 @@ struct InboundFileMessageRow_Previews: PreviewProvider {
                                                    text: "[Attachment]",
                                                    userId: "2d3d4d5d6d",
                                                    date: Date()),
-                                  onTap: { (_,_,_) in})
+                                  onTap: { (_,_) in})
             .previewDisplayName("Out Dark Message")
             .preferredColorScheme(.dark)
         }

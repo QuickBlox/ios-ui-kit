@@ -61,9 +61,9 @@ public struct DialogsHeaderSettings {
         public var title: String? = nil
         public var image: Image
         public var color: Color
-        public var scale: Double = 1.0
+        public var scale: Double = 0.5
         public var padding: EdgeInsets = EdgeInsets(top: 0.0,
-                                                    leading: 0.0,
+                                                    leading: 16.0,
                                                     bottom: 0.0,
                                                     trailing: 0.0)
         
@@ -87,8 +87,6 @@ public struct DialogsHeaderSettings {
             self.color = theme.color.mainText
             self.text = theme.string.dialogs
         }
-        
-        
     }
     
     public struct BackButton: ButtonSettingsProtocol {
@@ -98,11 +96,12 @@ public struct DialogsHeaderSettings {
         public var title: String? = nil
         public var image: Image
         public var color: Color
-        public var scale: Double = 1.0
+        public var scale: Double = 0.6
         public var padding: EdgeInsets = EdgeInsets(top: 0.0,
                                                     leading: 0.0,
                                                     bottom: 0.0,
-                                                    trailing: 0.0)
+                                                    trailing: 10.0)
+        public var hidden: Bool = false
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.back

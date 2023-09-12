@@ -315,6 +315,8 @@ QuickBloxUIKit comes with a range of AI features that enhance the capabilities o
 | Feature       | Group Dialog | Private Dialog |
 | :------------ | :----------- | :------------- |
 | Assist Answer | ✓            | ✓              |
+| Translate     | ✓            | ✓              |
+| Rephrase      | ✓            | ✓              |    
 
 ## Assist Answer
 
@@ -491,3 +493,171 @@ Resources:
 
 - [QBAIProxy Server](https://github.com/QuickBlox/qb-ai-assistant-proxy-server)
 - [QBAITranslate Swift Package](https://github.com/QuickBlox/QBAITranslate)
+
+## Rephrase
+
+The AI Rephrase feature in QuickBloxUIKit empowers you to seamlessly integrate AI Rephrase capabilities into your chat-based application using the [QBAIRephrase Swift package](https://github.com/QuickBlox/ios-ai-rephrase). This feature leverages the OpenAI [API key](https://platform.openai.com/account/api-keys) or [proxy server](https://github.com/QuickBlox/qb-ai-assistant-proxy-server) to generate responses more securely and efficiently.
+
+[block:image]
+{
+  "images": [
+    {
+      "image": [
+        "https://files.readme.io/d40175f-IMG_1221.PNG",
+        "",
+        ""
+      ],
+      "align": "center",
+      "sizing": "400px",
+      "border": true
+    }
+  ]
+}
+[/block]
+
+The AI Rephrase library allows you to rephrase a message using different tones so that the user can communicate effectively in different situations.
+
+### How to Use
+
+To use the AI Rephrase feature in your QuickBloxUIKit project, follow these steps:
+
+1. Enable the AI Rephrase feature:
+
+```swift
+QuickBloxUIKit.feature.ai.rephrase.enable = true
+```
+
+If this option is enabled, the user interface provides a clear option or menu that allows the user to select the desired tone.
+
+[block:image]
+{
+  "images": [
+    {
+      "image": [
+        "https://files.readme.io/05dd773-IMG_1221.jpeg",
+        "",
+        ""
+      ],
+      "align": "center",
+      "sizing": "400px",
+      "border": true
+    }
+  ]
+}
+[/block]
+
+Once a tone is selected, the message is rephrased to reflect the characteristics of the selected tone.  
+A paraphrased message retains the main purpose of the original message.
+
+[block:image]
+{
+  "images": [
+    {
+      "image": [
+        "https://files.readme.io/14de923-IMG_1222.jpeg",
+        "",
+        ""
+      ],
+      "align": "center",
+      "sizing": "400px",
+      "border": true
+    }
+  ]
+}
+[/block]
+
+Users have the ability to seamlessly switch between different tones without having to rewrite the original message.
+
+[block:image]
+{
+  "images": [
+    {
+      "image": [
+        "https://files.readme.io/a48525c-IMG_1223.jpeg",
+        "",
+        ""
+      ],
+      "align": "center",
+      "sizing": "400px",
+      "border": true
+    }
+  ]
+}
+[/block]
+
+After rephrasing a message, the user is given an easily accessible option to return to the original.  
+Clicking on this "Back to original" option will instantly restore the message to its original state.
+
+[block:image]
+{
+  "images": [
+    {
+      "image": [
+        "https://files.readme.io/c254562-IMG_1221.jpeg",
+        "",
+        ""
+      ],
+      "align": "center",
+      "sizing": "400px",
+      "border": true
+    }
+  ]
+}
+[/block]
+
+2. Set up the AI settings by providing either the OpenAI [API key](https://platform.openai.com/account/api-keys):
+
+   ```swift
+   QuickBloxUIKit.feature.ai.translate.openAIAPIKey = "YOUR_OPENAI_API_KEY"
+   ```
+
+Or set up with a proxy server:
+
+```swift
+QuickBloxUIKit.feature.ai.translate.proxyServerURLPath = "https://your-proxy-server-url"
+```
+
+> 👍 We recommend using a proxy server like the [QuickBlox AI Assistant Proxy Server](https://github.com/QuickBlox/qb-ai-assistant-proxy-server) offers significant benefits in terms of security and functionality:
+> 
+> - When making direct requests to the OpenAI API from the client-side, sensitive information like API keys may be exposed. By using a proxy server, the API keys are securely stored on the server-side, reducing the risk of unauthorized access or potential breaches. 
+> - The proxy server can implement access control mechanisms, ensuring that only authenticated and authorized users with valid QuickBlox user tokens can access the OpenAI API. This adds an extra layer of security to the communication.
+
+3. A developer using the AI Rephrase library has the ability to add custom ringtones to provide a more personalized experience for users. The developer will be able to define the name and behavior of a custom tone.
+
+```swift Swift
+let customTone = QBAIRephrase.ToneInfo(name: "Custom Tone", behavior: "Custom behavior", icon: "🦊")
+QuickBloxUIKit.feature.ai.rephrase.append(tone: customTone)
+```
+
+```
+    Custom tone, if selected, rephrases messages according to the specified behavior.
+```
+
+3. A developer using the AI Rephrase library has the ability to remove tones to tailor the user interface for their application.
+
+```swift Swift
+QuickBloxUIKit.feature.ai.rephrase.remove(tone: QBAIRephrase.ToneInfo.sarcastic)
+```
+
+Once removed, the default tone will no longer be available to end users.
+
+Incorporate AI Rephrase into your iOS chat application seamlessly using the QBAIRephrase Swift package. Unlock the potential of AI-driven interactions and provide your users with real-time translation capabilities, enhancing user communication and experience.  
+For additional resources, explore the QuickBlox AI Assistant Proxy Server and the QBAIRephrase Swift package repositories.  
+Resources:
+
+- [QBAIProxy Server](https://github.com/QuickBlox/qb-ai-assistant-proxy-server)
+- [QBAIRephrase Swift package](https://github.com/QuickBlox/QBAITranslate)
+- [QuickBlox Documentation](https://quickblox.com/documentation/ios/ai-features)
+
+### Default tones:
+
+- **Professional tone:** This will allow you to edit messages to sound more formal, using technical language, clear sentence structures, and maintaining a respectful tone. This would avoid colloquial language and ensure appropriate greetings and signatures.
+- **Friendly Tone:** This will allow you to tailor your messages to reflect a casual, friendly tone. It will include casual language, use emoticons, exclamation points and other informal elements to make the message seem more friendly and approachable.
+- **Encouraging tone**: This tone will be useful for motivation and encouragement. It will include positive words, affirmations and express support and faith in the recipient.
+- **Empathic Tone:** This tone will be used to show understanding and empathy. This will require softer language, acknowledgment of feelings, and demonstrations of compassion and support.
+- **Neutral Tone:** For when you want to maintain an even, impartial and objective tone. He will avoid harsh statements and emotional words, preferring clear and direct communication.
+- **Assertive Tone**: This tone is useful for making a clear statement, asserting a position, or in negotiations. He uses direct speech, is confident and does not soften his words.
+- **Instructive Tone:** This tone would be useful for tutorials, guides, or other teaching and learning materials. It is clear, concise and logically guides the reader through the steps or processes.
+- **Persuasive Tone:** This tone can be used when trying to convince someone or to argue your point. He uses persuasive language, strong words and logical reasoning.
+- **Sarcastic/Ironic Tone:** This tone can make the communication more humorous or convey an ironic attitude. It is more difficult to implement because it requires the AI to understand the nuances of the language and may not always be perceived by the reader as intended.
+- **Poetic Tone:** This will add an artistic touch to messages by using figurative language, rhyme, and rhythm to create more expressive text.

@@ -61,7 +61,6 @@ public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
                                 VStack(alignment: .leading, spacing: settings.infoSpacing) {
                                     settings.waveImage
                                         .resizable()
-                                        .scaledToFill()
                                         .frame(width: settings.audioImageSize.width, height: settings.audioImageSize.height)
                                     
                                     Text(fileTuple?.time.audioString() ?? "00:00")

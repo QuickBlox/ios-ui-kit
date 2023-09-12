@@ -38,11 +38,15 @@ struct DialogInfoHeaderToolbarContent: ToolbarContent {
                 } else {
                     settings.leftButton.image
                         .resizable()
+                        .scaledToFit()
                         .scaleEffect(settings.leftButton.scale)
                         .tint(settings.leftButton.color.opacity(disabled == true ? settings.opacity : 1.0))
                         .padding(settings.leftButton.padding)
                 }
-            }.disabled(disabled)
+            }
+            .frame(width: 32, height: 44)
+            .disabled(disabled)
+                
         }
         
         ToolbarItem(placement: .navigationBarTrailing) {
@@ -54,11 +58,15 @@ struct DialogInfoHeaderToolbarContent: ToolbarContent {
                 } else {
                     settings.rightButton.image
                         .resizable()
+                        .scaledToFit()
                         .scaleEffect(settings.rightButton.scale)
                         .tint(settings.rightButton.color.opacity(disabled == true ? settings.opacity : 1.0))
                         .padding(settings.rightButton.padding)
                 }
-            }.disabled(disabled)
+            }
+            .frame(width: 44, height: 44)
+            .disabled(disabled)
+                
         }
     }
 }
@@ -93,21 +101,14 @@ public struct DialogInfoHeader: ViewModifier {
     }
 }
 
-public struct InfoDialogAvatar<Item: DialogEntity>: View {
+public struct InfoDialogAvatar: View {
     public var settings = QuickBloxUIKit.settings.dialogInfoScreen.avatar
     
-    var dialog: Item
-    @State var avatar: Image? = nil
-    @Binding var isProcessing: Bool
-    
-    public init(dialog: Item, isProcessing: Binding<Bool>) {
-        self.dialog = dialog
-        _isProcessing = isProcessing
-    }
+    @EnvironmentObject var viewModel: DialogInfoViewModel
     
     public var body: some View {
         VStack(spacing: 8.0) {
-            if isProcessing == true {
+            if viewModel.isProcessing == true {
                 ZStack {
                     Color.gray
                         .frame(width: settings.height, height: settings.height)
@@ -116,34 +117,17 @@ public struct InfoDialogAvatar<Item: DialogEntity>: View {
                     ProgressView()
                 }
             } else {
-                AvatarView(image: avatar ?? dialog.placeholder,
+                AvatarView(image: viewModel.avatar ?? viewModel.dialog.placeholder,
                            height: settings.height,
                            isHidden: settings.isHidden)
-                .task {
-                    do { avatar = try await dialog.avatar } catch { prettyLog(error) }
-                }
             }
             
-            Text(dialog.name)
+            Text(viewModel.dialog.name)
                 .font(settings.font)
                 .foregroundColor(settings.color)
         }
         .frame(height: settings.containerHeight)
         .padding(settings.padding)
-        .onChange(of: dialog.photo) { newValue in
-            if newValue.isEmpty == false, newValue != "null" {
-                Task {
-                    do {
-                        let avatar = try await dialog.avatar
-                        await MainActor.run {
-                            self.avatar = avatar
-                        }
-                    } catch { prettyLog(error) }
-                }
-            } else {
-                avatar = nil
-            }
-        }
     }
 }
 

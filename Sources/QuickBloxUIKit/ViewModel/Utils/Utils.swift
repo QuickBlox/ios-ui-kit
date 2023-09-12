@@ -50,7 +50,9 @@ extension DialogEntity {
             var path: String
             switch type {
             case .group, .public:
-                if photo.isEmpty || photo == "null" { return placeholder }
+                if photo.isEmpty || photo == "null" {
+                    return placeholder
+                }
                 path = photo
                 if path.hasPrefix("http"),
                    let url = URL(string: path),
@@ -60,7 +62,7 @@ extension DialogEntity {
                 }
             case .private, .unknown:
                 let usersRepo = RepositoriesFabric.users
-                guard let userId = participantsIds.first else {
+                guard let userId = participantsIds.filter({ isOwnedByCurrentUser == true ? $0 != ownerId : $0 == ownerId}).first else {
                     return placeholder
                 }
                 let getUser = GetUser(id: userId, repo: usersRepo)
@@ -123,7 +125,7 @@ extension DialogEntity {
                 return (fileName, nil, settings.audioPlaceholder)
             case .video:
                 return (fileName, nil, settings.videoPlaceholder)
-            case .image, .gif:
+            case .image:
                 if let uiImage = imageCache.imageFromCache(id + "1x") {
                     return (fileName, Image(uiImage: uiImage), settings.imagePlaceholder)
                 }
@@ -158,14 +160,12 @@ private extension FileExtension {
         case .video: return "Video.\(self)"
         case .audio: return "Audio.\(self)"
         case .file: return "File.\(self)"
-        case .gif: return "GIF.\(self)"
         }
     }
 }
 
 extension DialogEntity {
     public var displayedMessages: [MessageItem]  {
-        var displayed: [MessageItem] = []
         var dividers: Set<Date> = []
         var tempMessages: [MessageItem] = []
         for message in messages {
@@ -204,7 +204,7 @@ extension DialogEntity {
                 }
             }
         }
-        displayed = tempMessages
+        let displayed = tempMessages
         return displayed
     }
     
@@ -327,20 +327,22 @@ extension MessageEntity {
                     }
                 }
                 return (uploaded.info.name, image, localURL)
-            case .image, .gif:
+            case .image:
                 guard let uiImage = UIImage(data: uploaded.data) else {
                     return (uploaded.info.name, settings.imagePlaceholder, nil)
                 }
+                let localURL = uploaded.temporaryUrl
                 if let size {
                     if let cachedImage = imageCache.imageFromCache(id) {
-                        return (uploaded.info.name, Image(uiImage: cachedImage), nil)
+                        return (uploaded.info.name, Image(uiImage: cachedImage), localURL)
                     }
+                    
                     let resized = uiImage.resize(to: size)
                     imageCache.store(resized, for: id)
                     let image = Image(uiImage: resized)
-                    return (uploaded.info.name, image ,nil)
+                    return (uploaded.info.name, image ,localURL)
                 }
-                return (uploaded.info.name, Image(uiImage: uiImage) ,nil)
+                return (uploaded.info.name, Image(uiImage: uiImage) ,localURL)
             case .file:
                 let localURL = uploaded.temporaryUrl
                 return (uploaded.info.name,
@@ -446,23 +448,6 @@ extension UserEntity {
 
 
 extension File {
-    var preview: Image? {
-        get async {
-            if QuickBloxUIKit.previewAware, id.isEmpty {  return nil }
-            
-            guard let url = info.path.localURL else {
-                prettyLog(label: "use placeholder, reason", DataSourceException.notFound(description: "getThumbnailImage"))
-                return nil
-            }
-            guard let uiImage = await url.getThumbnailImage() else {
-                
-                prettyLog(label: "use placeholder, reason", DataSourceException.notFound(description: "getThumbnailImage"))
-                return nil
-            }
-            return Image(uiImage: uiImage)
-        }
-    }
-    
     var placeholderPreview: Image {
         get async {
             let settings = QuickBloxUIKit.settings.dialogsScreen.dialogRow.lastMessage
@@ -472,7 +457,7 @@ extension File {
                 return settings.audioPlaceholder
             case .video:
                 return settings.videoPlaceholder
-            case .image, .gif:
+            case .image:
                 return settings.imagePlaceholder
             case .file:
                 return settings.filePlaceholder
@@ -534,7 +519,6 @@ extension URL {
     }
                                                          
     func getThumbnailImage(completion: @escaping ((_ image: UIImage?) -> Void)) {
-    
         if let document = CGPDFDocument(self as CFURL),
            let page = document.page(at: 1) {
             let pageRect = page.getBoxRect(.mediaBox)

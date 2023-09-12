@@ -82,7 +82,6 @@ public enum FileType: String, Codable, Hashable {
     case audio
     case video
     case image
-    case gif
     case file
 }
 
@@ -93,12 +92,12 @@ public enum FileExtension: String, Codable, Hashable {
         // Videos
         case .mp4, .mov, .avi, .mkv, .wmv, .flv, .mpg, .mpeg, .webm, .m4v, .vob,
                 .ts, .threeGP, .ogv, .mts, .f4v, .rm, .rmvb, .divx, .asf, .ogg,
-                .m2ts, .mxf, .swf, .amv, .drc, .mng, .srt:
+                .m2ts, .mxf, .swf, .amv, .drc, .mng, .srt, .gif:
             return .video
         // Audios
         case .mp3, .wav, .aac, .flac, .m4a, .wma, .amr, .aiff, .alac, .opus,
                 .au, .pcm, .dsd, .mp2, .m3u, .ra, .mid, .ac3, .eac3, .caf,
-                .mp1, .mpa, .m4p, .mpc, .oga:
+                .mp1, .mpa, .m4p, .mpc, .oga, .mp4a:
             return .audio
         // Files
         case .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx, .txt, .rtf, .csv,
@@ -108,8 +107,7 @@ public enum FileExtension: String, Codable, Hashable {
         // Images
         case .jpeg, .jpg, .png, .bmp, .tiff, .webp, .svg, .ico, .heic, .heif:
             return .image
-        case .gif:
-            return .gif
+        
         }
     }
     
@@ -169,6 +167,7 @@ public enum FileExtension: String, Codable, Hashable {
     case m4p
     case mpc
     case oga
+    case mp4a
     
     //MARK: Files cases
     case pdf
@@ -325,6 +324,8 @@ public enum FileExtension: String, Codable, Hashable {
             return "audio/x-musepack"
         case .oga:
             return "audio/ogg"
+        case .mp4a:
+            return "audio/mp4a"
             
             //MARK: Files mimeType
         case .pdf:

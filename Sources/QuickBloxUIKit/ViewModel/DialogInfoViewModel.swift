@@ -22,6 +22,7 @@ public protocol DialogInfoProtocol: ObservableObject, PermissionProtocol  {
     var isExistingImage: Bool { get }
     var isProcessing: Bool { get set }
     var permissionNotGranted: PermissionInfo { get set }
+    var avatar: Image? { get set }
     
     func removeExistingImage()
     func handleOnSelect(attachmentAsset: AttachmentAsset)
@@ -42,6 +43,8 @@ open class DialogInfoViewModel: DialogInfoProtocol {
     @Published public var isProcessing: Bool = false
     @Published public var permissionNotGranted: PermissionInfo = PermissionInfo(mediaType: .video)
     
+    @Published public var avatar: Image? = nil
+    
     public var isExistingImage: Bool {
         if dialog.photo == "null" { return false }
         return dialog.photo.isEmpty == false
@@ -53,6 +56,7 @@ open class DialogInfoViewModel: DialogInfoProtocol {
     
     private var taskUpdate: Task<Void, Never>?
     private var taskDelete: Task<Void, Never>?
+    private var taskGetAvatar: Task<Void, Never>?
     
     private var publishers = Set<AnyCancellable>()
     
@@ -62,10 +66,36 @@ open class DialogInfoViewModel: DialogInfoProtocol {
         let dialogName = dialog.name
         self.dialogName = dialogName
         
+        getAvatar()
+        
         isDialogNameValidPublisher
             .receive(on: RunLoop.main)
             .assign(to: \.isValidDialogName, on: self)
             .store(in: &publishers)
+    }
+    
+    private func getAvatar() {
+        isProcessing = true
+        taskGetAvatar = Task { [weak self] in
+            do {
+                let avatar = try await self?.dialog.avatar
+                
+                await MainActor.run { [weak self, avatar] in
+                    self?.avatar = avatar
+                    self?.isProcessing = false
+                }
+                self?.taskGetAvatar = nil
+            } catch {
+                prettyLog(error)
+                if error is RepositoryException {
+                    await MainActor.run { [weak self] in
+                        guard let self = self else { return }
+                        self.isProcessing = false
+                    }
+                    self?.taskGetAvatar = nil
+                }
+            }
+        }
     }
     
     public func updateDialog(_ modeldDialog: Dialog) {
@@ -78,27 +108,15 @@ open class DialogInfoViewModel: DialogInfoProtocol {
                 try await update.execute()
                 
                 await MainActor.run { [weak self] in
-                    if let uuid = self?.attachmentAsset?.name {
-                        self?.dialog.removeAvatar()
-                        self?.dialog.photo = uuid
-                    } else {
-                        self?.dialog.photo = "null"
-                        self?.dialog.removeAvatar()
-                    }
-                }
-                self?.setAvatarCompletion()
-                await MainActor.run { [weak self] in
-                    guard let self = self else { return }
-                    self.isProcessing = true
+                    self?.getAvatar()
                 }
                 self?.taskUpdate = nil
             } catch {
                 prettyLog(error)
                 if error is RepositoryException {
-                    self?.setAvatarCompletion()
                     await MainActor.run { [weak self] in
                         guard let self = self else { return }
-                        self.isProcessing = true
+                        self.isProcessing = false
                     }
                     self?.taskUpdate = nil
                 }
@@ -106,15 +124,8 @@ open class DialogInfoViewModel: DialogInfoProtocol {
         }
     }
     
-    private func setAvatarCompletion() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            self.isProcessing = false
-        }
-    }
-    
     public func handleOnSelect(attachmentAsset: AttachmentAsset) {
         if let uiImage = attachmentAsset.image {
-            dialog.removeAvatar()
             isProcessing = true
             self.attachmentAsset = attachmentAsset
             updateDialog(avatar: uiImage, name: dialogName)
@@ -153,8 +164,8 @@ open class DialogInfoViewModel: DialogInfoProtocol {
                 guard let uuid = fileInfo.info.path.uuid else { return }
                 await MainActor.run { [weak self, uuid] in
                     guard let self = self else { return }
-                    self.dialog.photo = uuid
                     self.dialog.removeAvatar()
+                    self.dialog.photo = uuid
                     self.updateDialog(dialog)
                 }
             }

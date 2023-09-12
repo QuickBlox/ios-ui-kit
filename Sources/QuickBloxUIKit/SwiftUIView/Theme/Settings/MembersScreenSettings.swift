@@ -59,7 +59,7 @@ public struct MembersHeaderSettings {
     public var backgroundColor: Color
     public var leftButton: CancelButton
     public var title: MembersTitle
-    public var rightButton: CreateButton
+    public var rightButton: AddMemberButton
     public var opacity: CGFloat = 0.4
     public var isHidden: Bool = false
     
@@ -67,19 +67,19 @@ public struct MembersHeaderSettings {
         self.backgroundColor = theme.color.mainBackground
         self.leftButton = CancelButton(theme)
         self.title = MembersTitle(theme)
-        self.rightButton = CreateButton(theme)
+        self.rightButton = AddMemberButton(theme)
     }
     
-    public struct CreateButton: ButtonSettingsProtocol {
+    public struct AddMemberButton: ButtonSettingsProtocol {
         public var imageSize: CGSize?
         public var frame: CGSize?
         
         public var title: String? = nil
         public var image: Image
         public var color: Color
-        public var scale: Double = 1.0
+        public var scale: Double = 0.5
         public var padding: EdgeInsets = EdgeInsets(top: 0.0,
-                                                    leading: 0.0,
+                                                    leading: 16.0,
                                                     bottom: 0.0,
                                                     trailing: 0.0)
         
@@ -110,11 +110,11 @@ public struct MembersHeaderSettings {
         public var title: String? = nil
         public var image: Image
         public var color: Color
-        public var scale: Double = 1.0
+        public var scale: Double = 0.6
         public var padding: EdgeInsets = EdgeInsets(top: 0.0,
                                                     leading: 0.0,
                                                     bottom: 0.0,
-                                                    trailing: 0.0)
+                                                    trailing: 10.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.back

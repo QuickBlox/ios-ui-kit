@@ -8,14 +8,11 @@
 
 import SwiftUI
 import QBAITranslate
-
-public enum AIFeatureType {
-    case answerAssist, translate, rephrase
-}
+import QBAIRephrase
 
 public class Feature {
     /// An instance of the AI module for AI-related settings and operations.
-    public var aiFeature: AIFeature = AIFeature()
+    public var ai: AIFeature = AIFeature()
     
 }
 
@@ -69,9 +66,11 @@ public class AIFeature {
     
     /// Settings for edit functionality using the OpenAI API key or QuickBlox token and proxy server.
     public var rephrase: AIRephraseSettings =
-    AIRephraseSettings(enable: false,
+    AIRephraseSettings(enable: true,
                        openAIToken: "",
                        proxyServerURLPath: "")
+    
+    public var ui: AIUISettings = AIUISettings(QuickBloxUIKit.settings.theme)
 }
 
 /// Settings for assist answer functionality.
@@ -176,10 +175,28 @@ extension AITranslateSettings: QBAITranslate.LanguageSettings {
 
 /// Settings for rephrase functionality.
 public class AIRephraseSettings {
-    public var tones: [AITone] = aiRephraseTones
+    public var tones: [any QBAIRephrase.Tone] {
+        return QBAIRephrase.tones
+    }
+    
+    public func index<T>(of tone: T) -> Int? where T: QBAIRephrase.Tone {
+        return QBAIRephrase.index(of: tone)
+    }
+    
+    public func append<T>(tone: T) where T: QBAIRephrase.Tone {
+        QBAIRephrase.append(tone)
+    }
+    
+    public func insert<T>(tone: T, at index: Int) where T: QBAIRephrase.Tone {
+        QBAIRephrase.insert(tone, at: index)
+    }
+    
+    public func remove<T>(tone: T) where T: QBAIRephrase.Tone {
+        QBAIRephrase.remove(tone)
+    }
     
     /// Determines if assist answer functionality is enabled.
-    public var enable: Bool = false
+    public var enable: Bool = true
     
     /// The OpenAI API key for direct API requests (if not using a proxy server).
     public var openAIAPIKey: String = ""
@@ -205,28 +222,66 @@ public class AIRephraseSettings {
     }
 }
 
-public protocol AIToneProtocol {
-    var type: String { get set }
-    var name: String { get set }
-    var icon: String { get set }
+public struct AIUISettings {
+    public var translate: AITranslateUISettings
+    public var answerAssist: AIAnswerAssistUISettings
+    public var rephrase: AIRephraseUISettings
+    
+    public init(_ theme: ThemeProtocol) {
+        self.translate = AITranslateUISettings(theme)
+        self.answerAssist = AIAnswerAssistUISettings(theme)
+        self.rephrase = AIRephraseUISettings(theme)
+    }
 }
 
-public struct AITone: AIToneProtocol, Hashable {
-    public var type: String
-    public var name: String
-    public var icon: String
+public struct AIRephraseUISettings {
+    public var nameForeground: Color
+    public var nameFont: Font
+    public var iconFont: Font
+    public var bubbleBackground: Color
+    public var bubbleRadius: CGFloat = 12.5
+    public var contentSpacing: CGFloat = 4.0
+    public var height: CGFloat = 25.0
+    public var contentPadding: CGFloat = 6.0
+    
+    public init(_ theme: ThemeProtocol) {
+        self.nameForeground = theme.color.mainText
+        self.nameFont = theme.font.callout
+        self.iconFont = theme.font.caption
+        self.bubbleBackground = theme.color.outgoingBackground
+    }
 }
 
-public var aiRephraseTones: [AITone] = [
-    AITone(type: "original", name: "Back to original text", icon: "✅"),
-    AITone(type: "professional", name: "Professional Tone", icon: "👔"),
-    AITone(type: "friendly", name: "Friendly Tone", icon: "🤝"),
-    AITone(type: "encouraging", name: "Encouraging Tone", icon: "💪"),
-    AITone(type: "empathetic", name: "Empathetic Tone", icon: "🤲"),
-    AITone(type: "neutral", name: "Neutral Tone", icon: "😐"),
-    AITone(type: "assertive", name: "Assertive Tone", icon: "🔨"),
-    AITone(type: "instructive", name: "Instructive Tone", icon: "📖"),
-    AITone(type: "persuasive", name: "Persuasive Tone", icon: "☝️"),
-    AITone(type: "sarcastic", name: "Sarcastic/Ironic Tone", icon: "😏"),
-    AITone(type: "poetic", name: "Poetic Tone", icon: "🎭")
-]
+public struct AITranslateUISettings {
+    public var showOriginal: String
+    public var showTranslation: String
+    public var width: CGFloat
+    
+    public init(_ theme: ThemeProtocol) {
+        self.showOriginal = theme.string.showOriginal
+        self.showTranslation = theme.string.showTranslation
+        self.width = max(self.showTranslation, self.showOriginal)
+            .size(withAttributes: [.font: UIFont.preferredFont(forTextStyle: .caption2)])
+            .width + 24.0
+    }
+}
+
+public struct AIAnswerAssistUISettings {
+    public var title: String
+    
+    public init(_ theme: ThemeProtocol) {
+        self.title = theme.string.answerAssistTitle
+    }
+}
+
+public enum AIFeatureType {
+    case answerAssist, translate, rephrase
+    
+    var invalid: String {
+        switch self {
+        case .answerAssist: return QuickBloxUIKit.settings.theme.string.invalidAIAnswerAssist
+        case .translate: return QuickBloxUIKit.settings.theme.string.invalidAITranslate
+        case .rephrase: return QuickBloxUIKit.settings.theme.string.invalidAIRephrase
+        }
+    }
+}

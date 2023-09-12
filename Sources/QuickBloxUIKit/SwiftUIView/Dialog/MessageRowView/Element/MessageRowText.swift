@@ -11,7 +11,7 @@ import QuickBloxDomain
 
 public struct MessageRowText: View {
     var settings = QuickBloxUIKit.settings.dialogScreen.messageRow
-    var aiFeatures = QuickBloxUIKit.feature.aiFeature
+    var aiFeatures = QuickBloxUIKit.feature.ai
     
     let isOutbound: Bool
     var text: String = ""
@@ -26,7 +26,7 @@ public struct MessageRowText: View {
             .multilineTextAlignment(.leading)
             .font(isOutbound == true ? settings.outboundFont : settings.inboundFont)
             .padding(settings.messagePadding)
-            .frame(minWidth: aiFeatures.translate.enable == true ? settings.ai.translate.width : 0, alignment: .leading)
+            .frame(minWidth: aiFeatures.translate.enable == true ? aiFeatures.ui.translate.width : 0, alignment: .leading)
             .background(isOutbound == true ? settings.outboundBackground : settings.inboundBackground)
             .cornerRadius(settings.bubbleRadius, corners: isOutbound == true ? settings.outboundCorners : settings.inboundCorners)
             .padding(isOutbound == true ? settings.outboundPadding : settings.inboundPadding(showName: settings.isHiddenName))
@@ -37,7 +37,7 @@ public struct MessageRowText: View {
                 .font(isOutbound == true ? settings.outboundFont : settings.inboundFont)
                 .foregroundColor(isOutbound == true ? settings.outboundForeground : settings.inboundForeground)
                 .padding(settings.messagePadding)
-                .frame(minWidth: aiFeatures.translate.enable == true ? settings.ai.translate.width : 0, alignment: .leading)
+                .frame(minWidth: aiFeatures.translate.enable == true ? aiFeatures.ui.translate.width : 0, alignment: .leading)
                 .background(isOutbound == true ? settings.outboundBackground : settings.inboundBackground)
                 .cornerRadius(settings.bubbleRadius, corners: isOutbound == true ? settings.outboundCorners : settings.inboundCorners)
                 .padding(isOutbound == true ? settings.outboundPadding : settings.inboundPadding(showName: settings.isHiddenName))

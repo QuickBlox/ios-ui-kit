@@ -17,16 +17,14 @@ public struct OutboundGIFMessageRow<MessageItem: MessageEntity>: View {
     
     var message: MessageItem
     
-    let onTap: (_ action: MessageAttachmentAction, _ image: Image?, _ url: URL?) -> Void
+    let onTap: (_ action: MessageAttachmentAction, _ url: URL?) -> Void
     
     @State public var fileTuple: (type: String, image: Image?, url: URL?)? = nil
-    
-    @State private var isPlaying: Bool = false
     
     @State private var progress: CGFloat = 0.5
     
     public init(message: MessageItem,
-                onTap: @escaping  (_ action: MessageAttachmentAction, _ image: Image?, _ url: URL?) -> Void) {
+                onTap: @escaping  (_ action: MessageAttachmentAction, _ url: URL?) -> Void) {
         self.message = message
         self.onTap = onTap
     }
@@ -49,7 +47,7 @@ public struct OutboundGIFMessageRow<MessageItem: MessageEntity>: View {
             }
             
             Button {
-                play()
+                open()
             } label: {
                 
                 VStack(alignment: .leading, spacing: 2) {
@@ -115,13 +113,9 @@ public struct OutboundGIFMessageRow<MessageItem: MessageEntity>: View {
         
     }
     
-    private func play() {
+    private func open() {
         guard let url = fileTuple?.url else { return }
-        if isPlaying == true {
-            onTap(.stop, nil, url)
-        } else {
-            onTap(.play, nil, url)
-        }
+        onTap(.open, url)
     }
 }
 
@@ -136,7 +130,7 @@ struct OutboundGIFMessageRow_Previews: PreviewProvider {
                                                    text: "[Attachment]",
                                                    userId: "2d3d4d5d6d",
                                                    date: Date()),
-                                  onTap: { (_,_,_) in})
+                                  onTap: { (_,_) in})
             .previewDisplayName("Video with Thumbnail")
             
             OutboundGIFMessageRow(message: Message(id: UUID().uuidString,
@@ -144,7 +138,7 @@ struct OutboundGIFMessageRow_Previews: PreviewProvider {
                                                    text: "[Attachment]",
                                                    userId: "2d3d4d5d6d",
                                                    date: Date()),
-                                  onTap: { (_,_,_) in})
+                                  onTap: { (_,_) in})
             .previewDisplayName("Video without Thumbnail")
             
             OutboundGIFMessageRow(message: Message(id: UUID().uuidString,
@@ -152,7 +146,7 @@ struct OutboundGIFMessageRow_Previews: PreviewProvider {
                                                    text: "[Attachment]",
                                                    userId: "2d3d4d5d6d",
                                                    date: Date()),
-                                  onTap: { (_,_,_) in})
+                                  onTap: { (_,_) in})
             .previewDisplayName("Video without Thumbnail")
             .preferredColorScheme(.dark)
             
@@ -161,7 +155,7 @@ struct OutboundGIFMessageRow_Previews: PreviewProvider {
                                                    text: "[Attachment]",
                                                    userId: "2d3d4d5d6d",
                                                    date: Date()),
-                                  onTap: { (_,_,_) in})
+                                  onTap: { (_,_) in})
             .previewDisplayName("Video with Thumbnail")
             .preferredColorScheme(.dark)
         }

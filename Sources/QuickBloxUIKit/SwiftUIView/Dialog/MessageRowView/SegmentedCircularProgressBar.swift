@@ -31,7 +31,7 @@ struct SegmentedCircularProgressBar: View {
     
     var body: some View {
         ZStack {
-            ForEach(0..<settings.segments) { index in
+            ForEach(0..<settings.segments, id: \.self) { index in
                 segment(at: index)
             }
         }

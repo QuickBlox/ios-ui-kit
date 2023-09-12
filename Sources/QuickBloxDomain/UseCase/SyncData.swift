@@ -237,11 +237,15 @@ extension SyncData {
                         } else {
                             try await self?.sync(dialog: id)
                         }
-                    } catch { prettyLog(error) } }
+                    } catch {
+                        prettyLog(error)
+                    } }
                 case .update(dialogWithId: let id):
                     Task { [weak self] in do {
                         try await self?.sync(dialog: id)
-                    } catch { prettyLog(error) } }
+                    } catch {
+                        prettyLog(error)
+                    } }
                 case .leave(let dialogId, let current):
                     Task { [weak self] in do {
                         if current {
@@ -259,20 +263,32 @@ extension SyncData {
                 case .newMessage(let message):
                     Task { [weak self] in do {
                         try await self?.update(dialog: message)
-                    } catch { prettyLog(error) } }
+                    } catch {
+                        if let exception = error as? RepositoryException, exception == .notFound() {
+                            try await self?.sync(dialog: message.dialogId)
+                            try await self?.update(dialog: message)
+                        }
+                        prettyLog(error)
+                    } }
                 case .history(let dialogId, let messages):
                     Task { [weak self] in do {
                         try await self?.update(dialog: dialogId,
                                                history: messages)
-                    } catch { prettyLog(error) } }
+                    } catch {
+                        prettyLog(error)
+                    } }
                 case .read(let messageID, let dialogID):
                     Task { [weak self] in do {
                         try await self?.update(byRead: messageID, dialogID: dialogID)
-                    } catch { prettyLog(error) } }
+                    } catch {
+                        prettyLog(error)
+                    } }
                 case .delivered(let messageID, let dialogID):
                     Task { [weak self] in do {
                         try await self?.update(byDelivered: messageID, dialogID: dialogID)
-                    } catch { prettyLog(error) } }
+                    } catch {
+                        prettyLog(error)
+                    } }
                 case .typing(let userID, let dialogID):
                     print("typing user: \(userID) in dialog: \(dialogID)")
                 case .stopTyping(let userID, let dialogID):
@@ -298,6 +314,7 @@ extension SyncData {
                 dialog.lastMessage.text = last.text
                 dialog.lastMessage.dateSent = last.date
                 dialog.lastMessage.userId = last.userId
+                dialog.updatedAt = last.date
             }
         }
         dialog.messages = history
@@ -316,6 +333,7 @@ extension SyncData {
         dialog.lastMessage.text = newMessage.text
         dialog.lastMessage.dateSent = newMessage.date
         dialog.lastMessage.userId = newMessage.userId
+        dialog.updatedAt = newMessage.date
         dialog.messages = [newMessage]
         try await dialogsRepo.update(dialogInLocal: dialog)
     }
@@ -323,13 +341,14 @@ extension SyncData {
     func update(dialog newMessage: MessageItem) async throws {
         var dialog = try await dialogsRepo.get(dialogFromLocal: newMessage.dialogId)
         if dialog.lastMessage.id != newMessage.id,
-            newMessage.isOwnedByCurrentUser == false {
+           newMessage.isOwnedByCurrentUser == false {
             dialog.unreadMessagesCount += 1
         }
         dialog.lastMessage.id = newMessage.id
         dialog.lastMessage.text = newMessage.text
         dialog.lastMessage.dateSent = newMessage.date
         dialog.lastMessage.userId = newMessage.userId
+        dialog.updatedAt = newMessage.date
         dialog.messages = [newMessage]
         try await dialogsRepo.update(dialogInLocal: dialog)
     }

@@ -140,8 +140,8 @@ public struct RemoveUserRow<Item: UserEntity>: View  {
                 })
             }
         }
-        .padding(settings.padding)
         .frame(height: settings.height)
+        .padding(settings.padding)
         .background(settings.backgroundColor)
     }
     
@@ -204,6 +204,10 @@ public struct AddUserRow<Item: UserEntity>: View  {
 struct UserRowView_Previews: PreviewProvider {
     static var previews: some View {
         Group {
+            RemoveUserRow(PreviewModel.user1, isAdmin: true, ownerId: "cvvdvdvvcx", isSelected: false, onTap: { userId in
+                
+            })
+            
             UserRow(PreviewModel.user1, isSelected: false, onTap: { userId in
 
             })

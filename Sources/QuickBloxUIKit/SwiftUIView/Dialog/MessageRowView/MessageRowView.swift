@@ -15,7 +15,7 @@ public enum MessageAction {
 }
 
 public enum MessageAttachmentAction {
-    case play, stop, zoom, save
+    case play, stop, open, save
 }
 
 public enum MessageStatus {
@@ -31,9 +31,9 @@ public struct MessageRowView<MessageItem: MessageEntity>: View {
     var message: MessageItem
     @Binding var isPlaying: Bool
     var playingMessageId: String
-    let onTap: (_ action: MessageAttachmentAction, _ image: Image?, _ url: URL?) -> Void
+    let onTap: (_ action: MessageAttachmentAction, _ url: URL?) -> Void
     let onPlay: (_ action: MessageAttachmentAction, _ data: Data?, _ url: URL?) -> Void
-    let onAIFeature: (_ type: AIFeatureType, _ message: MessageItem?) -> Void
+    let onAIFeature: (_ type: AIFeatureType, _ message: MessageItem) -> Void
     @Binding var waitingTranslation: TranslationInfo
     
 
@@ -114,17 +114,11 @@ extension MessageEntity {
             } else {
                 return .inboundAudio
             }
-        } else if isPDFMessage {
+        } else if isFileMessage {
             if isOwnedByCurrentUser {
                 return .outboundPDF
             } else {
                 return .inboundPDF
-            }
-        } else if isGIFMessage {
-            if isOwnedByCurrentUser {
-                return .outboundGIF
-            } else {
-                return .inboundGIF
             }
         } else  {
             if isOwnedByCurrentUser {

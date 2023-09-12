@@ -33,11 +33,12 @@ struct MembersHeaderToolbarContent: ToolbarContent {
                 } else {
                     settings.leftButton.image
                         .resizable()
+                        .scaledToFit()
                         .scaleEffect(settings.leftButton.scale)
                         .tint(settings.leftButton.color)
                         .padding(settings.leftButton.padding)
                 }
-            }
+            }.frame(width: 32, height: 44)
         }
         
         ToolbarItem(placement: .navigationBarTrailing) {
@@ -50,11 +51,12 @@ struct MembersHeaderToolbarContent: ToolbarContent {
                 } else {
                     settings.rightButton.image
                         .resizable()
+                        .scaledToFit()
                         .scaleEffect(settings.rightButton.scale)
                         .tint(settings.rightButton.color)
                         .padding(settings.rightButton.padding)
                 }
-            }
+            }.frame(width: 44, height: 44)
         }
     }
 }

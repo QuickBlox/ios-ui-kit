@@ -8,14 +8,14 @@
 
 import Foundation
 import Quickblox
-//import QBAIRephrase
+import QBAIRephrase
 
-public class RephraseByOpenAIProxyServer: AIFeatureUseCaseProtocol {
+public class RephraseByOpenAIProxyServer<Tone>: AIFeatureUseCaseProtocol where Tone: QBAIRephrase.Tone {
     private let serverURLPath: String
-    private let tone: String
+    private let tone: Tone
     private let content: String
     
-    public init(_ serverURLPath: String, tone: String, content: String) {
+    public init(_ serverURLPath: String, tone: Tone, content: String) {
         self.serverURLPath = serverURLPath
         self.tone = tone
         self.content = content
@@ -26,11 +26,9 @@ public class RephraseByOpenAIProxyServer: AIFeatureUseCaseProtocol {
             throw RepositoryException.unauthorised()
         }
         
-        return tone
-        
-//        return try await QBAIRephrase.openAIRephrase(tone: tone,
-//                                                          to: content,
-//                                                          qbToken: qbToken,
-//                                                          proxy: serverURLPath)
+        return try await QBAIRephrase.openAI(rephrase: content,
+                                             using: tone,
+                                             qbToken: qbToken,
+                                             proxy: serverURLPath)
     }
 }

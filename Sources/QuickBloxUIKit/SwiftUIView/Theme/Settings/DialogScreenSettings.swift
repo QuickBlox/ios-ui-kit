@@ -14,12 +14,13 @@ private struct DialogScreenSettingsConstant {
     static let verticalPadding: CGFloat = 8.0
     static let checkboxHeight: CGFloat = 24.0
     static let lineWidth: CGFloat = 2.0
-    static let spacer: CGFloat = 32.0
 }
 
 public class DialogScreenSettings {
     public var header: DialogHeaderSettings
     public var backgroundColor: Color
+    public var backgroundImage: Image? = Image("dialogBackground", bundle: .module)
+    public var backgroundImageColor: Color
     public var contentBackgroundColor: Color
     public var messageRow: MessageRowSettings
     public var textField: MessageTextFieldSettings
@@ -34,7 +35,6 @@ public class DialogScreenSettings {
     public var maxSize: String
     public var avatarSize: AvatarSizeSettings = AvatarSizeSettings()
     public var isHiddenFiles = false
-    public var invalidAI: String
     
     public init(_ theme: ThemeProtocol) {
         self.header = DialogHeaderSettings(theme)
@@ -45,10 +45,29 @@ public class DialogScreenSettings {
         self.permissions = AVPermissionsSettings(theme)
         self.stringUtils = StringUtilsConstant(theme)
         self.backgroundColor = theme.color.mainBackground
+        self.backgroundImageColor = theme.color.divider
         self.contentBackgroundColor = theme.color.secondaryBackground
         self.itemsIsEmpty = theme.string.messegesEmpty
         self.maxSize = theme.string.maxSize
-        self.invalidAI = theme.string.invalidAI
+    }
+}
+
+public struct AVPermissionsSettings {
+    public var cameraErrorTitle: String
+    public var cameraErrorMessage: String
+    public var microphoneErrorTitle: String
+    public var microphoneErrorMessage: String
+    public var alertCancelAction: String
+    public var alertSettingsAction: String
+    public var blurRadius: CGFloat = 12.0
+    
+    public init(_ theme: ThemeProtocol) {
+        self.cameraErrorTitle = theme.string.permissionCameraTitle
+        self.cameraErrorMessage = theme.string.permissionCameraMessage
+        self.microphoneErrorTitle = theme.string.permissionMicrophoneTitle
+        self.microphoneErrorMessage = theme.string.permissionMicrophoneMessage
+        self.alertCancelAction = theme.string.permissionActionCancel
+        self.alertSettingsAction = theme.string.permissionActionSettings
     }
 }
 
@@ -74,55 +93,6 @@ public struct StringUtilsConstant {
         self.addedByLocalize = theme.string.addedBy
         self.removedByLocalize = theme.string.removedBy
         self.hasLeftLocalize = theme.string.hasLeft
-    }
-}
-
-public struct AIUISettings {
-    public var translate: AITranslateUISettings
-    public var answerAssist: AIAnswerAssistUISettings
-    
-    public init(_ theme: ThemeProtocol) {
-        self.translate = AITranslateUISettings(theme)
-        self.answerAssist = AIAnswerAssistUISettings(theme)
-    }
-}
-
-public struct AIAnswerAssistUISettings {
-    public var title: String
-    
-    public init(_ theme: ThemeProtocol) {
-        self.title = theme.string.answerAssistTitle
-    }
-}
-
-public struct AVPermissionsSettings {
-    public var cameraErrorTitle: String
-    public var cameraErrorMessage: String
-    public var microphoneErrorTitle: String
-    public var microphoneErrorMessage: String
-    public var alertCancelAction: String
-    public var alertSettingsAction: String
-    public var blurRadius: CGFloat = 12.0
-    
-    public init(_ theme: ThemeProtocol) {
-        self.cameraErrorTitle = theme.string.permissionCameraTitle
-        self.cameraErrorMessage = theme.string.permissionCameraMessage
-        self.microphoneErrorTitle = theme.string.permissionMicrophoneTitle
-        self.microphoneErrorMessage = theme.string.permissionMicrophoneMessage
-        self.alertCancelAction = theme.string.permissionActionCancel
-        self.alertSettingsAction = theme.string.permissionActionSettings
-    }
-}
-
-public struct AITranslateUISettings {
-    public var showOriginal: String
-    public var showTranslation: String
-    public var width: CGFloat
-    
-    public init(_ theme: ThemeProtocol) {
-        self.showOriginal = theme.string.showOriginal
-        self.showTranslation = theme.string.showTranslation
-        self.width = max(self.showTranslation, self.showOriginal).size(withAttributes: [.font: UIFont.preferredFont(forTextStyle: .caption2)]).width + 24.0
     }
 }
 
@@ -162,7 +132,7 @@ public struct DialogHeaderSettings: HeaderSettingsProtocol {
     
     public init(_ theme: ThemeProtocol) {
         self.backgroundColor = theme.color.mainBackground
-        self.leftButton = CancelButton(theme)
+        self.leftButton = BackButton(theme)
         self.title = DialogTitle(theme)
         self.rightButton = InfoButton(theme)
     }
@@ -174,9 +144,9 @@ public struct DialogHeaderSettings: HeaderSettingsProtocol {
         public var title: String? = nil
         public var image: Image
         public var color: Color
-        public var scale: Double = 1.0
+        public var scale: Double = 0.56
         public var padding: EdgeInsets = EdgeInsets(top: 0.0,
-                                                    leading: 0.0,
+                                                    leading: 16.0,
                                                     bottom: 0.0,
                                                     trailing: 0.0)
         
@@ -200,18 +170,18 @@ public struct DialogHeaderSettings: HeaderSettingsProtocol {
         }
     }
     
-    public struct CancelButton: ButtonSettingsProtocol {
+    public struct BackButton: ButtonSettingsProtocol {
         public var imageSize: CGSize?
         public var frame: CGSize?
         
         public var title: String? = nil
         public var image: Image
         public var color: Color
-        public var scale: Double = 1.0
+        public var scale: Double = 0.6
         public var padding: EdgeInsets = EdgeInsets(top: 0.0,
                                                     leading: 0.0,
                                                     bottom: 0.0,
-                                                    trailing: 0.0)
+                                                    trailing: 10.0)
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.back
@@ -240,7 +210,7 @@ public struct ZoomedImageSettings {
         public var title: String? = nil
         public var image: Image
         public var color: Color
-        public var scale: Double = 1.0
+        public var scale: Double = 0.6
         public var padding: EdgeInsets = EdgeInsets(top: 0.0,
                                                     leading: 0.0,
                                                     bottom: 0.0,
@@ -289,7 +259,6 @@ public struct MessageRowSettings {
     public var time: MessageTimeSettings
     public var message: MessageSettings
     public var progressBar: ProgressBarSettings
-    public var ai: AIUISettings
     public var inboundForeground: Color
     public var inboundBackground: Color
     public var inboundFont: Font
@@ -351,8 +320,8 @@ public struct MessageRowSettings {
     public var linkUnderline: Bool = true
     public var outboundLinkForeground: Color
     public var inboundLinkForeground: Color
-    public var inboundSpacer: CGFloat = DialogScreenSettingsConstant.spacer
-    public var outboundSpacer: CGFloat = DialogScreenSettingsConstant.spacer
+    public var inboundSpacer: CGFloat = 16.0
+    public var outboundSpacer: CGFloat = 32.0
     public var spacing: CGFloat = 16.0
     public var messagePadding: EdgeInsets = EdgeInsets(top: 12,
                                                        leading: 16,
@@ -422,7 +391,6 @@ public struct MessageRowSettings {
         self.time = MessageTimeSettings(theme)
         self.message = MessageSettings(theme)
         self.progressBar = ProgressBarSettings(theme)
-        self.ai = AIUISettings(theme)
         self.inboundBackground = theme.color.incomingBackground
         self.outboundBackground = theme.color.outgoingBackground
         self.inboundForeground = theme.color.mainText
@@ -571,6 +539,7 @@ public struct MessageTextFieldSettings {
                                                 leading: 16,
                                                 bottom: 7,
                                                 trailing: 16)
+    public var debounceSeconds: Double = 1.5
     
     public init(_ theme: ThemeProtocol) {
         self.placeholderText = theme.string.typeMessage

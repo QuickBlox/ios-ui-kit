@@ -24,23 +24,25 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
     
     public init(dialogsList: ViewModel,
                 @ViewBuilder content: @escaping (_ viewModel: ViewModel) -> ListView,
-                @ViewBuilder detailContent: @escaping (_ dialog: ViewModel.Item, _ isDialogPresented: Binding<Bool>) -> DetailView,
+                @ViewBuilder detailContent: @escaping (_ dialog: ViewModel.Item) -> DetailView,
                 selectTypeContent: @escaping (@escaping() -> Void) -> TypeView,
-                onBack: @escaping () -> Void ) {
+                onBack: @escaping () -> Void,
+                onAppear: @escaping (Bool) -> Void) {
         _dialogsList = StateObject(wrappedValue: dialogsList)
         self.content = content
         self.detailContent = detailContent
         self.selectTypeContent = selectTypeContent
         self.onBack = onBack
+        self.onAppear = onAppear
     }
     
     private var content: (_ viewModel: ViewModel) -> ListView
-    private var detailContent: (ViewModel.Item, _ isDialogPresented: Binding<Bool>) -> DetailView
+    private var detailContent: (ViewModel.Item) -> DetailView
     private var selectTypeContent: (@escaping () -> Void) -> TypeView
     private var onBack: () -> Void
+    private var onAppear: (Bool) -> Void
     
     @State private var isDialogTypePresented: Bool = false
-    @State private var isDialogPresented: Bool = false
     
     @ViewBuilder
     private func container() -> some View {
@@ -59,16 +61,14 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
                     tag: dialog,
                     selection: $dialogsList.selectedItem
                 ) {
-                    detailContent(dialog, $isDialogPresented)
+                    detailContent(dialog)
                 } label: {
                     EmptyView()
                 }
             }
         }
         .onChange(of: dialogsList.selectedItem, perform: { newValue in
-            if newValue == nil {
-                isDialogPresented = false
-            } else {
+            if newValue != nil {
                 isDialogTypePresented = false
             }
         })
@@ -85,9 +85,11 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
         .onAppear {
             dialogsList.selectedItem = nil
             dialogsList.sync()
+            onAppear(true)
         }
         .onDisappear {
             dialogsList.unsync()
+            onAppear(false)
         }
         .disabled(dialogsList.dialogToBeDeleted != nil)
         .if(dialogsList.dialogToBeDeleted != nil) { view in
@@ -102,13 +104,13 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
             if isIphone {
                 NavigationView {
                     container()
-                }
+                }.navigationViewStyle(.stack)
             } else if isIPad {
                 NavigationSplitView(columnVisibility: Binding.constant(.all)) {
                     container()
                 } detail: {
                     if let dialog = dialogsList.selectedItem {
-                        detailContent(dialog, $isDialogPresented)
+                        detailContent(dialog)
                     }
                 }.navigationSplitViewStyle(.balanced)
             }

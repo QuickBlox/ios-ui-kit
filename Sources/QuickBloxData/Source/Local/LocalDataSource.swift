@@ -65,18 +65,29 @@ extension LocalDataSource {
             throw DataSourceException.notFound()
         }
         
+        var isUpdated = false
+        
         var dialog = dialogs.value[index]
         
         if dto.name.isEmpty == false {
-            dialog.name = dto.name
+            if dialog.name != dto.name {
+                isUpdated = true
+                dialog.name = dto.name
+            }
         }
         
         if dto.participantsIds.isEmpty == false {
-            dialog.participantsIds = dto.participantsIds
+            if dialog.participantsIds != dto.participantsIds {
+                isUpdated = true
+                dialog.participantsIds = dto.participantsIds
+            }
         }
         
         if dto.photo.isEmpty == false {
-            dialog.photo = dto.photo
+            if dialog.photo != dto.photo {
+                isUpdated = true
+                dialog.photo = dto.photo
+            }
         }
         
         dialog.updatedAt = dto.updatedAt
@@ -89,27 +100,47 @@ extension LocalDataSource {
         
         if dto.messages.isEmpty == false {
             for new in dto.messages {
+                isUpdated = true
                 dialog.messages.insertElement(new, withSorting: .orderedAscending)
             }
         }
         
         if dto.lastMessageId.isEmpty == false {
-            dialog.lastMessageId = dto.lastMessageId
+            if dialog.lastMessageId != dto.lastMessageId {
+                isUpdated = true
+                dialog.lastMessageId = dto.lastMessageId
+            }
         }
         
         if dto.lastMessageText.isEmpty == false {
-            dialog.lastMessageText = dto.lastMessageText
+            if dialog.lastMessageText != dto.lastMessageText {
+                isUpdated = true
+                dialog.lastMessageText = dto.lastMessageText
+            }
         }
         
         if dto.lastMessageDateSent != Date(timeIntervalSince1970: 0.0) {
-            dialog.lastMessageDateSent = dto.lastMessageDateSent
+            if dialog.lastMessageDateSent != dto.lastMessageDateSent {
+                isUpdated = true
+                dialog.lastMessageDateSent = dto.lastMessageDateSent
+            }
         }
         
         if dto.lastMessageUserId.isEmpty == false {
-            dialog.lastMessageUserId = dto.lastMessageUserId
+            if dialog.lastMessageUserId != dto.lastMessageUserId {
+                isUpdated = true
+                dialog.lastMessageUserId = dto.lastMessageUserId
+            }
         }
         
-        dialogs.value[index] = dialog
+        if isUpdated == true {
+            var value = dialogs.value
+            value.remove(at: index)
+            value.insert(dialog, at: 0)
+            dialogs.value = value
+        } else {
+            dialogs.value[index] = dialog
+        }
     }
     
     func getAllDialogs() async throws -> LocalDialogsDTO {
