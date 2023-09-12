@@ -39,7 +39,7 @@ public protocol DialogEntity: Entity {
     
     var createdAt: Date { get }
     
-    var updatedAt: Date { get }
+    var updatedAt: Date { get set }
     
     var lastMessage: LastMessageItem { get set }
     
@@ -54,10 +54,6 @@ public protocol DialogEntity: Entity {
     var unreadMessagesCount: Int { get set }
     
     var decrementCounter: Bool { get set }
-    
-    var time: String { get }
-    
-    var date: Date { get }
 }
 
 extension DialogEntity {

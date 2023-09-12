@@ -7,14 +7,14 @@
 //
 
 import Foundation
-//import QBAIRephrase
+import QBAIRephrase
 
-public class RephraseByOpenAIAPI: AIFeatureUseCaseProtocol {
+public class RephraseByOpenAIAPI<Tone>: AIFeatureUseCaseProtocol where Tone: QBAIRephrase.Tone {
     private let apiKey: String
-    private let tone: String
+    private let tone: Tone
     private let content: String
 
-    public init(_ apiKey: String, tone: String, content: String) {
+    public init(_ apiKey: String, tone: Tone, content: String) {
         self.apiKey = apiKey
         self.tone = tone
         self.content = content
@@ -22,10 +22,8 @@ public class RephraseByOpenAIAPI: AIFeatureUseCaseProtocol {
     
     public func execute() async throws -> String {
         
-        return tone
-        
-        //        return try await QBAIRephrase.openAIRephrase(tone: tone,
-        //                                                          to: content,
-        //                                                          secret: apiKey)
+        return try await QBAIRephrase.openAI(rephrase: content,
+                                             using: tone,
+                                             secret: apiKey)
     }
 }

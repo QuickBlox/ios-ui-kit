@@ -12,6 +12,7 @@ import QuickBloxData
 import Combine
 import Photos
 import QuickBloxLog
+import QBAIRephrase
 
 public enum Role {
     case owner, opponent
@@ -55,6 +56,8 @@ public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel, PermissionProt
     var aiAnswer: String { get set }
     var waitingTranslation: TranslationInfo { get set }
     var permissionNotGranted: PermissionInfo { get set }
+    var isProcessing: Bool { get set }
+    var tones: [QBAIRephrase.ToneInfo] { get set }
     
     func stopPlayng()
     func startRecording()
@@ -69,13 +72,20 @@ public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel, PermissionProt
     func unsubscribe()
     func applyAIAnswerAssist(_ message: DialogItem.MessageItem)
     func applyAITranslate(_ message: DialogItem.MessageItem)
-    func applyAIRephrase(_ toneType: String, content: String, needToUpdate: Bool)
+    func applyAIRephrase(_ tone: QBAIRephrase.ToneInfo, content: String, needToUpdate: Bool)
     func openSettings()
     func requestPermission(_ mediaType: AVMediaType, completion: @escaping (_ granted: Bool) -> Void)
 }
 
+public extension QBAIRephrase.ToneInfo {
+    static let original = QBAIRephrase.ToneInfo(
+    name: "Back to original text",
+    behavior: "",
+    icon: "✅"
+  )
+}
+
 open class DialogViewModel: DialogViewModelProtocol {
-    
     
     @Published public var waitingTranslation: TranslationInfo = TranslationInfo()
     @Published public var dialog: Dialog
@@ -86,6 +96,13 @@ open class DialogViewModel: DialogViewModelProtocol {
     @Published public var waitingAnswer: Bool = false
     @Published public var aiAnswer: String = ""
     @Published public var permissionNotGranted: PermissionInfo = PermissionInfo(mediaType: .audio)
+    @Published public var isProcessing: Bool = false
+    
+    public var tones: [QBAIRephrase.ToneInfo] = {
+        let tones: [any QBAIRephrase.Tone]  =
+        [QBAIRephrase.ToneInfo.original] + QuickBloxUIKit.feature.ai.rephrase.tones
+        return tones as? [QBAIRephrase.ToneInfo] ?? []
+    }()
     
     private var isExistingImage: Bool {
         if dialog.photo == "null" { return false }
@@ -119,9 +136,11 @@ open class DialogViewModel: DialogViewModelProtocol {
     
     private var isTypingEnable = true
     
-    private var toneEditing: [String: String] = [:]
+    private var rephrasedContent: [QBAIRephrase.ToneInfo: String] = [:]
     
-    let aiFeatures = QuickBloxUIKit.feature.aiFeature
+    private var draftAttachmentMessage: Message? = nil
+    
+    let aiFeatures = QuickBloxUIKit.feature.ai
     
     init(dialog: Dialog) {
         self.dialog = dialog
@@ -211,6 +230,9 @@ open class DialogViewModel: DialogViewModelProtocol {
             .sink { [weak self] dialog in
                 if dialog.messages.isEmpty == false {
                     self?.dialog = dialog
+                    if let draftAttachmentMessage = self?.draftAttachmentMessage {
+                        self?.dialog.messages.append(draftAttachmentMessage)
+                    }
                 }
                 self?.targetMessage = dialog.messages.last
             }
@@ -255,6 +277,21 @@ open class DialogViewModel: DialogViewModelProtocol {
     }
     
     private func sendAttachment(withData data: Data, ext: FileExtension, name: String) {
+        isProcessing = true
+        sendStopTyping()
+        
+        draftAttachmentMessage = Message(dialogId: dialog.id,
+                              text: "[Attachment]",
+                              isOwnedByCurrentUser: true,
+                              type: .chat,
+                              fileInfo: FileInfo(id: UUID().uuidString, ext: ext, name: "Draft/Attachment"))
+        
+        if let draftAttachmentMessage {
+            dialog.messages.append(draftAttachmentMessage)
+            targetMessage = draftAttachmentMessage
+        }
+       
+        
         Task {
             let uploadFile = UploadFile(data: data,
                                         ext: ext,
@@ -263,22 +300,36 @@ open class DialogViewModel: DialogViewModelProtocol {
             let file = try await uploadFile.execute()
             
             let message = Message(dialogId: dialog.id,
-                                  text: "[Attachment]",
+                                  text: attachmentMessageText(file.info),
+                                  isOwnedByCurrentUser: true,
                                   type: .chat,
                                   fileInfo: file.info)
+            
             let sendMessage = SendMessage(message: message,
                                           messageRepo: RepositoriesFabric.messages)
             try await sendMessage.execute()
+            
+            draftAttachmentMessage = nil
+            await MainActor.run { [weak self] in
+                guard let self = self else { return }
+                self.isProcessing = false
+            }
         }
+    }
+    
+    private func attachmentMessageText(_ info: FileInfo) -> String {
+        return "[Attachment]|\(info.name)|\(info.uid)|\(info.ext.mimeType)"
     }
     
     //MARK: - Messages
     public func sendMessage(_ text: String) {
+        sendStopTyping()
+        
         if let voiceMessage = audioRecorder.audioRecording {
             let name = "\(voiceMessage.createdAt)"
             
             Task { [weak self] in
-                guard let dialogId = self?.dialog.id else { return }
+                guard let dialogId = self?.dialog.id, let self = self else { return }
                 
                 let data = try Data(contentsOf: voiceMessage.audioURL)
                 //TODO: get extention (.m4a) from the audioRecorder
@@ -289,19 +340,17 @@ open class DialogViewModel: DialogViewModelProtocol {
                 let file = try await uploadFile.execute()
                 
                 let message = Message(dialogId: dialogId,
-                                      text: "[Attachment]",
+                                      text: self.attachmentMessageText(file.info),
                                       type: .chat,
                                       fileInfo: file.info)
                 let sendMessage = SendMessage(message: message,
                                               messageRepo: RepositoriesFabric.messages)
                 try await sendMessage.execute()
-                self?.audioRecorder.delete()
+                self.audioRecorder.delete()
             }
-        }
-        
-        if text.isEmpty == false {
+        } else if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
             let message = Message(dialogId: dialog.id,
-                                  text: text,
+                                  text: text.trimmingCharacters(in: .whitespacesAndNewlines),
                                   type: .chat)
             
             let sendMessage = SendMessage(message: message,
@@ -356,7 +405,6 @@ open class DialogViewModel: DialogViewModelProtocol {
         } else if apiKey.isEmpty == false {
             useCase = AssistAnswerByOpenAIAPI(apiKey, content: messages)
         }
-        
         guard let useCase else { return }
         
         Task { [weak self] in
@@ -413,7 +461,7 @@ open class DialogViewModel: DialogViewModelProtocol {
         }
     }
     
-    public func applyAIRephrase(_ toneType: String, content: String, needToUpdate: Bool) {
+    public func applyAIRephrase(_ tone: QBAIRephrase.ToneInfo, content: String, needToUpdate: Bool) {
         if aiFeatures.rephrase.enable == false {
             return
         }
@@ -422,35 +470,37 @@ open class DialogViewModel: DialogViewModelProtocol {
         aiAnswer = ""
         
         if needToUpdate == true {
-            toneEditing = [:]
-            toneEditing["original"] = content
+            rephrasedContent = [:]
+            rephrasedContent[.original] = content
         }
 
-        if let edited = toneEditing[toneType] {
+        if let rephrased = rephrasedContent[tone] {
             waitingAnswer = false
-            self.aiAnswer = edited
+            self.aiAnswer = rephrased
             return
         }
+        
+        if tone == .original { return }
         
         let proxyServerURL = aiFeatures.rephrase.proxyServerURLPath // proxy Server URL
         let apiKey = aiFeatures.rephrase.openAIAPIKey
 
         var useCase: AIFeatureUseCaseProtocol?
         if proxyServerURL.isEmpty == false {
-            useCase = RephraseByOpenAIProxyServer(proxyServerURL, tone: toneType, content: content)
+            useCase = RephraseByOpenAIProxyServer(proxyServerURL, tone: tone, content: content)
         } else if apiKey.isEmpty == false {
-            useCase = RephraseByOpenAIAPI(apiKey, tone: toneType, content: content)
+            useCase = RephraseByOpenAIAPI(apiKey, tone: tone, content: content)
         }
 
         guard let useCase else { return }
 
         Task { [weak self] in
             do {
-                let edited = try await useCase.execute()
-                await MainActor.run { [weak self, edited] in
+                let rephrased = try await useCase.execute()
+                await MainActor.run { [weak self, rephrased] in
                     guard let self = self else { return }
-                    self.toneEditing[toneType] = edited
-                    self.aiAnswer = edited
+                    self.rephrasedContent[tone] = rephrased
+                    self.aiAnswer = rephrased
                 }
             } catch {
                 prettyLog(error)
@@ -469,7 +519,6 @@ open class DialogViewModel: DialogViewModelProtocol {
             }
             return false
         }
-        
         return messages
     }
     
@@ -532,7 +581,7 @@ extension MessageEntity {
         return fileInfo != nil
     }
     
-    func fileIsKinfOf(type expected: FileType) -> Bool {
+    func fileIsKindOf(type expected: FileType) -> Bool {
         if isAttachmentMessage,
            let type = fileInfo?.ext.type,
            type == expected {
@@ -542,23 +591,19 @@ extension MessageEntity {
     }
     
     var isAudioMessage: Bool {
-        fileIsKinfOf(type: .audio)
+        fileIsKindOf(type: .audio)
     }
     
     var isVideoMessage: Bool {
-        fileIsKinfOf(type: .video)
+        fileIsKindOf(type: .video)
     }
     
     var isImageMessage: Bool {
-        fileIsKinfOf(type: .image)
+        fileIsKindOf(type: .image)
     }
     
-    var isPDFMessage: Bool {
-        fileIsKinfOf(type: .file)
-    }
-    
-    var isGIFMessage: Bool {
-        fileIsKinfOf(type: .gif)
+    var isFileMessage: Bool {
+        fileIsKindOf(type: .file)
     }
     
     var isChat: Bool {
@@ -590,7 +635,6 @@ private extension FileExtension {
         case .video: return timeStamp + "_Video.\(self)"
         case .audio: return timeStamp + "_Audio.\(self)"
         case .file: return timeStamp + "_File.\(self)"
-        case .gif: return timeStamp + "_GIF.\(self)"
         }
     }
 }

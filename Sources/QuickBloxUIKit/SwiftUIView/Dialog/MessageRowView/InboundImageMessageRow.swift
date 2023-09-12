@@ -17,14 +17,14 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
     
     var message: MessageItem
     
-    let onTap: (_ action: MessageAttachmentAction, _ image: Image?, _ url: URL?) -> Void
+    let onTap: (_ action: MessageAttachmentAction, _ url: URL?) -> Void
     
     @State public var fileTuple: (type: String, image: Image?, url: URL?)? = nil
     
     @State private var progress: CGFloat = 0.5
     
     public init(message: MessageItem,
-                onTap: @escaping  (_ action: MessageAttachmentAction, _ image: Image?, _ url: URL?) -> Void) {
+                onTap: @escaping  (_ action: MessageAttachmentAction, _ url: URL?) -> Void) {
         self.message = message
         self.onTap = onTap
     }
@@ -43,9 +43,7 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
                 HStack(spacing: 8) {
                     
                     Button {
-                        if let image = fileTuple?.image {
-                            openImage(image)
-                        }
+                        open()
                     } label: {
                         ZStack {
                             if let image = fileTuple?.image {
@@ -105,20 +103,9 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
         .id(message.id)
     }
     
-    private func openImage(_ placeholder: Image) {
-        Task {
-            do {
-                let file = try await message.file(size: nil)
-                guard let image = file?.image else {
-                    onTap(.zoom, placeholder, nil)
-                    return
-                }
-                onTap(.zoom, image, nil)
-            }
-            catch {
-                prettyLog(error)
-            }
-        }
+    private func open() {
+        guard let url = fileTuple?.url else { return }
+        onTap(.open, url)
     }
 }
 
@@ -132,7 +119,7 @@ struct InboundImageMessageRow_Previews: PreviewProvider {
                                                     text: "Test text Message",
                                                     userId: "2d3d4d5d6d",
                                                     date: Date()),
-                                   onTap: { (_,_,_) in})
+                                   onTap: { (_,_) in})
             .previewDisplayName("Message")
             
             InboundImageMessageRow(message: Message(id: UUID().uuidString,
@@ -140,7 +127,7 @@ struct InboundImageMessageRow_Previews: PreviewProvider {
                                                     text: "Test text Message",
                                                     userId: "2d3d4d5d6d",
                                                     date: Date()),
-                                   onTap: { (_,_,_) in})
+                                   onTap: { (_,_) in})
             .previewDisplayName("In Message")
             .preferredColorScheme(.dark)
         }

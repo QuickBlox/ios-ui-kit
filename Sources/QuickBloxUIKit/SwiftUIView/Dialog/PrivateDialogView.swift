@@ -15,7 +15,7 @@ import AVFoundation
 
 public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
     let settings = QuickBloxUIKit.settings.dialogScreen
-    let aiFeatures = QuickBloxUIKit.feature.aiFeature
+    let aiFeatures = QuickBloxUIKit.feature.ai
     
     @Environment(\.dismiss) var dismiss
     
@@ -24,55 +24,39 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
     @State private var isInfoPresented: Bool = false
     @State private var isAIAlertPresented: Bool = false
     @State private var isAttachmentAlertPresented: Bool = false
-    @State private var isImagePresented: Bool = false
     @State private var isSizeAlertPresented: Bool = false
-    @State private var isFileExporterPresented = false
+    @State private var isFileExporterPresented: Bool = false
     
-    @State private var presentedImage: UIImage? = nil
-    @State private var videoUrl: URL? = nil
+    @State private var attachment: Attachment? = nil
     @State private var fileUrl: URL? = nil
+    @State private var aiFeature: AIFeatureType? = nil
     
     @State private var tappedMessage: ViewModel.DialogItem.MessageItem? = nil
-    
-    @Binding private var isDialogPresented: Bool
+
     
     @State private var isNewTyping: Bool = true
     
-    public init(viewModel: ViewModel, isDialogPresented: Binding<Bool>) {
+    public init(viewModel: ViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
-        _isDialogPresented = isDialogPresented
     }
     
     @ViewBuilder
     private func container() -> some View {
         ZStack {
             settings.backgroundColor.ignoresSafeArea()
+            
             VStack(spacing: 0) {
                 ScrollViewReader { scrollView in
                     MessagesScrollView() {
                         ForEach(viewModel.dialog.displayedMessages) { message in
+                            
                             MessageRowView(message: message,
                                            isPlaying: $viewModel.audioPlayer.isPlaying,
                                            playingMessageId: tappedMessage?.id ?? "",
-                                           onTap: { action, image, url  in
-                                if message.isImageMessage, let image = image {
-                                    DispatchQueue.main.async {
-                                        presentedImage = image.toUIImage()
-                                        isImagePresented = true
-                                        tappedMessage = message
-                                    }
-                                    
-                                } else if message.isGIFMessage, let fileURL = url {
-                                    self.fileUrl = fileURL
-                                    isFileExporterPresented = true
-                                    
-                                } else if message.isVideoMessage, let videoUrl = url {
-                                    self.videoUrl = videoUrl
-                                    isImagePresented = true
+                                           onTap: { action, url  in
+                                if let fileURL = url {
+                                    attachment = Attachment(id: message.id, url: fileURL)
                                     tappedMessage = message
-                                } else if message.isAttachmentMessage, let fileURL = url {
-                                    self.fileUrl = fileURL
-                                    isFileExporterPresented = true
                                 }
                             }, onPlay: { action, data, url  in
                                 if message.isAudioMessage, let data = data {
@@ -83,19 +67,29 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
                                         viewModel.stopPlayng()
                                         tappedMessage = nil
                                     } else if action == .save {
-                                        self.fileUrl = url
-                                        isFileExporterPresented = true
+                                        if let url {
+                                            fileUrl = url
+                                            isFileExporterPresented = true
+                                        }
                                     }
                                 }
                             }, onAIFeature: { type, message in
-                                if let message, aiFeatures.enable == true {
-                                    if type == .answerAssist {
+                                if type == .answerAssist {
+                                    if aiFeatures.assistAnswer.enable == true,
+                                       aiFeatures.assistAnswer.isValid == true {
                                         viewModel.applyAIAnswerAssist(message)
-                                    } else if type == .translate {
-                                        viewModel.applyAITranslate(message)
+                                    } else {
+                                        aiFeature = .answerAssist
+                                        isAIAlertPresented = true
                                     }
-                                } else {
-                                    isAIAlertPresented = true
+                                } else if type == .translate {
+                                    if aiFeatures.translate.enable == true,
+                                       aiFeatures.translate.isValid == true {
+                                        viewModel.applyAITranslate(message)
+                                    } else {
+                                        aiFeature = .translate
+                                        isAIAlertPresented = true
+                                    }
                                 }
                             }, waitingTranslation: $viewModel.waitingTranslation)
                             .onAppear {
@@ -106,6 +100,16 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
                             .transition(.move(edge: .bottom))
                         }
                     }
+                    .if(settings.backgroundImage != nil, transform: { scrollView in
+                        scrollView.background(settings.backgroundImage?
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFill()
+                            .foregroundColor(settings.backgroundImageColor)
+                            .opacity(0.8)
+                            .edgesIgnoringSafeArea(.all))
+                    })
+                    
                     
                     .onChange(of: viewModel.dialog.displayedMessages.count, perform: { newValue in
                         isNewTyping = true
@@ -135,26 +139,18 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
                     }
                     
                     InputView(onAttachment: {
-                        isAttachmentAlertPresented.toggle()
+                        isAttachmentAlertPresented = true
                     }, onApplyTone: { tone, content, needToUpdate in
-                        if content.isEmpty == false, aiFeatures.enable == true {
+                        if content.isEmpty == false,
+                           aiFeatures.rephrase.enable == true,
+                           aiFeatures.rephrase.isValid == true {
                             viewModel.applyAIRephrase(tone, content: content, needToUpdate: needToUpdate)
                         } else {
+                            aiFeature = .rephrase
                             isAIAlertPresented = true
                         }
-                    })
+                    }).disabled(viewModel.isProcessing == true)
                     .background(settings.backgroundColor)
-                    
-                    .if(isImagePresented, transform: { view in
-                        view.mediaViewerView(isImagePresented: $isImagePresented, image: presentedImage, url: videoUrl ) {
-                            videoUrl = nil
-                            presentedImage = nil
-                            if let tappedMessage {
-                                scrollView.scrollTo(tappedMessage.id)
-                                self.tappedMessage = nil
-                            }
-                        }
-                    })
                 }
                 
                 .resignKeyboardOnGesture()
@@ -178,47 +174,49 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
                 })
             
                 .largeFileSizeAlert(isPresented: $isSizeAlertPresented)
-                .aiFailAlert(isPresented: $isAIAlertPresented)
+            
+                .if(isAIAlertPresented == true && aiFeature != nil, transform: { view in
+                    view.aiFailAlert(isPresented: $isAIAlertPresented,
+                                     feature: aiFeature ?? AIFeatureType.answerAssist,
+                                     onDismiss: {
+                        aiFeature = nil
+                    })
+                })
+                    
                 .permissionAlert(isPresented: $viewModel.permissionNotGranted.notGranted,
                                  viewModel: viewModel)
+            
+                .fullScreenCover(item: $attachment, content: { attachment in
+                    FilePreviewController(url: attachment.url, onDismiss: {
+                        self.attachment = nil
+                    })
+                })
+            
+                .sheet(isPresented: $isFileExporterPresented, onDismiss: {
+                    attachment = nil
+                }, content: {
+                    if let fileUrl {
+                        ActivityViewController(activityItems: [fileUrl])
+                    }
+                })
                     
                     .modifier(DialogHeader(dialog: viewModel.dialog,
                                            onDismiss: {
-                        viewModel.sendStopTyping()
                         viewModel.unsubscribe()
-                        viewModel.stopPlayng()
                         dismiss()
                     }, onTapInfo: {
-                        viewModel.sendStopTyping()
-                        viewModel.stopPlayng()
                         isInfoPresented = true
                     }))
-                    
-                        .sheet(isPresented: $isFileExporterPresented) {
-                    if let fileUrl = fileUrl {
-                        ActivityViewController(activityItems: [fileUrl.lastPathComponent , fileUrl])
-                    }
-                }
             
-                .environmentObject(viewModel)
+                    .environmentObject(viewModel)
             
-            if isInfoPresented == true {
-                NavigationLink(isActive: $isInfoPresented) {
-                    if let dialog = viewModel.dialog as? Dialog {
-                        if viewModel.dialog.type == .group {
-                            if viewModel.dialog.isOwnedByCurrentUser == true {
-                                GroupDialogInfoView(DialogInfoViewModel(dialog))
-                            } else {
-                                GroupDialogNonEditInfoView(DialogInfoViewModel(dialog))
-                            }
-                        } else {
+                .if(isInfoPresented == true, transform: { view in
+                    view.fullScreenCover(isPresented: $isInfoPresented) {
+                        if let dialog = viewModel.dialog as? Dialog {
                             PrivateDialogInfoView(DialogInfoViewModel(dialog))
                         }
                     }
-                } label: {
-                    EmptyView()
-                }
-            }
+                })
         }
     }
     
@@ -229,7 +227,9 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
             }
             .onDisappear {
                 viewModel.sendStopTyping()
+                viewModel.stopPlayng()
                 viewModel.unsync()
+                isInfoPresented = false
             }
     }
 }

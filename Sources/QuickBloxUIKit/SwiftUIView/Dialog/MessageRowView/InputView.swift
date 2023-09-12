@@ -9,16 +9,17 @@
 import SwiftUI
 import QuickBloxDomain
 import AVFoundation
+import QBAIRephrase
 
 struct InputView: View  {
     let textFieldSettings = QuickBloxUIKit.settings.dialogScreen.textField
     let typingSettings = QuickBloxUIKit.settings.dialogScreen.typing
-    let aiFeatures = QuickBloxUIKit.feature.aiFeature
+    let aiFeatures = QuickBloxUIKit.feature.ai
     
     @EnvironmentObject var viewModel: DialogViewModel
     
     let onAttachment: () -> Void
-    let onApplyTone: (_ type: String, _ content: String, _ needToUpdate: Bool) -> Void
+    let onApplyTone: (_ type: ToneInfo, _ content: String, _ needToUpdate: Bool) -> Void
     
     @State private var text: String = ""
     
@@ -42,10 +43,10 @@ struct InputView: View  {
             if aiFeatures.rephrase.enable == true, isFocused == true {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(aiFeatures.rephrase.tones, id:\.self) { tone in
+                        ForEach(viewModel.tones, id:\.self) { tone in
                             AIToneView(tone: tone, onApplyTone: {
                                 if text.isEmpty == false {
-                                    onApplyTone(tone.type, text, isUpdatedContent)
+                                    onApplyTone(tone, text, isUpdatedContent)
                                     isUpdatedContent = false
                                 } else {
                                     print("")
@@ -80,8 +81,19 @@ struct InputView: View  {
                         .padding(.bottom, 8)
                 }
                 
-                TextFieldView(isRecordState: $isRecordState, text: viewModel.aiAnswer.isEmpty == false ? $viewModel.aiAnswer : (isWaitingAnswer == true ? Binding.constant("Processing...") : $text))
+                TextFieldView(isDisabled: $isRecordState,
+                              text: viewModel.aiAnswer.isEmpty == false ? $viewModel.aiAnswer : (isWaitingAnswer == true ? Binding.constant("Processing...") : $text),
+                              typing: {
+                    if typingSettings.enable == true, isFocused == true, isHasMessage == true {
+                        viewModel.sendTyping()
+                    }
+                })
                     .focused($isFocused)
+                    .onChange(of: isFocused, perform: { newValue in
+                        if newValue == false {
+                            viewModel.sendStopTyping()
+                        }
+                    })
                     .onChange(of: viewModel.aiAnswer, perform: { newValue in
                         if newValue.isEmpty == false {
                             isUpdatedByAIAnswer = true
@@ -101,15 +113,8 @@ struct InputView: View  {
                             }
                             
                             isUpdatedByAIAnswer = false
-                            
-                            if typingSettings.enable == true {
-                                viewModel.sendTyping()
-                            }
                             isHasMessage = true
                         } else {
-                            if typingSettings.enable == true {
-                                viewModel.sendStopTyping()
-                            }
                             isHasMessage = false
                         }
                     })
@@ -189,9 +194,9 @@ struct InputView: View  {
 }
 
 struct AIToneView: View {
-    var settings = QuickBloxUIKit.settings.dialogScreen.messageRow
+    var settings = QuickBloxUIKit.feature.ai.ui.rephrase
     
-    var tone: AITone
+    var tone: QBAIRephrase.ToneInfo
     let onApplyTone: () -> Void
     
     var body: some View {
@@ -199,31 +204,37 @@ struct AIToneView: View {
         Button {
             onApplyTone()
         } label: {
-            HStack(spacing: 4) {
-                Text(tone.icon)
-                    .font(settings.dateFont)
+            HStack(spacing: settings.contentSpacing) {
+                if let toneIcon = tone.icon {
+                    Text(toneIcon)
+                        .font(settings.iconFont)
+                }
                 Text(tone.name)
-                    .foregroundColor(settings.outboundForeground)
-                    .font(settings.outboundFont)
+                    .foregroundColor(settings.nameForeground)
+                    .font(settings.nameFont)
             }
-            .padding(6)
-            .background(settings.outboundBackground)
-            .frame(height: 25)
-            .cornerRadius(12.5)
+            .padding(settings.contentPadding)
+            .background(settings.bubbleBackground)
+            .frame(height: settings.height)
+            .cornerRadius(settings.bubbleRadius)
         }
     }
 }
 
+import Combine
 struct TextFieldView: View {
     var settings = QuickBloxUIKit.settings.dialogScreen.textField
-    var aiFeatures = QuickBloxUIKit.feature.aiFeature
+    var aiFeatures = QuickBloxUIKit.feature.ai
     
-    @Binding var isRecordState: Bool
+    @State var typingPublisher = PassthroughSubject<Void, Never>()
+    
+    @Binding var isDisabled: Bool
     @Binding var text: String
+    let typing: (() -> Void)?
     
     var body: some View {
         if #available(iOS 16.0, *) {
-            TextField(isRecordState ? "" : settings.placeholderText, text: $text, axis: .vertical)
+            TextField(isDisabled ? "" : settings.placeholderText, text: $text, axis: .vertical)
                 .lineLimit(1...settings.lineLimit)
                 .font(settings.placeholderFont)
                 .padding(settings.padding)
@@ -231,16 +242,49 @@ struct TextFieldView: View {
                 .cornerRadius(settings.radius)
                 .padding(.vertical, 8)
                 .textFieldStyle(.plain)
-                .disabled(isRecordState == true)
+                .disabled(isDisabled)
+                .onChange(of: text) { text in
+                    if text.isEmpty == false {
+                        typingPublisher.send()
+                    }
+                }
+                .onReceive(
+                    typingPublisher.throttle(
+                        for: 2.5,
+                        scheduler: DispatchQueue.main,
+                        latest: true
+                    )
+                ) {
+                    if let typing = typing {
+                        typing()
+                    }
+                }
         } else {
-            TextField(isRecordState ? "" : settings.placeholderText, text: $text)
+            TextField(isDisabled ? "" : settings.placeholderText, text: $text)
                 .font(settings.placeholderFont)
                 .padding(settings.padding)
                 .background(settings.placeholderBackgroundColor)
                 .cornerRadius(settings.radius)
                 .frame(height: settings.height)
                 .textFieldStyle(.plain)
-                .disabled(isRecordState == true)
+                .disabled(isDisabled)
+                .onChange(of: text) { text in
+                    if text.isEmpty == false {
+                        typingPublisher.send()
+                    }
+                }
+                .onReceive(
+                    
+                    typingPublisher.throttle(
+                        for: 2.5,
+                        scheduler: DispatchQueue.main,
+                        latest: true
+                    )
+                ) {
+                    if let typing = typing {
+                        typing()
+                    }
+                }
         }
     }
 }

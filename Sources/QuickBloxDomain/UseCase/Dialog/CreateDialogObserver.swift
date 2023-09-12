@@ -71,9 +71,11 @@ where Item == Repo.DialogEntityItem {
                 .receive(on: DialogQueue.create)
                 .sink { [weak self] event in
                     switch event {
-                    case .create(let id, _, _):
+                    case .create(let id, let isCurrent, _):
                         prettyLog(label: "create dialog with id \(id) event", id)
-                        self?.ids.insert(id)
+                        if isCurrent == true {
+                            self?.ids.insert(id)
+                        }
                     default:
                         break
                     }

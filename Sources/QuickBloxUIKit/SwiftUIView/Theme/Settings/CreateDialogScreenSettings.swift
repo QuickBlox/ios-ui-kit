@@ -148,7 +148,7 @@ public struct UserRowSettings {
     public var padding: EdgeInsets = EdgeInsets(top: CreateDialogScreenSettingsConstant.verticalPadding,
                                                 leading: CreateDialogScreenSettingsConstant.spacing,
                                                 bottom: CreateDialogScreenSettingsConstant.verticalPadding,
-                                                trailing: CreateDialogScreenSettingsConstant.spacing)
+                                                trailing: 4.0)
     public var infoSpacer = Spacer(minLength: 8.0)
     public var infoSpacing: CGFloat = 2.0
     

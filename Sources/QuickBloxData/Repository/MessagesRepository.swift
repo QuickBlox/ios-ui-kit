@@ -68,7 +68,7 @@ private extension RemoteMessageDTO {
                 RemoteFileInfoDTO(
                     id: file.id,
                     name: file.name,
-                    type: file.ext.type.rawValue,
+                    type: file.ext.mimeType,
                     path: file.path.remote,
                     uid: file.uid
                 ))

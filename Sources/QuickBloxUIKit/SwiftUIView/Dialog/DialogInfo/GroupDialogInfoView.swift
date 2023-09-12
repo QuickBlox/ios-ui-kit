@@ -30,80 +30,86 @@ public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
     }
     
     public var body: some View {
-        ZStack {
-            settings.backgroundColor.ignoresSafeArea()
-            VStack {
-                
-                InfoDialogAvatar(dialog: viewModel.dialog, isProcessing: $viewModel.isProcessing)
-                
-                ForEach(settings.groupActionSegments, id:\.self) { action in
-                    InfoSegment(dialog: viewModel.dialog, action: action) { action in
-                        switch action {
-                        case .members: membersPresented.toggle()
-                        case .searchInDialog: searchPresented.toggle()
-                        case .leaveDialog: isDeleteAlertPresented = true
-                        case .notification: break
+        NavigationView {
+            ZStack {
+                settings.backgroundColor.ignoresSafeArea()
+                VStack {
+                    
+                    InfoDialogAvatar()
+                    
+                    ForEach(settings.groupActionSegments, id:\.self) { action in
+                        InfoSegment(dialog: viewModel.dialog, action: action) { action in
+                            switch action {
+                            case .members: membersPresented.toggle()
+                            case .searchInDialog: searchPresented.toggle()
+                            case .leaveDialog: isDeleteAlertPresented = true
+                            case .notification: break
+                            }
                         }
+                    }
+                    
+                    SegmentDivider()
+                }
+                
+                .deleteDialogAlert(isPresented: $isDeleteAlertPresented,
+                                   name: viewModel.dialog.name,
+                                   onCancel: {
+                    isDeleteAlertPresented = false
+                }, onTap: {
+                    viewModel.deleteDialog()
+                })
+                
+                .editDialogAlert(isPresented: $isEditDialogAlertPresented, viewModel: viewModel,
+                                 dialogName: $viewModel.dialogName,
+                                 isValidDialogName: $viewModel.isValidDialogName,
+                                 isExistingImage: viewModel.isExistingImage,
+                                 isHiddenFiles: settings.editDialogAlert.isHiddenFiles,
+                                 isEdit: $isEdit,
+                                 onRemoveImage: {
+                    viewModel.removeExistingImage()
+                }, onGetAttachment: { attachmentAsset in
+                    guard let avatar = attachmentAsset.image?
+                        .cropToRect()
+                        .resize(to: settings.avatarSize)
+                    else { return }
+                    var asset = attachmentAsset
+                    asset.image = avatar
+                    viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
+                }, onGetName: { name in
+                    viewModel.handleOnSelect(newName: name)
+                })
+                
+                .onChange(of: viewModel.error, perform: { error in
+                    if error.isEmpty { return }
+                    errorPresented.toggle()
+                })
+                
+                .errorAlert($viewModel.error, isPresented: $errorPresented)
+                .permissionAlert(isPresented: $viewModel.permissionNotGranted.notGranted,
+                                 viewModel: viewModel)
+                
+                .modifier(DialogInfoHeader(onDismiss: {
+                    dismiss()
+                }, onTapEdit: {
+                    isEditDialogAlertPresented = true
+                }, disabled: isEdit))
+                
+                .disabled(viewModel.isProcessing == true)
+                .if(viewModel.isProcessing == true) { view in
+                    view.overlay() {
+                        CustomProgressView()
                     }
                 }
                 
-                SegmentDivider()
-            }
-            
-            .deleteDialogAlert(isPresented: $isDeleteAlertPresented,
-                               name: viewModel.dialog.name,
-                             onCancel: {
-                isDeleteAlertPresented = false
-            }, onTap: {
-                viewModel.deleteDialog()
-            })
-            
-            .editDialogAlert(isPresented: $isEditDialogAlertPresented, viewModel: viewModel,
-                             dialogName: $viewModel.dialogName,
-                             isValidDialogName: $viewModel.isValidDialogName,
-                             isExistingImage: viewModel.isExistingImage,
-                             isHiddenFiles: settings.editDialogAlert.isHiddenFiles,
-                             isEdit: $isEdit,
-                             onRemoveImage: {
-                viewModel.removeExistingImage()
-            }, onGetAttachment: { attachmentAsset in
-                guard let avatar = attachmentAsset.image?
-                    .cropToRect()
-                    .resize(to: settings.avatarSize)
-                     else { return }
-                var asset = attachmentAsset
-                asset.image = avatar
-                viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
-            }, onGetName: { name in
-                viewModel.handleOnSelect(newName: name)
-            })
-            
-            .onChange(of: viewModel.error, perform: { error in
-                if error.isEmpty { return }
-                errorPresented.toggle()
-            })
-            
-            .errorAlert($viewModel.error, isPresented: $errorPresented)
-            .permissionAlert(isPresented: $viewModel.permissionNotGranted.notGranted,
-                             viewModel: viewModel)
-            
-            .modifier(DialogInfoHeader(onDismiss: {
-                dismiss()
-            }, onTapEdit: {
-                isEditDialogAlertPresented = true
-            }, disabled: isEdit))
-            
-            .disabled(viewModel.isProcessing == true)
-            .if(viewModel.isProcessing == true) { view in
-                view.overlay() {
-                    CustomProgressView()
+                .environmentObject(viewModel)
+                
+                if membersPresented == true {
+                    NavigationLink(isActive: $membersPresented) {
+                        Fabric.screen.members(to: viewModel.dialog)
+                    } label: {
+                        EmptyView()
+                    }
                 }
-            }
-            
-            NavigationLink(isActive: $membersPresented) {
-                Fabric.screen.members(to: viewModel.dialog)
-            } label: {
-                EmptyView()
             }
         }
     }

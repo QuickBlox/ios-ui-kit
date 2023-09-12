@@ -48,8 +48,6 @@ private actor Chat {
         do {
             try await dialog.joinAsync()
             try Task.checkCancellation()
-            try await Task.wait(second: 0.2)
-            
         } catch {
             prettyLog(label: "Join to \(id)", error)
         }
@@ -490,7 +488,10 @@ extension RemoteDataSource: QBChatReceiveMessageProtocol {
     
     func chatDidReceiveSystemMessage(_ message: QBChatMessage) {
         if message.senderID == currentUserId { return }
-        Task { await stream.process(message) }
+        Task {
+            try await Task.wait(second: 1.0)
+            await stream.process(message)
+        }
     }
     
     func chatDidReadMessage(withID messageID: String, dialogID: String, readerID: UInt) {
@@ -517,7 +518,6 @@ extension RemoteDataSource {
             dialog.photo = dto.photo
         }
         let created = try await QBRequest.create(dialog: dialog)
-        try? await Task.wait(second: 0.2)
         await stream.add(chat: created)
         
         guard let dialogId = created.id else {
@@ -540,6 +540,8 @@ extension RemoteDataSource {
         }
         
         await stream.send(qbChatMessage)
+        
+        try? await Task.wait(second: 1.0)
 
         await stream.process(RemoteEvent.create(created.id ?? "", byUser: true, message: RemoteMessageDTO(qbChatMessage)))
         
@@ -943,11 +945,14 @@ extension RemoteDataSource {
                 let fileId = String(blob.id)
                 
                 var fileExtension: FileExtension
-                if let extStr = fileName.components(separatedBy: ".").last,
+                if let contentType = blob.contentType {
+                    fileExtension = FileExtension(mimeType: contentType)
+                    if contentType.contains("mp4a") || contentType.contains("aac") {
+                        fileExtension = .caf
+                    }
+                } else if let extStr = fileName.components(separatedBy: ".").last,
                    let ext = FileExtension(rawValue: extStr.lowercased()) {
                     fileExtension = ext
-                } else if let contentType = blob.contentType {
-                    fileExtension = FileExtension(mimeType: contentType)
                 } else {
                     fileExtension = dto.ext
                     let info = """
@@ -971,6 +976,7 @@ extension RemoteDataSource {
                 
                 var uploaded = try await get(fileWithPath: uuid)
                 uploaded.id = fileId
+                
                 uploaded.ext = fileExtension
                 uploaded.name = fileName
                 uploaded.type = fileExtension.type
@@ -1492,6 +1498,9 @@ private extension RemoteDialogDTO {
         if let lastMessageId = value.lastMessageID {
             self.lastMessageId = lastMessageId
             lastMessageText = value.lastMessageText ?? ""
+            if lastMessageText.contains("MediaContentEntity") { // FIXME: temporary fix for Android
+                lastMessageText = "[Attachment]"
+            }
             if value.lastMessageUserID != 0 {
                 lastMessageUserId = String(value.lastMessageUserID)
             }
@@ -1510,11 +1519,16 @@ private extension RemoteMessageDTO {
     init (_ value: QBChatMessage) {
         id = value.id ?? UUID().uuidString
         dialogId = value.dialogID ?? ""
-        text = value.text ?? ""
+        text = value.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if text.contains("MediaContentEntity") || text.contains("[Attachment]")  { // FIXME: temporary fix for Android
+            text = "[Attachment]"
+        }
         recipientId = value.recipientID != 0 ? String(value.recipientID) : ""
         senderId = value.senderID != 0 ? String(value.senderID) : ""
         senderResource = value.senderResource ?? ""
-        if let date = value.dateSent { self.dateSent = date }
+        if let date = value.dateSent {
+            self.dateSent = date
+        }
         if let params = value.customParameters as? [String: String] {
             customParameters = params
             if let save = params[QBChatMessage.Key.save] {
@@ -1538,8 +1552,9 @@ private extension RemoteMessageDTO {
         
         delayed = value.delayed
         markable = value.markable
-        if let date = value.createdAt { createdAt = date }
-        if let date = value.updatedAt { updatedAt = date }
+        
+        createdAt = value.createdAt ?? dateSent
+        updatedAt = value.updatedAt ?? dateSent
         
         eventType = value.type
         type = eventType == .message ? .chat : .event
@@ -1652,7 +1667,7 @@ extension QBChatMessage {
         }
         
         attachments = value.filesInfo.compactMap {
-            var attachment = QBChatAttachment($0)
+            let attachment = QBChatAttachment($0)
             attachment["uid"] = $0.uid
             return attachment
         }
@@ -1660,8 +1675,10 @@ extension QBChatMessage {
         delayed = value.delayed
         markable = value.markable
         
-        readIDs = toSend == true ? [NSNumber(value: QBSession.current.currentUserID)] : value.readIds.compactMap { NSNumber(value: UInt($0) ?? 0) }
-        deliveredIDs = toSend == true ? [NSNumber(value: QBSession.current.currentUserID)] : value.deliveredIds.compactMap { NSNumber(value: UInt($0) ?? 0) }
+        readIDs = toSend == true ? [NSNumber(value: QBSession.current.currentUserID)]
+        : value.readIds.compactMap { NSNumber(value: UInt($0) ?? 0) }
+        deliveredIDs = toSend == true ? [NSNumber(value: QBSession.current.currentUserID)]
+        : value.deliveredIds.compactMap { NSNumber(value: UInt($0) ?? 0) }
     }
 }
 
@@ -1684,6 +1701,7 @@ private extension RemoteFileInfoDTO {
         name = value.name ?? ""
         type = value.type ?? ""
         path = value.url ?? ""
+        
         if let uid = value.customParameters?["uid"] {
             self.uid = uid
         }

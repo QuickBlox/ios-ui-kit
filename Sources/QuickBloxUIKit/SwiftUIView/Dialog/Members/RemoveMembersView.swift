@@ -81,10 +81,12 @@ public struct RemoveMembersView<ViewModel: MembersDialogProtocol>: View {
             }
         }
         
-        NavigationLink(isActive: $isAddPresented) {
-            Fabric.screen.addMembers(to: viewModel.dialog)
-        } label: {
-            EmptyView()
+        if isAddPresented == true {
+            NavigationLink(isActive: $isAddPresented) {
+                Fabric.screen.addMembers(to: viewModel.dialog)
+            } label: {
+                EmptyView()
+            }
         }
     }
 }

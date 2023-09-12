@@ -292,9 +292,11 @@ extension View {
 
 struct CustomAIFailAlert: ViewModifier {
     public var settings = QuickBloxUIKit.settings.dialogInfoScreen.editNameAlert
-    public var answer = QuickBloxUIKit.settings.dialogScreen
     
     @Binding var isPresented: Bool
+    
+    let feature: AIFeatureType
+    let onDismiss: () -> Void
     
     func body(content: Content) -> some View {
         ZStack(alignment: .center) {
@@ -302,7 +304,7 @@ struct CustomAIFailAlert: ViewModifier {
                 .disabled(isPresented)
             if isPresented {
                 VStack() {
-                    Text(try! AttributedString(markdown:answer.invalidAI))
+                    Text(try! AttributedString(markdown: feature.invalid))
                         .font(settings.textFont)
                         .padding(.top, settings.textfieldPadding)
                         .multilineTextAlignment(.leading)
@@ -315,16 +317,17 @@ struct CustomAIFailAlert: ViewModifier {
                             withAnimation {
                                 isPresented = false
                             }
+                            onDismiss()
                         } label: {
                             Text(settings.ok)
                                 .font(settings.okFont)
                                 .foregroundColor(settings.okForeground)
+                                .frame(width: settings.size.width, height: settings.buttonHeight)
                         }
                         .frame(width: settings.size.width, height: settings.buttonHeight)
-                    }.frame(height: settings.buttonHeight)
+                    }.frame(width: settings.size.width, height: settings.buttonHeight)
                     
                 }
-                
                 .background(settings.background)
                 .frame(width: settings.size.width)
                 .cornerRadius(settings.cornerRadius)
@@ -335,9 +338,13 @@ struct CustomAIFailAlert: ViewModifier {
 
 extension View {
     func aiFailAlert(
-        isPresented: Binding<Bool>
+        isPresented: Binding<Bool>,
+        feature: AIFeatureType,
+        onDismiss: @escaping () -> Void
     ) -> some View {
-        self.modifier(CustomAIFailAlert(isPresented: isPresented))
+        self.modifier(CustomAIFailAlert(isPresented: isPresented,
+                                        feature: feature,
+                                        onDismiss: onDismiss))
     }
 }
 

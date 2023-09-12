@@ -16,12 +16,12 @@ public struct OutboundFileMessageRow<MessageItem: MessageEntity>: View {
     
     var message: MessageItem
     
-    let onTap: (_ action: MessageAttachmentAction, _ image: Image?, _ url: URL?) -> Void
+    let onTap: (_ action: MessageAttachmentAction, _ url: URL?) -> Void
     
     @State public var fileTuple: (type: String, image: Image?, url: URL?)? = nil
     
     public init(message: MessageItem,
-                onTap: @escaping  (_ action: MessageAttachmentAction, _ image: Image?, _ url: URL?) -> Void) {
+                onTap: @escaping  (_ action: MessageAttachmentAction, _ url: URL?) -> Void) {
         self.message = message
         self.onTap = onTap
     }
@@ -44,10 +44,7 @@ public struct OutboundFileMessageRow<MessageItem: MessageEntity>: View {
             }
             
             Button {
-                if let url = fileTuple?.url {
-                    
-                    onTap(.save, nil, url)
-                }
+                open()
             } label: {
                 
                 VStack(alignment: .leading, spacing: 2) {
@@ -85,6 +82,11 @@ public struct OutboundFileMessageRow<MessageItem: MessageEntity>: View {
         .fixedSize(horizontal: false, vertical: true)
         .id(message.id)
     }
+    
+    private func open() {
+        guard let url = fileTuple?.url else { return }
+        onTap(.open, url)
+    }
 }
 
 private struct OutboundFilePlaceholder: View {
@@ -119,7 +121,7 @@ struct OutboundFileMessageRow_Previews: PreviewProvider {
                                                      text: "[Attachment]",
                                                      userId: "2d3d4d5d6d",
                                                      date: Date()),
-                                   onTap: { (_,_,_) in})
+                                   onTap: { (_,_) in})
                 .previewDisplayName("Out Message")
 
 
@@ -128,7 +130,7 @@ struct OutboundFileMessageRow_Previews: PreviewProvider {
                                                      text: "[Attachment]",
                                                      userId: "2d3d4d5d6d",
                                                      date: Date()),
-                                   onTap: { (_,_,_) in})
+                                   onTap: { (_,_) in})
                 .previewDisplayName("Out Dark Message")
                 .preferredColorScheme(.dark)
         }

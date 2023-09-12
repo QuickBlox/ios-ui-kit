@@ -259,7 +259,9 @@ public protocol ThemeStringProtocol {
     var toDialog: String { get set }
     var noResults: String { get set }
     var noMembers: String { get set }
-    var invalidAI: String { get set }
+    var invalidAIAnswerAssist: String { get set }
+    var invalidAITranslate: String { get set }
+    var invalidAIRephrase: String { get set }
     
     var maxSize: String { get set }
     var maxSizeHint: String { get set }
@@ -342,7 +344,9 @@ public class ThemeString: ThemeStringProtocol {
     public var toDialog: String = String(localized: "alert.message.toDialog", bundle: .module)
     public var noResults: String = String(localized: "alert.message.noResults", bundle: .module)
     public var noMembers: String = String(localized: "alert.message.noMembers", bundle: .module)
-    public var invalidAI: String = String(localized: "alert.message.invalidAI", bundle: .module)
+    public var invalidAIAnswerAssist: String = String(localized: "alert.message.invalidAIAnswerAssist", bundle: .module)
+    public var invalidAITranslate: String = String(localized: "alert.message.invalidAITranslate", bundle: .module)
+    public var invalidAIRephrase: String = String(localized: "alert.message.invalidAIRephrase", bundle: .module)
     
     public var maxSize: String = String(localized: "attachment.maxSize.title", bundle: .module)
     public var maxSizeHint: String = String(localized: "attachment.maxSize.hint", bundle: .module)

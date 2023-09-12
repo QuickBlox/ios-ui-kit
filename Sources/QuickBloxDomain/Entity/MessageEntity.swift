@@ -67,7 +67,7 @@ extension MessageEntity {
                 fileInfo: FileInfoItem? = nil) {
         self.init(id: id, dialogId: dialogId, type: type)
         self.text = text
-        self.translatedText = text
+        self.translatedText = translatedText
         self.userId = userId
         self.date = date
         self.isOwnedByCurrentUser = isOwnedByCurrentUser

@@ -27,58 +27,62 @@ public struct GroupDialogNonEditInfoView<ViewModel: DialogInfoProtocol>: View {
     }
     
     public var body: some View {
-        ZStack {
-            settings.backgroundColor.ignoresSafeArea()
-            VStack {
-                
-                InfoDialogAvatar(dialog: viewModel.dialog, isProcessing: $viewModel.isProcessing)
-                
-                ForEach(settings.groupActionSegments, id:\.self) { action in
-                    InfoSegment(dialog: viewModel.dialog, action: action) { action in
-                        switch action {
-                        case .members: membersPresented.toggle()
-                        case .searchInDialog: searchPresented.toggle()
-                        case .leaveDialog: isDeleteAlertPresented = true
-                        case .notification: break
+        NavigationView {
+            ZStack {
+                settings.backgroundColor.ignoresSafeArea()
+                VStack {
+                    
+                    InfoDialogAvatar()
+                    
+                    ForEach(settings.groupActionSegments, id:\.self) { action in
+                        InfoSegment(dialog: viewModel.dialog, action: action) { action in
+                            switch action {
+                            case .members: membersPresented.toggle()
+                            case .searchInDialog: searchPresented.toggle()
+                            case .leaveDialog: isDeleteAlertPresented = true
+                            case .notification: break
+                            }
                         }
+                    }
+                    
+                    SegmentDivider()
+                }
+                
+                .onChange(of: viewModel.error, perform: { error in
+                    if error.isEmpty { return }
+                    errorPresented.toggle()
+                })
+                
+                .errorAlert($viewModel.error, isPresented: $errorPresented)
+                
+                .deleteDialogAlert(isPresented: $isDeleteAlertPresented,
+                                   name: viewModel.dialog.name,
+                                   onCancel: {
+                    isDeleteAlertPresented = false
+                }, onTap: {
+                    viewModel.deleteDialog()
+                })
+                
+                .disabled(viewModel.isProcessing == true)
+                .if(viewModel.isProcessing == true) { view in
+                    view.overlay() {
+                        CustomProgressView()
                     }
                 }
                 
-                SegmentDivider()
-            }
-            
-            .onChange(of: viewModel.error, perform: { error in
-                if error.isEmpty { return }
-                errorPresented.toggle()
-            })
-            
-            .errorAlert($viewModel.error, isPresented: $errorPresented)
-            
-            .deleteDialogAlert(isPresented: $isDeleteAlertPresented,
-                               name: viewModel.dialog.name,
-                             onCancel: {
-                isDeleteAlertPresented = false
-            }, onTap: {
-                viewModel.deleteDialog()
-            })
-            
-            .disabled(viewModel.isProcessing == true)
-            .if(viewModel.isProcessing == true) { view in
-                view.overlay() {
-                    CustomProgressView()
+                .modifier(GroupDialogNonEditInfoHeader(onDismiss: {
+                    dismiss()
+                }))
+                
+                .environmentObject(viewModel)
+                
+                if membersPresented == true {
+                    NavigationLink(isActive: $membersPresented) {
+                        Fabric.screen.members(to: viewModel.dialog)
+                    } label: {
+                        EmptyView()
+                    }
                 }
-            }
-            
-            .modifier(GroupDialogNonEditInfoHeader(onDismiss: {
-                dismiss()
-            }))
-            
-            NavigationLink(isActive: $membersPresented) {
-                if let dialog = viewModel.dialog as? Dialog {
-                    RemoveMembersView(viewModel: MembersDialogViewModel(dialog: dialog))
-                }
-            } label: {
-                EmptyView()
             }
         }
     }

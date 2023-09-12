@@ -15,17 +15,17 @@ import QuickBloxLog
 
 public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
     var settings = QuickBloxUIKit.settings.dialogScreen.messageRow
-    var aiFeatures = QuickBloxUIKit.feature.aiFeature
+    var aiFeatures = QuickBloxUIKit.feature.ai
     
     var message: MessageItem
     @State var showOriginal: Bool = true
     
-    let onAIFeature: (_ type: AIFeatureType, _ message: MessageItem?) -> Void
+    let onAIFeature: (_ type: AIFeatureType, _ message: MessageItem) -> Void
     var waitingTranslation: Bool = false
     
     public init(message: MessageItem,
                 onAIFeature: @escaping  (_ type: AIFeatureType,
-                                         _ message: MessageItem?) -> Void,
+                                         _ message: MessageItem) -> Void,
                 waitingTranslation: TranslationInfo) {
         self.message = message
         self.onAIFeature = onAIFeature
@@ -54,7 +54,7 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                         if aiFeatures.translate.enable == true {
                             
                             Button {
-                                if aiFeatures.translate.isValid == true {
+                                if aiFeatures.translate.enable == true {
                                     if showOriginal == true && message.translatedText.isEmpty == false {
                                         showOriginal = false
                                     } else if showOriginal == false && message.translatedText.isEmpty == false {
@@ -62,11 +62,9 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                                     } else {
                                         onAIFeature(.translate, message)
                                     }
-                                } else {
-                                    onAIFeature(.translate, nil)
                                 }
                             } label: {
-                                Text(message.translatedText.isEmpty == false && showOriginal == false ? settings.ai.translate.showOriginal : settings.ai.translate.showTranslation)
+                                Text(message.translatedText.isEmpty == false && showOriginal == false ? aiFeatures.ui.translate.showOriginal : aiFeatures.ui.translate.showTranslation)
                                     .lineLimit(1)
                                     .foregroundColor(settings.infoForeground)
                                     .font(settings.translateFont)
@@ -74,7 +72,7 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                             }
                         }
                     }
-                    .frame(minWidth: aiFeatures.translate.enable == true ? settings.ai.translate.width : 0)
+                    .frame(minWidth: aiFeatures.translate.enable == true ? aiFeatures.ui.translate.width : 0)
                     
                         .onChange(of: message.translatedText) { newValue in
                             if newValue.isEmpty == false {
@@ -87,17 +85,13 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                             .frame(width: settings.robotSize.width,
                                    height: settings.robotSize.height)
                             .padding(.bottom, aiFeatures.translate.enable == true ? 18 : 0)
-                    } else if aiFeatures.enable == true {
+                    } else if aiFeatures.assistAnswer.enable == true {
                         Menu {
                             if aiFeatures.assistAnswer.enable == true {
                                 Button {
-                                    if aiFeatures.assistAnswer.isValid == true {
-                                        onAIFeature(.answerAssist, message)
-                                    } else {
-                                        onAIFeature(.answerAssist, nil)
-                                    }
+                                    onAIFeature(.answerAssist, message)
                                 } label: {
-                                    Label(settings.ai.answerAssist.title, systemImage: "")
+                                    Label(aiFeatures.ui.answerAssist.title, systemImage: "")
                                 }
                             }
                             

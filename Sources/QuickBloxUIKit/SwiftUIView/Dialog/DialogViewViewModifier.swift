@@ -10,6 +10,7 @@ import SwiftUI
 import QuickBloxLog
 import QuickBloxData
 import QuickBloxDomain
+import QuickLook
 
 struct DialogHeaderToolbarContent: ToolbarContent {
     
@@ -33,33 +34,35 @@ struct DialogHeaderToolbarContent: ToolbarContent {
     
     public var body: some ToolbarContent {
         ToolbarItem(placement: .navigationBarLeading) {
-            Button {
-                onDismiss()
-            } label: {
-                if let title = settings.leftButton.title {
-                    Text(title).foregroundColor(settings.leftButton.color)
-                } else {
-                    settings.leftButton.image
-                        .resizable()
-                        .scaleEffect(settings.leftButton.scale)
-                        .tint(settings.leftButton.color)
-                        .padding(settings.leftButton.padding)
-                }
-            }
-        }
-        
-        ToolbarItem(placement: .navigationBarLeading) {
-            HStack(spacing: 8.0) {
-                AvatarView(image: avatar ?? dialog.placeholder,
-                           height: settings.title.avatarHeight,
-                           isHidden: settings.title.isHiddenAvatar)
-                .task {
-                    do { avatar = try await dialog.avatar } catch { prettyLog(error) }
-                }
+            HStack(spacing: 0.0) {
+                Button {
+                    onDismiss()
+                } label: {
+                    if let title = settings.leftButton.title {
+                        Text(title).foregroundColor(settings.leftButton.color)
+                    } else {
+                        settings.leftButton.image
+                            .resizable()
+                            .scaledToFit()
+                            .scaleEffect(settings.leftButton.scale)
+                            .tint(settings.leftButton.color)
+                            .padding(settings.leftButton.padding)
+                    }
+                }.frame(width: 32, height: 44)
                 
-                Text(dialog.name)
-                    .font(settings.title.font)
-                    .foregroundColor(settings.title.color)
+                HStack(spacing: 8.0) {
+
+                    AvatarView(image: avatar ?? dialog.placeholder,
+                               height: settings.title.avatarHeight,
+                               isHidden: settings.title.isHiddenAvatar)
+                    .task {
+                        do { avatar = try await dialog.avatar } catch { prettyLog(error) }
+                    }
+
+                    Text(dialog.name)
+                        .font(settings.title.font)
+                        .foregroundColor(settings.title.color)
+                }
             }
         }
         
@@ -72,11 +75,12 @@ struct DialogHeaderToolbarContent: ToolbarContent {
                 } else {
                     settings.rightButton.image
                         .resizable()
+                        .scaledToFit()
                         .scaleEffect(settings.rightButton.scale)
                         .tint(settings.rightButton.color)
                         .padding(settings.rightButton.padding)
                 }
-            }
+            }.frame(width: 44, height: 44)
         }
     }
 }
@@ -270,4 +274,54 @@ func makeUIViewController(context: UIViewControllerRepresentableContext<Activity
 
 func updateUIViewController(_ uiViewController: UIActivityViewController, context: UIViewControllerRepresentableContext<ActivityViewController>) {}
 
+}
+
+
+struct FilePreviewController: UIViewControllerRepresentable {
+    let url: URL
+    let onDismiss: () -> Void
+    
+    func makeUIViewController(context: Context) -> UINavigationController {
+        let controller = QLPreviewController()
+        controller.dataSource = context.coordinator
+        controller.navigationItem.leftBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .done, target: context.coordinator,
+            action: #selector(context.coordinator.dismiss)
+        )
+        
+        let navigationController = UINavigationController(rootViewController: controller)
+        return navigationController
+    }
+    
+    func updateUIViewController(
+        _ uiViewController: UINavigationController,
+        context: Context
+    ) {}
+    
+    func makeCoordinator() -> Coordinator {
+        return Coordinator(previewController: self)
+    }
+    
+    class Coordinator: QLPreviewControllerDataSource {
+        let previewController: FilePreviewController
+        
+        init(previewController: FilePreviewController) {
+            self.previewController = previewController
+        }
+        
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int {
+            return 1
+        }
+        
+        func previewController(
+            _ controller: QLPreviewController,
+            previewItemAt index: Int
+        ) -> QLPreviewItem {
+            return previewController.url as NSURL
+        }
+        
+        @objc func dismiss() {
+            previewController.onDismiss()
+        }
+    }
 }

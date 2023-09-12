@@ -27,11 +27,12 @@ struct PrivateDialogInfoHeaderToolbarContent: ToolbarContent {
                 } else {
                     settings.leftButton.image
                         .resizable()
+                        .scaledToFit()
                         .scaleEffect(settings.leftButton.scale)
                         .tint(settings.leftButton.color)
                         .padding(settings.leftButton.padding)
                 }
-            }
+            }.frame(width: 32, height: 44)
         }
     }
 }

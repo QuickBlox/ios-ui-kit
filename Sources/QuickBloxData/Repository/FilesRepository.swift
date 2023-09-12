@@ -89,6 +89,7 @@ private extension File {
                         path: value.path,
                         uid: value.uid)
         data = value.data
+        info.type = value.type
     }
 }
 
@@ -101,6 +102,7 @@ private extension File {
                         path: value.path,
                         uid: value.uid)
         data = value.data
+        info.type = value.type
     }
 }
 

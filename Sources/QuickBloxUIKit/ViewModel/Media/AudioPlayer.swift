@@ -29,17 +29,16 @@ open class AudioPlayer: NSObject, ObservableObject, AVAudioPlayerDelegate {
         do {
             try playbackSession.overrideOutputAudioPort(AVAudioSession.PortOverride.speaker)
         } catch {
-            print("Playing failed.")
+            print("Playing failed error = \(error)")
         }
         
         do {
             audioPlayer = try AVAudioPlayer(data: audio, fileTypeHint: AVFileType.mp3.rawValue)
-        
             audioPlayer.delegate = self
             audioPlayer.play()
             isPlaying = true
         } catch {
-            print("Play Audio failed.")
+            print("Playing failed error = \(error)")
         }
     }
     
@@ -54,5 +53,12 @@ open class AudioPlayer: NSObject, ObservableObject, AVAudioPlayerDelegate {
         if flag {
             isPlaying = false
         }
+    }
+    
+    private func temporaryUrl(_ data: Data) -> URL {
+        let localURL = URL(fileURLWithPath:NSTemporaryDirectory())
+            .appendingPathComponent("Audio_\(Date())")
+        let _ = (try? data.write(to: localURL, options: [.atomic])) != nil
+        return localURL
     }
 }
