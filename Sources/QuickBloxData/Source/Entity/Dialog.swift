@@ -31,6 +31,9 @@ public struct Dialog: DialogEntity {
     public var unreadMessagesCount: Int
     public var decrementCounter: Bool = false
     
+    public var pushIDs: [String] = []
+    public var pullIDs: [String] = []
+    
     public init(id: String = "",
                 type: DialogType,
                 name: String = "",

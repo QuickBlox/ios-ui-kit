@@ -48,6 +48,10 @@ public struct GroupDialogNonEditInfoView<ViewModel: DialogInfoProtocol>: View {
                     SegmentDivider()
                 }
                 
+                .onAppear {
+                    viewModel.sync()
+                }
+                
                 .onChange(of: viewModel.error, perform: { error in
                     if error.isEmpty { return }
                     errorPresented.toggle()

@@ -21,8 +21,6 @@ public struct OutboundGIFMessageRow<MessageItem: MessageEntity>: View {
     
     @State public var fileTuple: (type: String, image: Image?, url: URL?)? = nil
     
-    @State private var progress: CGFloat = 0.5
-    
     public init(message: MessageItem,
                 onTap: @escaping  (_ action: MessageAttachmentAction, _ url: URL?) -> Void) {
         self.message = message
@@ -75,31 +73,15 @@ public struct OutboundGIFMessageRow<MessageItem: MessageEntity>: View {
                             
                         } else {
                             
-                            if progress > 0 {
-                                
-                                settings.progressBarBackground()
-                                    .frame(width: settings.attachmentSize.width,
-                                           height: settings.attachmentSize.height)
-                                    .cornerRadius(settings.attachmentRadius,
-                                                  corners: settings.outboundCorners)
-                                    .padding(settings.outboundPadding)
-                                
-                                SegmentedCircularProgressBar(progress: $progress)
-                                    .padding([.top, .trailing])
-                                
-                            } else {
-                                settings.outboundBackground
-                                    .frame(width: settings.attachmentSize.width,
-                                           height: settings.attachmentSize.height)
-                                    .cornerRadius(settings.attachmentRadius,
-                                                  corners: settings.outboundCorners)
-                                    .padding(settings.outboundPadding)
-                                
-                                Text(settings.gifTitle)
-                                    .font(settings.gifFont)
-                                    .foregroundColor(settings.outboundImageIconForeground)
-                                    .padding(.top)
-                            }
+                            settings.progressBarBackground()
+                                .frame(width: settings.attachmentSize.width,
+                                       height: settings.attachmentSize.height)
+                                .cornerRadius(settings.attachmentRadius,
+                                              corners: settings.outboundCorners)
+                                .padding(settings.outboundPadding)
+                            
+                            SegmentedCircularBar(settings: settings.progressBar)
+                                .padding([.top, .trailing])
                         }
                     }
                 }

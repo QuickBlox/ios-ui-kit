@@ -13,6 +13,7 @@ import Combine
 public protocol LocalDataSourceProtocol: ClearLocalDataSourceProtocol {
     //MARK: Dialogs
     var dialogsPublisher: AnyPublisher<[LocalDialogDTO], Never>  { get async }
+    var dialogUpdatePublisher: AnyPublisher<String, Never>  { get async }
     
     /// Store a dialog session or conversation to a local storage.
     ///

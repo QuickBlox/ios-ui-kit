@@ -59,6 +59,8 @@ where Pagination == DialogsRepo.PaginationItem {
     let stateSubject =
     CurrentValueSubject<SyncState, Never>(.syncing(stage: .disconnected))
     
+    private let eventsQueue = DispatchQueue(label: "sync.data.events.queue")
+    
     private var cancellables: Set<AnyCancellable> = Set<AnyCancellable>()
     
     private var taskConnect: Task<Void, Never>?
@@ -90,10 +92,125 @@ where Pagination == DialogsRepo.PaginationItem {
         
         return stateSubject.eraseToAnyPublisher()
     }
-}
-
-//MARK: Sync Info
-extension SyncData {
+    
+    deinit {
+        taskConnect?.cancel()
+        taskConnect = nil
+        
+        taskDisconnect?.cancel()
+        taskDisconnect = nil
+        
+        taskUpdate?.cancel()
+        taskUpdate = nil
+        
+        taskEvents?.cancel()
+        taskEvents = nil
+    }
+    
+    //MARK: Connection
+    private func processConnectionStates() {
+        let sub =
+        connectRepo.statePublisher
+            .receive(on: eventsQueue)
+            .sink { [weak self] state in
+                switch state {
+                case .unauthorized:
+                    prettyLog(state)
+                    // cancel all active tasks
+                    self?.taskUpdate?.cancel()
+                    self?.taskConnect?.cancel()
+                    self?.taskDisconnect?.cancel()
+                    
+                    Task { [weak self] in do {
+                        try await self?.dialogsRepo.cleareAll()
+                    } catch { prettyLog(error) } }
+                    
+                    self?.stateSubject.send(.syncing(stage: .unauthorized))
+                case .authorized:
+                    if UIApplication.shared.applicationState == .background {
+                        return
+                    }
+                    self?.taskDisconnect?.cancel()
+                    self?.connect()
+                case .disconnected(let error):
+                    self?.taskUpdate?.cancel()
+                    self?.stateSubject.send(.syncing(stage: .disconnected,
+                                                     error: error))
+                    Task { [weak self] in do {
+                        try await self?.dialogsRepo.cleareAll()
+                    } catch { prettyLog(error) } }
+                case .connecting(let error):
+                    self?.stateSubject.send(.syncing(stage: .connecting,
+                                                     error: error))
+                case .connected:
+                    self?.stateSubject.send(.syncing(stage: .update))
+                    self?.taskUpdate = Task { [weak self] in
+                        await self?.updateInfo()
+                        self?.taskUpdate = nil
+                    }
+                }
+            }
+        eventsQueue.async { [weak self] in
+            self?.cancellables.insert(sub)
+        }
+    }
+    
+    //MARK: Sync Info
+    private func processAppStates() {
+        let subBackground =
+        NotificationCenter.default
+            .publisher(for: UIScene.didEnterBackgroundNotification)
+            .receive(on: eventsQueue)
+            .sink { [weak self] _ in
+                self?.taskConnect?.cancel()
+                self?.disconnect()
+            }
+        eventsQueue.async { [weak self] in
+            self?.cancellables.insert(subBackground)
+        }
+        
+        let subForeground =
+        NotificationCenter.default
+            .publisher(for: UIScene.willEnterForegroundNotification)
+            .receive(on: eventsQueue)
+            .sink { [weak self] _ in
+                self?.taskDisconnect?.cancel()
+                self?.connect()
+            }
+        eventsQueue.async { [weak self] in
+            self?.cancellables.insert(subForeground)
+        }
+    }
+    
+    private func connect() {
+        taskConnect = Task { [weak self] in
+            do {
+                try await self?.connectRepo.checkConnection()
+                if self?.stateSubject.value == .syncing(stage: .disconnected) {
+                    try Task.checkCancellation()
+                    try await self?.connectRepo.connect()
+                }
+            } catch { prettyLog(error) }
+            
+            self?.taskConnect = nil
+        }
+    }
+    
+    private func disconnect() {
+        taskDisconnect = Task { [weak self] in
+            do {
+                if self?.stateSubject.value == .syncing(stage: .unauthorized) ||
+                    self?.stateSubject.value == .syncing(stage: .disconnected) {
+                    return
+                }
+                try await self?.connectRepo.disconnect()
+            } catch { prettyLog(error) }
+            
+            self?.taskDisconnect = nil
+        }
+    }
+    
+    //MARK: Sync Info
     private func updateInfo() async {
         do {
             var page = Pagination(skip: 0, limit: 100, total: 0)
@@ -131,174 +248,91 @@ extension SyncData {
             prettyLog(error)
         }
     }
-}
-
-//MARK: Connection
-extension SyncData {
-    private func processConnectionStates() {
-        connectRepo.statePublisher.sink { [weak self] state in
-            switch state {
-            case .unauthorized:
-                prettyLog(state)
-                // cancel all active tasks
-                self?.taskUpdate?.cancel()
-                self?.taskConnect?.cancel()
-                self?.taskDisconnect?.cancel()
-                
-                Task { [weak self] in do {
-                    try await self?.dialogsRepo.cleareAll()
-                } catch { prettyLog(error) } }
-                
-                self?.stateSubject.send(.syncing(stage: .unauthorized))
-            case .authorized:
-                if UIApplication.shared.applicationState == .background {
-                    return
-                }
-                self?.taskDisconnect?.cancel()
-                self?.connect()
-            case .disconnected(let error):
-                self?.taskUpdate?.cancel()
-                self?.stateSubject.send(.syncing(stage: .disconnected,
-                                                 error: error))
-                Task { [weak self] in do {
-                    try await self?.dialogsRepo.cleareAll()
-                } catch { prettyLog(error) } }
-            case .connecting(let error):
-                self?.stateSubject.send(.syncing(stage: .connecting,
-                                                 error: error))
-            case .connected:
-                self?.stateSubject.send(.syncing(stage: .update))
-                self?.taskUpdate = Task { [weak self] in
-                    await self?.updateInfo()
-                    self?.taskUpdate = nil
-                }
-            }
-        }
-        .store(in: &cancellables)
-    }
     
-    private func processAppStates() {
-        NotificationCenter.default
-            .publisher(for: UIScene.didEnterBackgroundNotification)
-            .sink { [weak self] _ in
-                self?.taskConnect?.cancel()
-                self?.disconnect()
-            }
-            .store(in: &cancellables)
-        
-        NotificationCenter.default
-            .publisher(for: UIScene.willEnterForegroundNotification)
-            .sink { [weak self] _ in
-                self?.taskDisconnect?.cancel()
-                self?.connect()
-            }
-            .store(in: &cancellables)
-    }
-    
-    private func connect() {
-        taskConnect = Task { [weak self] in
-            do {
-                try await self?.connectRepo.checkConnection()
-                if self?.stateSubject.value == .syncing(stage: .disconnected) {
-                    try Task.checkCancellation()
-                    try await self?.connectRepo.connect()
-                }
-            } catch { prettyLog(error) }
-            
-            self?.taskConnect = nil
-        }
-    }
-    
-    private func disconnect() {
-        taskDisconnect = Task { [weak self] in
-            do {
-                if self?.stateSubject.value == .syncing(stage: .unauthorized) ||
-                    self?.stateSubject.value == .syncing(stage: .disconnected) {
-                    return
-                }
-                try await self?.connectRepo.disconnect()
-            } catch { prettyLog(error) }
-            
-            self?.taskDisconnect = nil
-        }
-    }
-}
-
-//MARK: Remote Events
-extension SyncData {
     private func processRemoteEvents() {
         taskEvents = Task {  [weak self] in
-            let sub = await self?.dialogsRepo.remoteEventPublisher.sink { event in
-                switch event {
-                case .create(let id, let isCurrent, let message):
-                    Task { [weak self] in do {
-                        if isCurrent {
-                            try await self?.create(dialog: message)
-                        } else {
+            guard let eventsQueue = self?.eventsQueue else { return }
+            let sub = await self?.dialogsRepo.remoteEventPublisher
+                .receive(on: eventsQueue)
+                .sink { event in
+                    switch event {
+                    case .create(let id, let isCurrent, let message):
+                        Task { [weak self] in do {
+                            if isCurrent {
+                                try await self?.create(dialog: message)
+                            } else {
+                                try await self?.sync(dialog: id)
+                            }
+                        } catch {
+                            prettyLog(error)
+                        } }
+                    case .update(dialogWithId: let id):
+                        Task { [weak self] in do {
                             try await self?.sync(dialog: id)
-                        }
-                    } catch {
-                        prettyLog(error)
-                    } }
-                case .update(dialogWithId: let id):
-                    Task { [weak self] in do {
-                        try await self?.sync(dialog: id)
-                    } catch {
-                        prettyLog(error)
-                    } }
-                case .leave(let dialogId, let current):
-                    Task { [weak self] in do {
+                        } catch {
+                            prettyLog(error)
+                        } }
+                    case .leave(let dialogId, let current):
+                        Task { [weak self] in do {
+                            if current {
+                                try await self?.dialogsRepo.delete(dialogFromLocal: dialogId)
+                            } else {
+                                try await self?.sync(dialog: dialogId)
+                            }
+                        } catch {
+                            prettyLog(error)
+                        } }
+                    case .removed(let dialogId, let current):
                         if current {
+                            return
+                        }
+                        Task { [weak self] in do {
                             try await self?.dialogsRepo.delete(dialogFromLocal: dialogId)
-                        }
-                    } catch {
-                        prettyLog(error)
-                    } }
-                case .removed(let dialogId):
-                    Task { [weak self] in do {
-                        try await self?.dialogsRepo.delete(dialogFromLocal: dialogId)
-                    } catch {
-                        prettyLog(error)
-                    } }
-                case .newMessage(let message):
-                    Task { [weak self] in do {
-                        try await self?.update(dialog: message)
-                    } catch {
-                        if let exception = error as? RepositoryException, exception == .notFound() {
-                            try await self?.sync(dialog: message.dialogId)
+                        } catch {
+                            prettyLog(error)
+                        } }
+                    case .newMessage(let message):
+                        Task { [weak self] in do {
                             try await self?.update(dialog: message)
-                        }
-                        prettyLog(error)
-                    } }
-                case .history(let dialogId, let messages):
-                    Task { [weak self] in do {
-                        try await self?.update(dialog: dialogId,
-                                               history: messages)
-                    } catch {
-                        prettyLog(error)
-                    } }
-                case .read(let messageID, let dialogID):
-                    Task { [weak self] in do {
-                        try await self?.update(byRead: messageID, dialogID: dialogID)
-                    } catch {
-                        prettyLog(error)
-                    } }
-                case .delivered(let messageID, let dialogID):
-                    Task { [weak self] in do {
-                        try await self?.update(byDelivered: messageID, dialogID: dialogID)
-                    } catch {
-                        prettyLog(error)
-                    } }
-                case .typing(let userID, let dialogID):
-                    print("typing user: \(userID) in dialog: \(dialogID)")
-                case .stopTyping(let userID, let dialogID):
-                    print("stopTyping user: \(userID) in dialog: \(dialogID)")
+                        } catch {
+                            if let exception = error as? RepositoryException, exception == .notFound() {
+                                try await self?.sync(dialog: message.dialogId)
+                                try await self?.update(dialog: message)
+                            }
+                            prettyLog(error)
+                        } }
+                    case .history(let dialogId, let messages):
+                        Task { [weak self] in do {
+                            try await self?.update(dialog: dialogId,
+                                                   history: messages)
+                        } catch {
+                            prettyLog(error)
+                        } }
+                    case .read(let messageID, let dialogID):
+                        Task { [weak self] in do {
+                            try await self?.update(byRead: messageID, dialogID: dialogID)
+                        } catch {
+                            prettyLog(error)
+                        } }
+                    case .delivered(let messageID, let dialogID):
+                        Task { [weak self] in do {
+                            try await self?.update(byDelivered: messageID, dialogID: dialogID)
+                        } catch {
+                            prettyLog(error)
+                        } }
+                    case .typing(let userID, let dialogID):
+                        print("typing user: \(userID) in dialog: \(dialogID)")
+                    case .stopTyping(let userID, let dialogID):
+                        print("stopTyping user: \(userID) in dialog: \(dialogID)")
+                    }
                 }
-            }
-            guard let sub = sub, let self = self else {
+            
+            guard let sub = sub else {
                 return
             }
-            self.cancellables.insert(sub)
+            self?.eventsQueue.async { [weak self] in
+                self?.cancellables.insert(sub)
+            }
         }
     }
     
@@ -326,7 +360,7 @@ extension SyncData {
         try await dialogsRepo.save(dialogToLocal: dialog)
         if dialog.type == .private { return }
         if dialog.lastMessage.id != newMessage.id,
-            newMessage.isOwnedByCurrentUser == false {
+           newMessage.isOwnedByCurrentUser == false {
             dialog.unreadMessagesCount += 1
         }
         dialog.lastMessage.id = newMessage.id
@@ -362,7 +396,7 @@ extension SyncData {
             return
         }
         dialog.messages[index].isRead = true
-
+        
         try await dialogsRepo.update(dialogInLocal: dialog)
     }
     

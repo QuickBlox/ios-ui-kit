@@ -35,7 +35,7 @@ extension DataStringConvertible {
 public struct Warning {
     public static func push(_ info: String = "") {
         do {let warning = "Warning. \(info)"
-            throw RepositoryException.incorrectData(description: warning)
+            throw RepositoryException.incorrectData(warning)
         } catch { prettyLog(error) }
     }
 }

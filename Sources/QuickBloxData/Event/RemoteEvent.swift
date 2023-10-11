@@ -11,7 +11,7 @@ public enum RemoteEvent {
     case create(_ dialogId: String, byUser: Bool, message: RemoteMessageDTO)
     case update(_ dialogId: String)
     case leave(_ dialogId: String, byUser: Bool)
-    case removed(_ dialogId: String)
+    case removed(_ dialogId: String, byUser: Bool)
     case newMessage(_ message: RemoteMessageDTO)
     case history(_ messages: RemoteMessagesDTO)
     case read( _ messageID: String, dialogID: String)
@@ -34,7 +34,11 @@ public enum RemoteEvent {
                     self = .leave(message.dialogId, byUser: message.isOwnedByCurrentUser)
                 }
             case .removed:
-                self = .removed(message.dialogId)
+                if message.isOwnedByCurrentUser {
+                    self = .update(message.dialogId)
+                } else {
+                    self = .removed(message.dialogId, byUser: message.isOwnedByCurrentUser)
+                }
             case .message:
                 self = .newMessage(message)
             case .read:

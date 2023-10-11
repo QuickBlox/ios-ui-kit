@@ -18,6 +18,7 @@ public class DialogsScreenSettings {
     public var header: DialogsHeaderSettings
     public var searchBar: DialogsSearchBarSettings
     public var dialogRow: DialogRowSettings
+    public var connectStatus: ConnectStatusStringConstant
     public var backgroundColor: Color
     public var itemsIsEmpty: String
     public var itemsIsEmptyFont: Font
@@ -30,12 +31,56 @@ public class DialogsScreenSettings {
         self.header = DialogsHeaderSettings(theme)
         self.searchBar = DialogsSearchBarSettings(theme)
         self.dialogRow = DialogRowSettings(theme)
+        self.connectStatus = ConnectStatusStringConstant(theme)
         self.backgroundColor = theme.color.mainBackground
         self.itemsIsEmpty = theme.string.dialogsEmpty
         self.itemsIsEmptyFont = theme.font.title3
         self.itemsIsEmptyColor = theme.color.caption
         self.messageImage = theme.image.message
         self.messageImageColor = theme.color.caption
+    }
+}
+
+public struct ConnectStatusStringConstant {
+    public var connecting: String = "connecting"
+    public var update: String = "update"
+    public var disconnected: String = "disconnected"
+    public var connected: String = "connected"
+    public var unauthorized: String = "unauthorized"
+    public var authorized: String = "authorized"
+    
+    public var connectingLocalize: String
+    public var updateLocalize: String
+    public var disconnectedLocalize: String
+    public var connectedLocalize: String
+    public var unauthorizedLocalize: String
+    public var authorizedLocalize: String
+    
+    public func connectionText(_ text: String) -> String {
+        if text.contains(connecting) == true {
+            return text.replacingOccurrences(of: connecting, with: connectingLocalize)
+        } else if text.contains(update) == true {
+            return text.replacingOccurrences(of: update, with: updateLocalize)
+        } else if text.contains(disconnected) == true {
+            return text.replacingOccurrences(of: disconnected, with: disconnectedLocalize)
+        } else if text.contains(connected) == true {
+            return text.replacingOccurrences(of: connected, with: connectedLocalize)
+        } else if text.contains(unauthorized) == true {
+            return text.replacingOccurrences(of: unauthorized, with: unauthorizedLocalize)
+        } else if text.contains(authorized) == true {
+            return text.replacingOccurrences(of: authorized, with: authorizedLocalize)
+        } else {
+            return text
+        }
+    }
+    
+    public init(_ theme: ThemeProtocol) {
+        self.connectingLocalize = theme.string.connecting
+        self.updateLocalize = theme.string.update
+        self.disconnectedLocalize = theme.string.disconnected
+        self.connectedLocalize = theme.string.connected
+        self.unauthorizedLocalize = theme.string.unauthorized
+        self.authorizedLocalize = theme.string.authorized
     }
 }
 

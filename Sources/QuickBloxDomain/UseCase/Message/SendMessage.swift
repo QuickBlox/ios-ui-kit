@@ -25,7 +25,7 @@ where Item == Repo.MessageEntityItem {
     public func execute() async throws {
         if message.text.isEmpty {
             let info = "Unable to send empty message."
-            throw RepositoryException.incorrectData(description: info)
+            throw RepositoryException.incorrectData(info)
         }
         try await messageRepo.send(messageToRemote: message)
     }

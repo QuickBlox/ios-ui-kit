@@ -15,15 +15,43 @@ open class AudioPlayer: NSObject, ObservableObject, AVAudioPlayerDelegate {
     
     public let objectWillChange = PassthroughSubject<AudioPlayer, Never>()
     
-    var isPlaying = false {
+    public var currentTime: TimeInterval = 0 {
         didSet {
             objectWillChange.send(self)
         }
     }
     
-    var audioPlayer: AVAudioPlayer!
+    public var duration: CMTime = .zero {
+        didSet {
+            objectWillChange.send(self)
+        }
+    }
     
-    func play(audio: Data) {
+    public var isPlaying = false {
+        didSet {
+            objectWillChange.send(self)
+            if isPlaying == false {
+                invalidPlayer()
+            }
+        }
+    }
+
+    private var audioPlayer: AVPlayer!
+    private var playerItem: AVPlayerItem!
+    
+    private func addObservers() {
+        audioPlayer?.addPeriodicTimeObserver(forInterval: CMTime(seconds: 1.0,
+                                                                 preferredTimescale: CMTimeScale(NSEC_PER_SEC)),
+                                             queue: .main) { [weak self] time in
+            guard let self = self, let audioPlayer else { return }
+            self.currentTime = time.seconds.rounded()
+            self.isPlaying = audioPlayer.currentItem?.currentTime() != audioPlayer.currentItem?.duration
+        }
+    }
+    
+    public func play(audioURL: URL) {
+        invalidPlayer()
+        
         let playbackSession = AVAudioSession.sharedInstance()
         
         do {
@@ -32,33 +60,30 @@ open class AudioPlayer: NSObject, ObservableObject, AVAudioPlayerDelegate {
             print("Playing failed error = \(error)")
         }
         
-        do {
-            audioPlayer = try AVAudioPlayer(data: audio, fileTypeHint: AVFileType.mp3.rawValue)
-            audioPlayer.delegate = self
-            audioPlayer.play()
-            isPlaying = true
-        } catch {
-            print("Playing failed error = \(error)")
-        }
+        let asset = AVAsset(url: audioURL)
+        asset.loadValuesAsynchronously(forKeys: ["duration"], completionHandler: {
+            debugPrint(asset.duration)
+            self.duration = asset.duration
+        })
+        let playerItem = AVPlayerItem(asset: asset)
+        audioPlayer = AVPlayer(playerItem:playerItem)
+        audioPlayer.rate = 1.0;
+        addObservers()
+        audioPlayer.play()
+        currentTime = 0.0
+        isPlaying = true
     }
     
-    func stop() {
-        if audioPlayer != nil {
-            audioPlayer.stop()
-        }
+    public func stop() {
         isPlaying = false
     }
     
-    public func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        if flag {
-            isPlaying = false
+    private func invalidPlayer() {
+        if audioPlayer != nil {
+            audioPlayer.pause()
+            playerItem = nil
+            audioPlayer = nil
         }
-    }
-    
-    private func temporaryUrl(_ data: Data) -> URL {
-        let localURL = URL(fileURLWithPath:NSTemporaryDirectory())
-            .appendingPathComponent("Audio_\(Date())")
-        let _ = (try? data.write(to: localURL, options: [.atomic])) != nil
-        return localURL
+        currentTime = 0.0
     }
 }

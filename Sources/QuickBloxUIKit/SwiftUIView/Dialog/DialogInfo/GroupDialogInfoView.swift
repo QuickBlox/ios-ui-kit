@@ -19,11 +19,13 @@ public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
     
     @State private var isEditDialogAlertPresented: Bool = false
     @State private var isEdit: Bool = false
-    
+    @State private var isSizeAlertPresented: Bool = false
     @State private var membersPresented: Bool = false
     @State private var searchPresented: Bool = false
     @State private var errorPresented: Bool = false
     @State private var isDeleteAlertPresented: Bool = false
+    
+    @State private var attachmentAsset: AttachmentAsset? = nil
     
     init(_ viewModel: ViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -68,21 +70,36 @@ public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
                                  onRemoveImage: {
                     viewModel.removeExistingImage()
                 }, onGetAttachment: { attachmentAsset in
-                    guard let avatar = attachmentAsset.image?
-                        .cropToRect()
-                        .resize(to: settings.avatarSize)
-                    else { return }
-                    var asset = attachmentAsset
-                    asset.image = avatar
-                    viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
+                    let sizeMB = attachmentAsset.size
+                    if sizeMB.truncate(to: 2) > settings.maximumMB {
+                        if attachmentAsset.image != nil {
+                            self.attachmentAsset = attachmentAsset
+                        }
+                        isSizeAlertPresented = true
+                    } else {
+                        viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
+                    }
                 }, onGetName: { name in
                     viewModel.handleOnSelect(newName: name)
                 })
+                .onAppear {
+                    viewModel.sync()
+                }
                 
                 .onChange(of: viewModel.error, perform: { error in
                     if error.isEmpty { return }
                     errorPresented.toggle()
                 })
+                
+                .largeImageSizeAlert(isPresented: $isSizeAlertPresented,
+                                      onUseAttachment: {
+                      if let attachmentAsset {
+                          viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
+                          self.attachmentAsset = nil
+                      }
+                  }, onCancel: {
+                      self.attachmentAsset = nil
+                  })
                 
                 .errorAlert($viewModel.error, isPresented: $errorPresented)
                 .permissionAlert(isPresented: $viewModel.permissionNotGranted.notGranted,

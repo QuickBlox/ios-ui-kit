@@ -115,4 +115,5 @@ public protocol DialogsRepositoryProtocol {
     //FIXME: Add method documentation
     var remoteEventPublisher: AnyPublisher<RemoteDialogEvent<DialogEntityItem.MessageItem>, Never> { get async }
     var localDialogsPublisher: AnyPublisher<[DialogEntityItem], Never> { get async }
+    var localDialogUpdatePublisher: AnyPublisher<String, Never> { get async }
 }

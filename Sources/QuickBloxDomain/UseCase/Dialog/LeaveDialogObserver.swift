@@ -33,7 +33,7 @@ where Item == Repo.DialogEntityItem {
     
     public func execute() -> AnyPublisher<String, Never> {
         processLeaveEvents()
-       return subject.eraseToAnyPublisher()
+        return subject.eraseToAnyPublisher()
     }
     
     private func processLeaveEvents() {
@@ -44,6 +44,11 @@ where Item == Repo.DialogEntityItem {
                     switch event {
                     case .leave(let dialogId, byUser: let isCurrentUser):
                         if isCurrentUser { self?.subject.send(dialogId) }
+                    case .removed(let dialogId, byUser: let isCurrentUser):
+                        if isCurrentUser {
+                            return
+                        }
+                        self?.subject.send(dialogId)
                     default:
                         break
                     }

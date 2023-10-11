@@ -48,7 +48,8 @@ extension GetFileTests {
         let fileInfo = FileInfo(id: "testId",
                                 ext: .png,
                                 name: "test.png",
-                                path: FilePath(remote: "tesPath"))
+                                path: FilePath(remote: "tesPath"),
+                                uid: "")
         let file = File(id: "testId", info: fileInfo, data: imageData)
 
         repoMock.results[MockMethod.getLocal] =
@@ -78,7 +79,8 @@ extension GetFileTests {
         let fileInfo = FileInfo(id: "testId",
                                 ext: .png,
                                 name: "test.png",
-                                path: FilePath(remote: "tesPath"))
+                                path: FilePath(remote: "tesPath"),
+                                uid: "")
         let file = File(id: "testId", info: fileInfo, data: imageData)
         repoMock.results[MockMethod.getLocal] =
             .success([AcyncMockReturn { file }])

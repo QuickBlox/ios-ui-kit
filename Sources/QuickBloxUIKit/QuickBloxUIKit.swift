@@ -88,13 +88,19 @@ let imageCache = ImageCache.shared
 public func dialogsView(onExit: (() -> Void)? = nil, onAppear: ((Bool) -> Void)? = nil) -> some View {
     DialogsView(dialogsList: DialogsViewModel(dialogsRepo: RepositoriesFabric.dialogs),
                 content: { dialogsList in
-        DialogsListView(dialogsList: dialogsList,
+        DialogsListView(dialogsList: dialogsList, detailContent: { item, onDismiss in
+            if item.type == .group {
+                GroupDialogView(viewModel: DialogViewModel(dialog: item), onDismiss: onDismiss)
+            } else if item.type == .private {
+                PrivateDialogView(viewModel: DialogViewModel(dialog: item), onDismiss: onDismiss)
+            }
+        },
                         content: DialogsRowBuilder.defaultRow)
-    }, detailContent: { item in
+    }, detailContent: { item, onDismiss in
         if item.type == .group {
-            GroupDialogView(viewModel: DialogViewModel(dialog: item))
+            GroupDialogView(viewModel: DialogViewModel(dialog: item), onDismiss: onDismiss)
         } else if item.type == .private {
-            PrivateDialogView(viewModel: DialogViewModel(dialog: item))
+            PrivateDialogView(viewModel: DialogViewModel(dialog: item), onDismiss: onDismiss)
         }
     }, selectTypeContent: { onClose in
         DialogTypeView(onClose: onClose)

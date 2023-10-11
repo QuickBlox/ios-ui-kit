@@ -30,11 +30,12 @@ public struct MessageRowView<MessageItem: MessageEntity>: View {
     
     var message: MessageItem
     @Binding var isPlaying: Bool
+    @Binding var currentTime: TimeInterval
     var playingMessageId: String
     let onTap: (_ action: MessageAttachmentAction, _ url: URL?) -> Void
     let onPlay: (_ action: MessageAttachmentAction, _ data: Data?, _ url: URL?) -> Void
     let onAIFeature: (_ type: AIFeatureType, _ message: MessageItem) -> Void
-    @Binding var waitingTranslation: TranslationInfo
+    @Binding var aiAnswerWaiting: AIAnswerInfo
     
 
     @ViewBuilder
@@ -43,13 +44,13 @@ public struct MessageRowView<MessageItem: MessageEntity>: View {
         switch message.rowType {
         case .dateDivider: DateDividerMessageRowView(message: message)
         case .event: EventMessageRow(message: message)
-        case .inboundAudio: InboundAudioMessageRow(message: message, onTap: onPlay, playingMessageId: playingMessageId, isPlaying: isPlaying)
-        case .inboundChat: InboundChatMessageRow(message: message, onAIFeature: onAIFeature, waitingTranslation: waitingTranslation)
+        case .inboundAudio: InboundAudioMessageRow(message: message, onTap: onPlay, playingMessageId: playingMessageId, isPlaying: isPlaying, currentTime: currentTime)
+        case .inboundChat: InboundChatMessageRow(message: message, onAIFeature: onAIFeature, aiAnswerWaiting: aiAnswerWaiting)
         case .inboundImage: InboundImageMessageRow(message: message, onTap: onTap)
         case .inboundVideo: InboundVideoMessageRow(message: message, onTap: onTap)
         case .inboundPDF: InboundFileMessageRow(message: message, onTap: onTap)
         case .inboundGIF: InboundGIFMessageRow(message: message, onTap: onTap)
-        case .outboundAudio: OutboundAudioMessageRow(message: message, onTap: onPlay, playingMessageId: playingMessageId, isPlaying: isPlaying)
+        case .outboundAudio: OutboundAudioMessageRow(message: message, onTap: onPlay, playingMessageId: playingMessageId, isPlaying: isPlaying, currentTime: currentTime)
         case .outboundChat: OutboundChatMessageRow(message: message)
         case .outboundImage: OutboundImageMessageRow(message: message, onTap: onTap)
         case .outboundVideo: OutboundVideoMessageRow(message: message, onTap: onTap)

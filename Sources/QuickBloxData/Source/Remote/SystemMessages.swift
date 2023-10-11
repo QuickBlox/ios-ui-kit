@@ -44,7 +44,7 @@ extension QBChatMessage {
               user.id != 0,
               let name = user.fullName else {
             let info = "Internal: Invalid or unauthorized current user."
-            throw RepositoryException.incorrectData(description: info)
+            throw RepositoryException.incorrectData(info)
         }
         
         let message = QBChatMessage()
@@ -70,7 +70,7 @@ extension QBChatMessage {
         guard let user = QBSession.current.currentUser,
               user.id != 0 else {
             let info = "Internal: Invalid or unauthorized current user."
-            throw RepositoryException.incorrectData(description: info)
+            throw RepositoryException.incorrectData(info)
         }
         
         let system = QBChatMessage()
@@ -89,7 +89,7 @@ extension QBChatMessage {
               user.id != 0,
               let name = user.fullName else {
             let info = "Internal: Invalid or unauthorized current user."
-            throw RepositoryException.incorrectData(description: info)
+            throw RepositoryException.incorrectData(info)
         }
         
         let message = QBChatMessage()

@@ -21,8 +21,6 @@ public struct InboundVideoMessageRow<MessageItem: MessageEntity>: View {
     
     @State public var fileTuple: (type: String, image: Image?, url: URL?)? = nil
     
-    @State private var progress: CGFloat = 0.5
-    
     public init(message: MessageItem,
                 onTap: @escaping  (_ action: MessageAttachmentAction, _ url: URL?) -> Void) {
         self.message = message
@@ -70,37 +68,23 @@ public struct InboundVideoMessageRow<MessageItem: MessageEntity>: View {
                                 
                             } else {
                                 
-                                if progress > 0 {
-                                    
-                                    settings.progressBarBackground()
-                                        .frame(width: settings.attachmentSize.width,
-                                               height: settings.attachmentSize.height)
-                                        .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
-                                        .padding(settings.inboundPadding(showName: settings.isHiddenName))
-                                    
-                                    SegmentedCircularProgressBar(progress: $progress)
-                                    
-                                } else {
-                                    
-                                    settings.inboundBackground
-                                        .frame(width: settings.attachmentSize.width,
-                                               height: settings.attachmentSize.height)
-                                        .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
-                                        .padding(settings.inboundPadding(showName: settings.isHiddenName))
-                                    
-                                    settings.play
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: settings.videoIconSize(isImage: false).width,
-                                               height: settings.videoIconSize(isImage: false).height)
-                                        .foregroundColor(settings.inboundImageIconForeground)
-                                }
+                                settings.progressBarBackground()
+                                    .frame(width: settings.attachmentSize.width,
+                                           height: settings.attachmentSize.height)
+                                    .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
+                                    .padding(settings.inboundPadding(showName: settings.isHiddenName))
+                                
+                                SegmentedCircularBar(settings: settings.progressBar)
                             }
                         }
                     }
                     .disabled(fileTuple?.url == nil)
                     .task {
-                        do { fileTuple = try await message.file(size: settings.imageSize) } catch { prettyLog(error)}
+                        do {
+                            fileTuple = try await message.file(size: settings.imageSize)
+                        } catch {
+                            prettyLog(error)
+                        }
                     }
                     
                     VStack(alignment: .leading) {
@@ -111,10 +95,6 @@ public struct InboundVideoMessageRow<MessageItem: MessageEntity>: View {
                             
                         }.padding(.bottom, 2)
                     }
-                    
-                }
-                .task {
-                    do { fileTuple = try await message.file(size: nil) } catch { prettyLog(error)}
                 }
             }
             Spacer(minLength: settings.inboundSpacer)

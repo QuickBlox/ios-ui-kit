@@ -20,8 +20,6 @@ public struct OutboundImageMessageRow<MessageItem: MessageEntity>: View {
     
     @State public var fileTuple: (type: String, image: Image?, url: URL?)? = nil
     
-    @State private var progress: CGFloat = 0.5
-    
     public init(message: MessageItem,
                 onTap: @escaping  (_ action: MessageAttachmentAction, _ url: URL?) -> Void) {
         self.message = message
@@ -59,30 +57,16 @@ public struct OutboundImageMessageRow<MessageItem: MessageEntity>: View {
                                 .frame(width: settings.attachmentSize.width, height: settings.attachmentSize.height)
                                 .cornerRadius(settings.attachmentRadius, corners: settings.outboundCorners)
                                 .padding(settings.outboundPadding)
-                            
                         } else {
+                            settings.progressBarBackground()
+                                .frame(width: settings.attachmentSize.width,
+                                       height: settings.attachmentSize.height)
+                                .cornerRadius(settings.attachmentRadius,
+                                              corners: settings.outboundCorners)
+                                .padding(settings.outboundPadding)
                             
-                            if progress > 0 {
-                                
-                                settings.progressBarBackground()
-                                    .frame(width: settings.attachmentSize.width,
-                                           height: settings.attachmentSize.height)
-                                    .cornerRadius(settings.attachmentRadius,
-                                                  corners: settings.outboundCorners)
-                                    .padding(settings.outboundPadding)
-                                
-                                SegmentedCircularProgressBar(progress: $progress)
-                                    .padding([.top, .trailing])
-                                
-                            } else {
-                                
-                                settings.imageIcon
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: settings.imageIconSize.width,
-                                           height: settings.imageIconSize.height)
-                                    .foregroundColor(settings.outboundImageIconForeground)
-                            }
+                            SegmentedCircularBar(settings: settings.progressBar)
+                                .padding([.top, .trailing])
                         }
                     }
                 }

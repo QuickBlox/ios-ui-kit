@@ -17,11 +17,18 @@ import QuickBloxLog
 actor LocalDataSource: LocalDataSourceProtocol {
     //MARK: Properties
     private var dialogs = CurrentValueSubject<[LocalDialogDTO], Never>([])
+    private var updatedDialog = CurrentValueSubject<String, Never>("")
     private var users: [String: LocalUserDTO] = [:]
     
     var dialogsPublisher: AnyPublisher<[LocalDialogDTO], Never> {
         get async {
             dialogs.eraseToAnyPublisher()
+        }
+    }
+    
+    var dialogUpdatePublisher: AnyPublisher<String, Never> {
+        get async {
+            updatedDialog.eraseToAnyPublisher()
         }
     }
 }
@@ -44,6 +51,7 @@ extension LocalDataSource {
         var value = dialogs.value
         value.insertElement(dto, withSorting: .orderedDescending)
         dialogs.value = value
+        updatedDialog.value = dto.id
     }
     
     func get(dialog dto: LocalDialogDTO) async throws -> LocalDialogDTO {
@@ -141,6 +149,8 @@ extension LocalDataSource {
         } else {
             dialogs.value[index] = dialog
         }
+        
+        updatedDialog.value = dto.id
     }
     
     func getAllDialogs() async throws -> LocalDialogsDTO {
