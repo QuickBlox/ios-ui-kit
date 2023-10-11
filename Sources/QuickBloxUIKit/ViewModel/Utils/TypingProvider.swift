@@ -43,7 +43,7 @@ class TypingProvider: ObservableObject {
             if self.typingTimers[userId] != nil {
                 self.typingTimers[userId]?.invalidate()
             }
-            let timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { (timer) in
+            let timer = Timer.scheduledTimer(withTimeInterval: settings.timeInterval, repeats: false) { (timer) in
                 self.removeTimer(userId)
             }
             self.typingTimers[userId] = timer
@@ -121,7 +121,7 @@ class TypingProvider: ObservableObject {
         }
         stopTimer?.invalidate()
         stopTimer = nil
-        stopTimer = Timer.scheduledTimer(timeInterval: 3.0,
+        stopTimer = Timer.scheduledTimer(timeInterval: settings.timeInterval,
                                          target: self,
                                          selector: #selector(sendStopTyping),
                                          userInfo: nil,

@@ -21,8 +21,6 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
     
     @State public var fileTuple: (type: String, image: Image?, url: URL?)? = nil
     
-    @State private var progress: CGFloat = 0.5
-    
     public init(message: MessageItem,
                 onTap: @escaping  (_ action: MessageAttachmentAction, _ url: URL?) -> Void) {
         self.message = message
@@ -54,37 +52,22 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
                                     .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
                                     .padding(settings.inboundPadding(showName: settings.isHiddenName))
                             } else {
+                                settings.progressBarBackground()
+                                    .frame(width: settings.attachmentSize.width,
+                                           height: settings.attachmentSize.height)
+                                    .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
+                                    .padding(settings.inboundPadding(showName: settings.isHiddenName))
                                 
-                                if progress > 0 {
-                                    
-                                    settings.progressBarBackground()
-                                        .frame(width: settings.attachmentSize.width,
-                                               height: settings.attachmentSize.height)
-                                        .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
-                                        .padding(settings.inboundPadding(showName: settings.isHiddenName))
-                                    
-                                    SegmentedCircularProgressBar(progress: $progress)
-                                    
-                                } else {
-                                    
-                                    settings.inboundBackground
-                                        .frame(width: settings.attachmentSize.width,
-                                               height: settings.attachmentSize.height)
-                                        .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
-                                        .padding(settings.inboundPadding(showName: settings.isHiddenName))
-                                    
-                                    settings.imageIcon
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: settings.imageIconSize.width,
-                                               height: settings.imageIconSize.height)
-                                        .foregroundColor(settings.inboundImageIconForeground)
-                                }
+                                SegmentedCircularBar(settings: settings.progressBar)
                             }
                         }
                     }.disabled(fileTuple?.image == nil)
                         .task {
-                            do { fileTuple = try await message.file(size: settings.imageSize) } catch { prettyLog(error)}
+                            do {
+                                fileTuple = try await message.file(size: settings.imageSize)
+                            } catch {
+                                prettyLog(error)
+                            }
                         }
                     
                     VStack(alignment: .leading) {

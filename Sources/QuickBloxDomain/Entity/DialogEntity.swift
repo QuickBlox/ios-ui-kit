@@ -61,23 +61,3 @@ extension DialogEntity {
         updatedAt
     }
 }
-
-extension DialogEntity {
-    public var time: String {
-        let formatter = DateFormatter()
-        
-        if Calendar.current.isDateInToday(date) == true {
-            formatter.dateFormat = "HH:mm"
-        } else if Calendar.current.isDateInYesterday(date) == true {
-            return "Yesterday"
-        } else if Calendar.autoupdatingCurrent.component(.year, from: date) ==
-                  Calendar.autoupdatingCurrent.component(.year, from: Date()) {
-            // is current year
-            formatter.dateFormat = "d MMM"
-        } else {
-            formatter.dateStyle = .short
-        }
-        
-        return formatter.string(from: date)
-    }
-}

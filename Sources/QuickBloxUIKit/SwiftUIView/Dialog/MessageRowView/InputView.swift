@@ -19,7 +19,7 @@ struct InputView: View  {
     @EnvironmentObject var viewModel: DialogViewModel
     
     let onAttachment: () -> Void
-    let onApplyTone: (_ type: ToneInfo, _ content: String, _ needToUpdate: Bool) -> Void
+    let onApplyTone: (_ type: QBAIRephrase.AITone, _ content: String, _ needToUpdate: Bool) -> Void
     
     @State private var text: String = ""
     
@@ -32,15 +32,17 @@ struct InputView: View  {
     @State private var isUpdatedByAIAnswer: Bool = false
     
     private var isWaitingAnswer: Bool {
-        return viewModel.waitingAnswer == true && viewModel.aiAnswer.isEmpty == true
+        return viewModel.waitingAnswer.waiting == true && viewModel.aiAnswer.isEmpty == true
     }
     
     @StateObject var timer = StopWatchTimer()
     
     var body: some View {
         
-        VStack(spacing: 8) {
-            if aiFeatures.rephrase.enable == true, isFocused == true {
+        VStack {
+            if aiFeatures.rephrase.enable == true,
+               isFocused == true,
+               text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(viewModel.tones, id:\.self) { tone in
@@ -51,10 +53,10 @@ struct InputView: View  {
                                 } else {
                                     print("")
                                 }
-                            })
+                            }, isWaitingAnswer: isWaitingAnswer)
                         }
                     }
-                }.padding(.top, 8)
+                }
             }
             
             HStack(spacing: 0) {
@@ -62,7 +64,7 @@ struct InputView: View  {
                 VStack {
                     Spacer()
                     Button(action: {
-                        if isRecordState == true, isRecording == false {
+                        if isRecordState == true, isRecording == false, viewModel.syncState == .synced {
                             viewModel.stopRecording()
                             viewModel.deleteRecording()
                             isRecordState = false
@@ -81,109 +83,116 @@ struct InputView: View  {
                         .padding(.bottom, 8)
                 }
                 
-                TextFieldView(isDisabled: $isRecordState,
-                              text: viewModel.aiAnswer.isEmpty == false ? $viewModel.aiAnswer : (isWaitingAnswer == true ? Binding.constant("Processing...") : $text),
+                TextFieldView(isDisabled: isRecordState,
+                              text: viewModel.aiAnswer.isEmpty == false ?
+                              $viewModel.aiAnswer : $text,
                               typing: {
                     if typingSettings.enable == true, isFocused == true, isHasMessage == true {
                         viewModel.sendTyping()
                     }
                 })
-                    .focused($isFocused)
-                    .onChange(of: isFocused, perform: { newValue in
-                        if newValue == false {
-                            viewModel.sendStopTyping()
-                        }
-                    })
-                    .onChange(of: viewModel.aiAnswer, perform: { newValue in
-                        if newValue.isEmpty == false {
-                            isUpdatedByAIAnswer = true
-                            text = viewModel.aiAnswer
-                            viewModel.aiAnswer = ""
-                            if typingSettings.enable == true {
-                                viewModel.sendTyping()
-                            }
-                            isHasMessage = true
-                        }
-                    })
-                    .onChange(of: text, perform: { newValue in
-                        if newValue.isEmpty == false {
-                            
-                            if isFocused == true, isUpdatedContent == false, isUpdatedByAIAnswer == false {
-                                isUpdatedContent = true
-                            }
-                            
-                            isUpdatedByAIAnswer = false
-                            isHasMessage = true
-                        } else {
-                            isHasMessage = false
-                        }
-                    })
-                
-                    .if(isRecordState == true) { view in
-                        view.overlay() {
-                            HStack {
-                                textFieldSettings.timer.image.foregroundColor(textFieldSettings.timer.imageColor)
-                                Text(timer.counter.toString())
-                                    .foregroundColor(textFieldSettings.timer.foregroundColor)
-                                    .font(textFieldSettings.timer.font)
-                                Spacer()
-                            }
-                            .padding(.horizontal)
-                            .background(textFieldSettings.placeholderBackgroundColor)
-                            .cornerRadius(textFieldSettings.radius)
-                        }
+                .focused($isFocused)
+                .onChange(of: isFocused, perform: { newValue in
+                    if newValue == false {
+                        viewModel.sendStopTyping()
                     }
+                })
+                .onChange(of: viewModel.aiAnswer, perform: { newValue in
+                    if newValue.isEmpty == false {
+                        isUpdatedByAIAnswer = true
+                        text = viewModel.aiAnswer
+                        viewModel.aiAnswer = ""
+                        if typingSettings.enable == true {
+                            viewModel.sendTyping()
+                        }
+                        isHasMessage = true
+                    }
+                })
+                .onChange(of: text, perform: { newValue in
+                    if newValue.isEmpty == false {
+                        
+                        if isFocused == true, isUpdatedContent == false, isUpdatedByAIAnswer == false {
+                            isUpdatedContent = true
+                        }
+                        
+                        isUpdatedByAIAnswer = false
+                        isHasMessage = true
+                    } else {
+                        isHasMessage = false
+                    }
+                })
+                
+                .if(isRecordState == true) { view in
+                    view.overlay() {
+                        HStack {
+                            textFieldSettings.timer.image
+                                .foregroundColor(textFieldSettings.timer.imageColor)
+                            Text(timer.counter.toString())
+                                .foregroundColor(textFieldSettings.timer.foregroundColor)
+                                .font(textFieldSettings.timer.font)
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        .background(textFieldSettings.placeholderBackgroundColor)
+                        .cornerRadius(textFieldSettings.radius)
+                    }
+                }
                 
                 VStack {
                     Spacer()
                     
-                    if isWaitingAnswer == true {
-                        ProgressView()
-                            .frame(width: 40, height: 44)
-                            .padding(.bottom, 8)
-                    } else {
-                        Button(action: {
-                            if isHasMessage == true || viewModel.aiAnswer.isEmpty == false {
-                                isRecordState = false
-                                isHasMessage = false
-                                timer.reset()
-                                viewModel.sendMessage(viewModel.aiAnswer.isEmpty == false ? viewModel.aiAnswer : text)
-                                text = ""
-                                viewModel.aiAnswer = ""
-                                if typingSettings.enable == true {
-                                    viewModel.sendStopTyping()
-                                }
-                                
-                            } else  if text.isEmpty, isHasMessage == false {
-                                
-                                viewModel.requestPermission(.audio) { granted in
-                                    if granted {
-                                        if isRecordState == false, isRecording == false {
-                                            viewModel.startRecording()
-                                            isRecordState = true
-                                            isRecording = true
-                                            timer.start()
-                                        } else if isRecordState == true, isRecording == true {
-                                            isHasMessage = true
-                                            isRecording = false
-                                            viewModel.stopRecording()
-                                            timer.stop()
-                                        }
+                    Button(action: {
+                        if isWaitingAnswer == true { return }
+                        
+                        if (isHasMessage == true || viewModel.aiAnswer.isEmpty == false) && viewModel.syncState == .synced {
+                            isRecordState = false
+                            isHasMessage = false
+                            timer.reset()
+                            viewModel.sendMessage(viewModel.aiAnswer.isEmpty == false ?
+                                                  viewModel.aiAnswer : text)
+                            text = ""
+                            viewModel.aiAnswer = ""
+                            if typingSettings.enable == true {
+                                viewModel.sendStopTyping()
+                            }
+                            
+                        } else  if text.isEmpty, isHasMessage == false {
+                            
+                            viewModel.requestPermission(.audio) { granted in
+                                if granted {
+                                    if isRecordState == false, isRecording == false {
+                                        viewModel.startRecording()
+                                        isRecordState = true
+                                        isRecording = true
+                                        timer.start()
+                                    } else if isRecordState == true, isRecording == true {
+                                        isHasMessage = true
+                                        isRecording = false
+                                        viewModel.stopRecording()
+                                        timer.stop()
                                     }
                                 }
                             }
+                        }
+                    }) {
+                        
+                        if isWaitingAnswer == true {
+                            SegmentedCircularBar(settings: textFieldSettings.progressBar)
+                        } else {
                             
-                        }) {
                             if isHasMessage == true || viewModel.aiAnswer.isEmpty == false {
                                 textFieldSettings.rightButton.image.foregroundColor(textFieldSettings.rightButton.color)
                                     .rotationEffect(Angle(degrees: textFieldSettings.rightButton.degrees))
                             } else if text.isEmpty, isHasMessage == false {
-                                textFieldSettings.rightButton.micImage.foregroundColor(isRecording ? textFieldSettings.timer.imageColor : textFieldSettings.rightButton.micColor)
+                                textFieldSettings.rightButton.micImage
+                                    .foregroundColor(isRecording ?
+                                                     textFieldSettings.timer.imageColor : textFieldSettings.rightButton.micColor)
                             }
                         }
-                        .frame(width: textFieldSettings.rightButton.width, height: 40)
-                        .padding(.bottom, 8)
                     }
+                    .frame(width: textFieldSettings.rightButton.frame?.width,
+                           height: textFieldSettings.rightButton.frame?.height)
+                    .padding(.bottom, 8)
                 }
                 
             }.background(textFieldSettings.backgroundColor)
@@ -196,11 +205,11 @@ struct InputView: View  {
 struct AIToneView: View {
     var settings = QuickBloxUIKit.feature.ai.ui.rephrase
     
-    var tone: QBAIRephrase.ToneInfo
+    var tone: QBAIRephrase.AITone
     let onApplyTone: () -> Void
+    var isWaitingAnswer: Bool = false
     
     var body: some View {
-        
         Button {
             onApplyTone()
         } label: {
@@ -209,15 +218,16 @@ struct AIToneView: View {
                     Text(toneIcon)
                         .font(settings.iconFont)
                 }
-                Text(tone.name)
+                Text(tone == .original ? tone.name : tone.name + " Tone")
                     .foregroundColor(settings.nameForeground)
                     .font(settings.nameFont)
             }
-            .padding(settings.contentPadding)
-            .background(settings.bubbleBackground)
+            .padding(settings.bubblePadding)
+            .background(Capsule().fill(settings.bubbleBackground))
             .frame(height: settings.height)
-            .cornerRadius(settings.bubbleRadius)
+            .padding(settings.contentPadding)
         }
+        .frame(height: settings.buttonHeight)
     }
 }
 
@@ -228,7 +238,7 @@ struct TextFieldView: View {
     
     @State var typingPublisher = PassthroughSubject<Void, Never>()
     
-    @Binding var isDisabled: Bool
+    var isDisabled: Bool
     @Binding var text: String
     let typing: (() -> Void)?
     
@@ -289,61 +299,27 @@ struct TextFieldView: View {
     }
 }
 
+import QuickBloxData
 struct MessageTextField_Previews: PreviewProvider {
     static var previews: some View {
         Group {
             InputView(onAttachment: {
                 
             }, onApplyTone: {_,_,_ in }
-            )
+            ).environmentObject({ () -> DialogViewModel in
+                let envObj = DialogViewModel(dialog: Dialog(type: .group))
+                return envObj
+            }() )
             
             InputView(onAttachment: {
                 
             }, onApplyTone: {_,_,_ in }
-            )
+            ).environmentObject({ () -> DialogViewModel in
+                let envObj = DialogViewModel(dialog: Dialog(type: .group))
+                return envObj
+            }() )
             .previewSettings(scheme: .dark, name: "Dark mode")
             
         }
-    }
-}
-
-open class StopWatchTimer: ObservableObject {
-    @Published var counter: TimeInterval = 0
-    
-    var timer = Timer()
-    
-    func start() {
-        self.timer = Timer.scheduledTimer(withTimeInterval: 1.0,
-                                          repeats: true) { _ in
-            self.counter += 1
-        }
-    }
-    func stop() {
-        self.timer.invalidate()
-    }
-    func reset() {
-        self.counter = 0
-        self.timer.invalidate()
-    }
-}
-
-extension TimeInterval {
-    func hours() -> String {
-        return String(format: "%02d",  Int(self / 3600))
-    }
-    func minutes() -> String {
-        return String(format: "%02d", Int(self / 60))
-    }
-    func seconds() -> String {
-        return String(format: "%02d", Int(self) % 60)
-    }
-    func toString() -> String {
-        return hours() + " : " + minutes() + " : " + seconds()
-    }
-    func audioString() -> String {
-        if hours() != "00" {
-            return hours() + " : " + minutes() + " : " + seconds()
-        }
-        return minutes() + " : " + seconds()
     }
 }

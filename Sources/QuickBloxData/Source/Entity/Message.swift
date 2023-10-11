@@ -23,7 +23,6 @@ public struct Message: MessageEntity {
     /// > Note: Returns an empty string by default
     public var text: String = ""
     public var translatedText: String = ""
-    
     public var userId: String = ""
     public var isOwnedByCurrentUser = false
     public var isRead: Bool = false

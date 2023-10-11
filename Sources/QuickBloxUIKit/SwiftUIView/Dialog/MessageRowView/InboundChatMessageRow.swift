@@ -21,16 +21,16 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
     @State var showOriginal: Bool = true
     
     let onAIFeature: (_ type: AIFeatureType, _ message: MessageItem) -> Void
-    var waitingTranslation: Bool = false
+    var aiAnswerWaiting: Bool = false
     
     public init(message: MessageItem,
                 onAIFeature: @escaping  (_ type: AIFeatureType,
                                          _ message: MessageItem) -> Void,
-                waitingTranslation: TranslationInfo) {
+                aiAnswerWaiting: AIAnswerInfo) {
         self.message = message
         self.onAIFeature = onAIFeature
-        if message.id == waitingTranslation.id {
-            self.waitingTranslation = waitingTranslation.waiting
+        if message.id == aiAnswerWaiting.id {
+            self.aiAnswerWaiting = aiAnswerWaiting.waiting
         }
     }
     
@@ -80,14 +80,12 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                             }
                         }
                     
-                    if waitingTranslation == true {
-                        ProgressView()
-                            .frame(width: settings.robotSize.width,
-                                   height: settings.robotSize.height)
+                    if aiAnswerWaiting == true {
+                        SegmentedCircularBar(settings: settings.aiProgressBar)
                             .padding(.bottom, aiFeatures.translate.enable == true ? 18 : 0)
-                    } else if aiFeatures.assistAnswer.enable == true {
+                    } else if aiFeatures.answerAssist.enable == true, aiFeatures.ui.robot.hidden == false {
                         Menu {
-                            if aiFeatures.assistAnswer.enable == true {
+                            if aiFeatures.answerAssist.enable == true {
                                 Button {
                                     onAIFeature(.answerAssist, message)
                                 } label: {
@@ -96,12 +94,12 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                             }
                             
                         } label: {
-                            settings.robot
+                            aiFeatures.ui.robot.icon
                                 .resizable()
                                 .scaledToFit()
-                                .foregroundColor(settings.robotForeground)
-                                .frame(width: settings.robotSize.width,
-                                       height: settings.robotSize.height)
+                                .foregroundColor(aiFeatures.ui.robot.foreground)
+                                .frame(width: aiFeatures.ui.robot.size.width,
+                                       height: aiFeatures.ui.robot.size.height)
                             
                         }.padding(.bottom, aiFeatures.translate.enable == true ? 18 : 0)
                     }
@@ -120,6 +118,16 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .id(message.id)
+        .contextMenu {
+            if aiFeatures.ui.robot.hidden == true,
+               aiFeatures.answerAssist.enable == true {
+                Button {
+                    onAIFeature(.answerAssist, message)
+                } label: {
+                    Label(aiFeatures.ui.answerAssist.title, systemImage: "")
+                }
+            }
+        }
     }
 }
 
@@ -135,7 +143,7 @@ struct InboundChatMessageRow_Previews: PreviewProvider {
                                                    userId: "2d3d4d5d6d",
                                                    date: Date()),
                                   onAIFeature: {_,_ in},
-                                  waitingTranslation: TranslationInfo())
+                                  aiAnswerWaiting: AIAnswerInfo())
             .previewDisplayName("Message")
 
             InboundChatMessageRow(message: Message(id: UUID().uuidString,
@@ -144,7 +152,7 @@ struct InboundChatMessageRow_Previews: PreviewProvider {
                                                    userId: "2d3d4d5d6d",
                                                    date: Date()),
                                   onAIFeature: {_,_ in},
-                                  waitingTranslation: TranslationInfo())
+                                  aiAnswerWaiting: AIAnswerInfo())
             .previewDisplayName("In Message")
             .preferredColorScheme(.dark)
 
@@ -154,7 +162,7 @@ struct InboundChatMessageRow_Previews: PreviewProvider {
                                                    userId: "2d3d4d5d6d",
                                                    date: Date()),
                                   onAIFeature: {_,_ in},
-                                  waitingTranslation: TranslationInfo())
+                                  aiAnswerWaiting: AIAnswerInfo())
             .previewDisplayName("1")
 
             InboundChatMessageRow(message: Message(id: UUID().uuidString,
@@ -163,7 +171,7 @@ struct InboundChatMessageRow_Previews: PreviewProvider {
                                                    userId: "2d3d4d5d6d",
                                                    date: Date()),
                                   onAIFeature: {_,_ in},
-                                  waitingTranslation: TranslationInfo())
+                                  aiAnswerWaiting: AIAnswerInfo())
             .previewDisplayName("In Dark Message")
             .preferredColorScheme(.dark)
         }

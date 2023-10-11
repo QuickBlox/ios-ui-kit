@@ -39,7 +39,7 @@ where Item == Repo.DialogEntityItem {
     public func execute() -> AnyPublisher<Item, Never> {
         processCreateEvents()
         processDialog()
-       return subject.eraseToAnyPublisher()
+        return subject.eraseToAnyPublisher()
     }
     
     private func processDialog() {
@@ -52,13 +52,8 @@ where Item == Repo.DialogEntityItem {
                 }) }
                 .sink { [weak self] dialog in
                     prettyLog(label: "dialog is owner", dialog.isOwnedByCurrentUser)
-                    if dialog.type == .private  {
-                        self?.ids.remove(dialog.id)
-                        self?.subject.send(dialog)
-                    } else if dialog.type == .group, dialog.isOwnedByCurrentUser == true {
-                        self?.ids.remove(dialog.id)
-                        self?.subject.send(dialog)
-                    }
+                    self?.ids.remove(dialog.id)
+                    self?.subject.send(dialog)
                 }
             guard let sub = sub, let strSelf = self else { return }
             strSelf.cancellables.insert(sub)
@@ -72,10 +67,8 @@ where Item == Repo.DialogEntityItem {
                 .sink { [weak self] event in
                     switch event {
                     case .create(let id, let isCurrent, _):
-                        prettyLog(label: "create dialog with id \(id) event", id)
-                        if isCurrent == true {
-                            self?.ids.insert(id)
-                        }
+                        prettyLog(label: "create dialog with id \(id) by current User \(isCurrent) event", id)
+                        self?.ids.insert(id)
                     default:
                         break
                     }

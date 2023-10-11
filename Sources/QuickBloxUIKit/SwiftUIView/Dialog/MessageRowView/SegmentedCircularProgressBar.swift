@@ -10,12 +10,12 @@ import SwiftUI
 
 struct SegmentedCircularProgressBar: View {
     let settings = QuickBloxUIKit.settings.dialogScreen.messageRow.progressBar
+    @State private var currentSegment = 0
     
     @Binding private var progress: CGFloat
     
     init(progress: Binding<CGFloat>) {
-        self._progress = progress
-    }
+        self._progress = progress    }
     
     private var totalEmptySpaceAngle: Angle {
         settings.emptySpaceAngle * Double(settings.segments)
@@ -51,7 +51,7 @@ struct SegmentedCircularProgressBar: View {
     
     private func segmentColor(at index: Int) -> Color {
         let p = CGFloat((index + 1) * (10 / settings.segments)) * 0.1
-        if  progress >= p {
+        if progress >= p {
             return settings.progressSegmentColor
         }
         return settings.segmentColor
@@ -75,7 +75,7 @@ struct SegmentedCircularProgressBarContentView: View {
                     .padding(settings.inboundPadding(showName: settings.isHiddenName))
                 
                 SegmentedCircularProgressBar(progress: $progress)
-                    
+                
             }
             
             Slider(value: $progress, in: 0...1)

@@ -108,6 +108,7 @@ open class AddMembersDialogViewModel: AddMembersDialogProtocol {
     @MainActor public func addSelectedUser() {
         guard let user = selected else { return }
         isProcessing = true
+        dialog.pushIDs = [user.id]
         let updateDialog = UpdateDialog(dialog: dialog,
                                         users: [user],
                                         repo: RepositoriesFabric.dialogs)

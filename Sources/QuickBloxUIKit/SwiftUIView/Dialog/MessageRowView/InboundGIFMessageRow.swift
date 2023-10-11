@@ -20,8 +20,6 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
     
     @State public var fileTuple: (type: String, image: Image?, url: URL?)? = nil
     
-    @State private var progress: CGFloat = 0.5
-    
     public init(message: MessageItem,
                 onTap: @escaping  (_ action: MessageAttachmentAction, _ url: URL?) -> Void) {
         self.message = message
@@ -65,29 +63,14 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
                                     .foregroundColor(settings.videoPlayForeground)
                                 
                             } else {
-                                if progress > 0 {
-                                    
-                                    settings.progressBarBackground()
-                                        .frame(width: settings.attachmentSize.width,
-                                               height: settings.attachmentSize.height)
-                                        .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
-                                        .padding(settings.inboundPadding(showName: settings.isHiddenName))
-                                    
-                                    SegmentedCircularProgressBar(progress: $progress)
-                                    
-                                } else {
-                                    
-                                settings.inboundBackground
+                                
+                                settings.progressBarBackground()
                                     .frame(width: settings.attachmentSize.width,
                                            height: settings.attachmentSize.height)
                                     .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
                                     .padding(settings.inboundPadding(showName: settings.isHiddenName))
                                 
-                                Text(settings.gifTitle)
-                                    .font(settings.gifFont)
-                                .foregroundColor(settings.inboundImageIconForeground)
-                                
-                            }
+                                SegmentedCircularBar(settings: settings.progressBar)
                             }
                         }
                     }

@@ -24,7 +24,8 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
     
     public init(dialogsList: ViewModel,
                 @ViewBuilder content: @escaping (_ viewModel: ViewModel) -> ListView,
-                @ViewBuilder detailContent: @escaping (_ dialog: ViewModel.Item) -> DetailView,
+                @ViewBuilder detailContent: @escaping (_ dialog: ViewModel.Item,
+                                                       _ onDismiss: @escaping () -> Void) -> DetailView,
                 selectTypeContent: @escaping (@escaping() -> Void) -> TypeView,
                 onBack: @escaping () -> Void,
                 onAppear: @escaping (Bool) -> Void) {
@@ -37,7 +38,8 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
     }
     
     private var content: (_ viewModel: ViewModel) -> ListView
-    private var detailContent: (ViewModel.Item) -> DetailView
+    private var detailContent: (ViewModel.Item,
+                                _ onDismiss: @escaping () -> Void) -> DetailView
     private var selectTypeContent: (@escaping () -> Void) -> TypeView
     private var onBack: () -> Void
     private var onAppear: (Bool) -> Void
@@ -54,42 +56,37 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
                 selectTypeContent({
                     // action onDismiss
                     isDialogTypePresented.toggle()
+                    onAppear(true)
                 })
             }
-            if let dialog = dialogsList.selectedItem, isIphone {
-                NavigationLink (
-                    tag: dialog,
-                    selection: $dialogsList.selectedItem
-                ) {
-                    detailContent(dialog)
-                } label: {
-                    EmptyView()
-                }
-            }
         }
+        
         .onChange(of: dialogsList.selectedItem, perform: { newValue in
             if newValue != nil {
                 isDialogTypePresented = false
+                onAppear(false)
+            } else {
+                onAppear(true)
             }
         })
+        
         .navigationBar(titleColor: UIColor(settings.header.title.color),
                        barColor: UIColor(settings.header.backgroundColor),
                        shadowColor: UIColor(settings.dialogRow.dividerColor))
+        
         .modifier(DialogListHeader(onDismiss: {
             onBack()
             dismiss()
         }, onTapDialogType: {
             isDialogTypePresented.toggle()
+            onAppear(false)
         }))
         .navigationBarHidden(isDialogTypePresented)
         .onAppear {
-            dialogsList.selectedItem = nil
             dialogsList.sync()
-            onAppear(true)
         }
         .onDisappear {
             dialogsList.unsync()
-            onAppear(false)
         }
         .disabled(dialogsList.dialogToBeDeleted != nil)
         .if(dialogsList.dialogToBeDeleted != nil) { view in
@@ -110,7 +107,9 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
                     container()
                 } detail: {
                     if let dialog = dialogsList.selectedItem {
-                        detailContent(dialog)
+                        detailContent(dialog, {
+                            dialogsList.selectedItem = nil
+                        })
                     }
                 }.navigationSplitViewStyle(.balanced)
             }

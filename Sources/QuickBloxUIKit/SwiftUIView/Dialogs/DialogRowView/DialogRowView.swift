@@ -192,6 +192,26 @@ public struct DialogsRowBuilder<DialogItem: DialogEntity> {
     }
 }
 
+extension DialogEntity {
+    public var time: String {
+        let stringUtils = QuickBloxUIKit.settings.dialogScreen.stringUtils
+        let formatter = DateFormatter()
+        
+        if Calendar.current.isDateInToday(date) == true {
+            formatter.dateFormat = "HH:mm"
+        } else if Calendar.current.isDateInYesterday(date) == true {
+            return stringUtils.yesterday
+        } else if Calendar.autoupdatingCurrent.component(.year, from: date) ==
+                  Calendar.autoupdatingCurrent.component(.year, from: Date()) {
+            // is current year
+            formatter.dateFormat = "d MMM"
+        } else {
+            formatter.dateStyle = .short
+        }
+        return formatter.string(from: date)
+    }
+}
+
 import QuickBloxData
 
 struct PrivateDialogRowView_Previews: PreviewProvider {

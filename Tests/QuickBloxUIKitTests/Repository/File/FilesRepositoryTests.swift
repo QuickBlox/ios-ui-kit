@@ -132,7 +132,8 @@ extension FilesRepositoryTests {
         let fileInfo = FileInfo(id: Test.id,
                                 ext: .png,
                                 name: "test.png",
-                                path: FilePath(remote: Test.path))
+                                path: FilePath(remote: Test.path),
+                                uid: "")
         let file = File(id: Test.id, info: fileInfo, data: imageData)
         
         _ = try await XCTAssertNoThrowsException(
@@ -150,7 +151,8 @@ extension FilesRepositoryTests {
         let fileInfo = FileInfo(id: Test.id,
                                 ext: .png,
                                 name: "test.png",
-                                path: FilePath(remote: Test.path))
+                                path: FilePath(remote: Test.path),
+                                uid: "")
         let file = File(id: Test.id, info: fileInfo, data: imageData)
         await XCTAssertThrowsException(
             try await repository.save(file: file),

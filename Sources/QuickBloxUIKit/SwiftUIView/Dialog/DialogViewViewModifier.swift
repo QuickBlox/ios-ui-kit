@@ -194,7 +194,7 @@ public extension UIApplication {
 }
 
 public struct ResignKeyboardOnGesture: ViewModifier {
-    var gesture = DragGesture().onChanged{_ in
+    var gesture = DragGesture().onChanged {_ in
         UIApplication.shared.endEditing(true)
     }
     public func body(content: Content) -> some View {
@@ -323,5 +323,46 @@ struct FilePreviewController: UIViewControllerRepresentable {
         @objc func dismiss() {
             previewController.onDismiss()
         }
+    }
+}
+
+open class StopWatchTimer: ObservableObject {
+    @Published var counter: TimeInterval = 0
+    
+    var timer = Timer()
+    
+    func start() {
+        self.timer = Timer.scheduledTimer(withTimeInterval: 1.0,
+                                          repeats: true) { _ in
+            self.counter += 1
+        }
+    }
+    func stop() {
+        self.timer.invalidate()
+    }
+    func reset() {
+        self.counter = 0
+        self.timer.invalidate()
+    }
+}
+
+extension TimeInterval {
+    func hours() -> String {
+        return String(format: "%02d",  Int(self / 3600))
+    }
+    func minutes() -> String {
+        return String(format: "%02d", Int(self / 60))
+    }
+    func seconds() -> String {
+        return String(format: "%02d", Int(self) % 60)
+    }
+    func toString() -> String {
+        return hours() + " : " + minutes() + " : " + seconds()
+    }
+    func audioString() -> String {
+        if hours() != "00" {
+            return hours() + " : " + minutes() + " : " + seconds()
+        }
+        return minutes() + " : " + seconds()
     }
 }

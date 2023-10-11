@@ -22,6 +22,9 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
     
     @State private var isAlertPresented: Bool = false
     @State private var presentCreateDialog: Bool = false
+    @State private var isSizeAlertPresented: Bool = false
+    
+    @State private var attachmentAsset: AttachmentAsset? = nil
     
     init(_ viewModel: ViewModel,
          type: DialogType) {
@@ -58,15 +61,27 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
                         onRemoveImage: {
                 viewModel.removeExistingImage()
             }, onGetAttachment: { attachmentAsset in
-                guard let avatar = attachmentAsset.image?
-                    .cropToRect()
-                    .resize(to: settings.avatarSize)
-                     else { return }
-                var asset = attachmentAsset
-                asset.image = avatar
-                
-                viewModel.handleOnSelect(attachmentAsset: asset)
+                let sizeMB = attachmentAsset.size
+                if sizeMB.truncate(to: 2) > settings.maximumMB {
+                    if attachmentAsset.image != nil {
+                        self.attachmentAsset = attachmentAsset
+                    }
+                    isSizeAlertPresented = true
+                } else {
+                    viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
+                }
             })
+            
+            .largeImageSizeAlert(isPresented: $isSizeAlertPresented,
+                                onUseAttachment: {
+                if let attachmentAsset {
+                    viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
+                    self.attachmentAsset = nil
+                }
+            }, onCancel: {
+                self.attachmentAsset = nil
+            })
+            
             .permissionAlert(isPresented: $viewModel.permissionNotGranted.notGranted,
                              viewModel: viewModel)
             

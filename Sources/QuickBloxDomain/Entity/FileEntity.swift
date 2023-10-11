@@ -601,7 +601,7 @@ public enum FileExtension: String, Codable, Hashable {
         default:
             do {
                 let info = "Warning. Content type \(mimeType) is absent"
-                throw RepositoryException.incorrectData(description: info)
+                throw RepositoryException.incorrectData(info)
             } catch { prettyLog(error)  }
             
             self = .json

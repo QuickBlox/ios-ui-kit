@@ -81,7 +81,7 @@ extension DialogEntity {
                 .cropToRect()
                 .resize(to: size) else {
                 let info = "Dialog avatar image data is incorrect"
-                throw RepositoryException.incorrectData(description: info)
+                throw RepositoryException.incorrectData(info)
             }
             imageCache.store(uiImage, for: id)
             return Image(uiImage: uiImage)
@@ -166,18 +166,20 @@ private extension FileExtension {
 
 extension DialogEntity {
     public var displayedMessages: [MessageItem]  {
+        let stringUtils = QuickBloxUIKit.settings.dialogScreen.stringUtils
+        
         var dividers: Set<Date> = []
-        var tempMessages: [MessageItem] = []
+        var displayed: [MessageItem] = []
         for message in messages {
             let divideDate = Calendar.current.startOfDay(for: message.date)
             if dividers.contains(divideDate) {
-                if tempMessages.contains(where: { $0.id == message.id }) == false {
+                if displayed.contains(where: { $0.id == message.id }) == false {
                     if message.isNotification == true {
                         var update = message
-                        update.text = notificationText(message.text)
-                        tempMessages.append(update)
+                        update.text = stringUtils.notificationText(message.text)
+                        displayed.append(update)
                     } else {
-                        tempMessages.append(message)
+                        displayed.append(message)
                     }
                 }
                 continue
@@ -191,24 +193,25 @@ extension DialogEntity {
                                              date: divideDate,
                                              type: .divider)
 
-            if tempMessages.contains(where: { $0.id == dividerMessage.id }) == false {
-                tempMessages.append(dividerMessage)
+            if displayed.contains(where: { $0.id == dividerMessage.id }) == false {
+                displayed.append(dividerMessage)
             }
-            if tempMessages.contains(where: { $0.id == message.id }) == false {
+            if displayed.contains(where: { $0.id == message.id }) == false {
                 if message.isNotification == true {
                     var update = message
-                    update.text = notificationText(message.text)
-                    tempMessages.append(update)
+                    update.text = stringUtils.notificationText(message.text)
+                    displayed.append(update)
                 } else {
-                    tempMessages.append(message)
+                    displayed.append(message)
                 }
             }
         }
-        let displayed = tempMessages
         return displayed
     }
     
     private func divideText(_ divideDate: Date) -> String {
+        let stringUtils = QuickBloxUIKit.settings.dialogScreen.stringUtils
+        
         let formatter = DateFormatter()
         if divideDate.hasSame([.year], as: Date()) == true {
             formatter.dateFormat = "d MMM"
@@ -217,31 +220,11 @@ extension DialogEntity {
         }
         
         if Calendar.current.isDateInToday(divideDate) == true {
-            return  "Today"
+            return  stringUtils.today
         } else if Calendar.current.isDateInYesterday(divideDate) == true {
-            return  "Yesterday"
+            return  stringUtils.yesterday
         } else {
             return formatter.string(from: divideDate)
-        }
-    }
-    
-    private func notificationText(_ text: String) -> String {
-        let stringUtils = QuickBloxUIKit.settings.dialogScreen.stringUtils
-        
-        if text.contains(stringUtils.createdGroupChat) == true {
-            return text.replacingOccurrences(of: stringUtils.createdGroupChat, with: stringUtils.createdGroupChatLocalize)
-        } else if text.contains(stringUtils.dialogRenamedByUser) == true {
-            return text.replacingOccurrences(of: stringUtils.dialogRenamedByUser, with: stringUtils.dialogRenamedByUserLocalize)
-        } else if text.contains(stringUtils.avatarWasChanged) == true {
-            return text.replacingOccurrences(of: stringUtils.avatarWasChanged, with: stringUtils.avatarWasChangedLocalize)
-        } else if text.contains(stringUtils.addedBy) == true {
-            return text.replacingOccurrences(of: stringUtils.addedBy, with: stringUtils.addedByLocalize)
-        } else if text.contains(stringUtils.removedBy) == true {
-            return text.replacingOccurrences(of: stringUtils.removedBy, with: stringUtils.removedByLocalize)
-        } else if text.contains(stringUtils.hasLeft) == true {
-            return text.replacingOccurrences(of: stringUtils.hasLeft, with: stringUtils.hasLeftLocalize)
-        } else {
-            return text
         }
     }
 }
@@ -283,7 +266,7 @@ extension MessageEntity {
             .cropToRect()
             .resize(to: size) else {
             let info = "Message avatar image data is incorrect"
-            throw RepositoryException.incorrectData(description: info)
+            throw RepositoryException.incorrectData(info)
         }
         imageCache.store(uiImage, for: user.id)
         return Image(uiImage: uiImage)
@@ -309,8 +292,8 @@ extension MessageEntity {
             let settings = QuickBloxUIKit.settings.dialogsScreen.dialogRow.lastMessage
             switch uploaded.info.ext.type {
             case .audio:
-                guard let localURL = uploaded.info.path.localURL else { return nil }
-                return (uploaded.info.name, nil, localURL)
+                let localURL = uploaded.temporaryUrl
+                return (uploaded.info.name, Image(uiImage: UIImage().withTintColor(.blue, renderingMode: .alwaysTemplate)), localURL)
             case .video:
                 let localURL = uploaded.temporaryUrl
                 if let cachedImage = imageCache.imageFromCache(id) {
@@ -349,7 +332,9 @@ extension MessageEntity {
                         settings.filePlaceholder,
                         localURL)
             }
-        } catch { return nil }
+        } catch {
+            return nil
+        }
     }
     
     var audioFile: (type: String, data: Data?, url: URL?, time: TimeInterval)? {
@@ -377,7 +362,9 @@ extension MessageEntity {
                 default:
                     return nil
                 }
-            } catch { return nil }
+            } catch {
+                return nil
+            }
         }
     }
 }
@@ -385,7 +372,7 @@ extension MessageEntity {
 private extension File {
     var temporaryUrl: URL {
         let localURL = URL(fileURLWithPath:NSTemporaryDirectory())
-            .appendingPathComponent(info.name)
+            .appendingPathComponent(info.id + info.name)
         let _ = (try? data.write(to: localURL, options: [.atomic])) != nil
         return localURL
     }
@@ -408,7 +395,7 @@ extension UserEntity {
             .cropToRect()
             .resize(to: size) else {
             let info = "User avatar image data is incorrect"
-            throw RepositoryException.incorrectData(description: info)
+            throw RepositoryException.incorrectData(info)
         }
         return Image(uiImage: uiImage)
     }
@@ -434,7 +421,7 @@ extension UserEntity {
                 .cropToRect()
                 .resize(to: avatarSize) else {
                 let info = "User avatar image data is incorrect"
-                throw RepositoryException.incorrectData(description: info)
+                throw RepositoryException.incorrectData(info)
             }
             imageCache.store(uiImage, for: id)
             return Image(uiImage: uiImage)
@@ -469,7 +456,7 @@ extension File {
         get throws {
             guard let pdfURL = info.path.localURL else {
                 let info = "Thumbnail For PDF, invalid url"
-                throw RepositoryException.incorrectData(description: info)
+                throw RepositoryException.incorrectData(info)
             }
             
             guard let pdfDocument = PDFDocument(url: pdfURL) else {

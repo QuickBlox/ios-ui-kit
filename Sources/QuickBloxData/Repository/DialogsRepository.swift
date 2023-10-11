@@ -33,8 +33,8 @@ extension DialogsRepository: DialogsRepositoryProtocol {
                     case .update(withDialogId: let dialogId): return .update(dialogId)
                     case .leave( let dialogId, let isCurrentUser):
                         return .leave(dialogId, byUser: isCurrentUser)
-                    case .removed(let dialogId):
-                        return .removed(dialogId)
+                    case .removed(let dialogId, let isCurrentUser):
+                        return .removed(dialogId, byUser: isCurrentUser)
                     case .newMessage(let message):
                         return .newMessage(Message(message))
                     case .history(let dto):
@@ -61,6 +61,13 @@ extension DialogsRepository: DialogsRepositoryProtocol {
                 .map{ info in
                     info.map { Dialog($0) }
                 }
+                .eraseToAnyPublisher()
+        }
+    }
+    
+    public var localDialogUpdatePublisher: AnyPublisher<String, Never> {
+        get async {
+            await local.dialogUpdatePublisher
                 .eraseToAnyPublisher()
         }
     }
@@ -227,6 +234,8 @@ private extension RemoteDialogDTO {
         lastMessageUserId = value.lastMessage.userId
         unreadMessagesCount = value.unreadMessagesCount
         isOwnedByCurrentUser = value.isOwnedByCurrentUser
+        toAddIds = value.pushIDs
+        toDeleteIds = value.pullIDs
     }
 }
 

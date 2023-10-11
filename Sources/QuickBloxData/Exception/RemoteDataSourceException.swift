@@ -15,7 +15,7 @@ public enum RemoteDataSourceException: Error, Equatable {
     case unauthorised(_ description: String = "")
     
     /// Would be thrown when sending the wrong format of data, missing required fields, or providing incorrect values.
-    case incorrectData(description: String = "")
+    case incorrectData(_ description: String = "")
     
     /// Would be thrown when there are no necessary permissions to access the requested resource.
     case restrictedAccess(description: String = "")

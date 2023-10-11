@@ -11,17 +11,21 @@ import QuickBloxData
 import Combine
 
 class LocalDataSourceMock: LocalDataSourceProtocol {
-    
     var mock: Result<[Any], Error>
     
     var dialogsPublisher: AnyPublisher<[LocalDialogDTO], Never>
     
+    var dialogUpdatePublisher: AnyPublisher<String, Never>
+    
     init(_ mock: Result<[Any], Error>,
          dialogsPublisher: AnyPublisher<[LocalDialogDTO], Never> =
-         CurrentValueSubject<[LocalDialogDTO], Never>([]).eraseToAnyPublisher()
+         CurrentValueSubject<[LocalDialogDTO], Never>([]).eraseToAnyPublisher(),
+         dialogUpdatePublisher: AnyPublisher<String, Never> =
+         CurrentValueSubject<String, Never>("").eraseToAnyPublisher()
     ) {
         self.mock = mock
         self.dialogsPublisher = dialogsPublisher
+        self.dialogUpdatePublisher = dialogUpdatePublisher
     }
     
     func save(dialog: LocalDialogDTO) async throws {

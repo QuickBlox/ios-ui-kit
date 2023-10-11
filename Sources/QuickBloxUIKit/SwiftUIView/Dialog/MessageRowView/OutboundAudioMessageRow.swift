@@ -18,18 +18,21 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
     
     var isPlaying: Bool = false
     
+    var currentTime: TimeInterval = 0.0
+    
     let onTap: (_ action: MessageAttachmentAction, _ data: Data?, _ url: URL?) -> Void
     
     @State public var fileTuple: (type: String, data: Data?, url: URL?, time: TimeInterval)? = nil
     
     public init(message: MessageItem,
                 onTap: @escaping  (_ action: MessageAttachmentAction, _ data: Data?, _ url: URL?) -> Void,
-                playingMessageId: String, isPlaying: Bool) {
+                playingMessageId: String, isPlaying: Bool, currentTime: TimeInterval) {
         self.message = message
         self.onTap = onTap
         if playingMessageId == message.id {
             self.isPlaying = isPlaying
         }
+        self.currentTime = currentTime
     }
     
     public var body: some View {
@@ -69,7 +72,7 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
                                 .scaledToFit()
                                 .frame(width: settings.audioImageSize.width, height: settings.audioImageSize.height)
                             
-                            Text(fileTuple?.time.audioString() ?? "00:00")
+                            Text(isPlaying == true ? currentTime.audioString() : (fileTuple?.time.audioString() ?? "00:00"))
                                 .foregroundColor(settings.time.foregroundColor)
                                 .font(settings.time.font)
                         }
@@ -124,7 +127,7 @@ struct OutboundAudioMessageRow_Previews: PreviewProvider {
                                                      text: "[Attachment]",
                                                      userId: "2d3d4d5d6d",
                                                      date: Date()),
-                                    onTap: {(_,_,_) in}, playingMessageId: "message.id", isPlaying: true)
+                                    onTap: {(_,_,_) in}, playingMessageId: "message.id", isPlaying: true, currentTime: 50)
             .previewDisplayName("Out Message")
             
             OutboundAudioMessageRow(message: Message(id: UUID().uuidString,
@@ -132,7 +135,7 @@ struct OutboundAudioMessageRow_Previews: PreviewProvider {
                                                      text: "[Attachment]",
                                                      userId: "2d3d4d5d6d",
                                                      date: Date()),
-                                    onTap: { (_,_,_) in}, playingMessageId: "message.id", isPlaying: false)
+                                    onTap: { (_,_,_) in}, playingMessageId: "message.id", isPlaying: false, currentTime: 50)
             .previewDisplayName("Out Dark Message")
             .preferredColorScheme(.dark)
         }

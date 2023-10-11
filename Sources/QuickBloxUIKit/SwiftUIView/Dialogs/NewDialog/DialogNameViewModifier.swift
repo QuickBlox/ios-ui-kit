@@ -228,16 +228,26 @@ public struct LargeFileSizeAlert: ViewModifier {
     public var settings = QuickBloxUIKit.settings.dialogScreen
     
     @Binding var isPresented: Bool
+    var onUseAttachment: (() -> Void)?
+    var onCancel: (() -> Void)?
+    let compressible: Bool
     
     public func body(content: Content) -> some View {
         ZStack {
             content.blur(radius: isPresented ? settings.blurRadius : 0.0)
-                .alert("", isPresented: $isPresented) {
+                .alert(settings.maxSize, isPresented: $isPresented) {
                     Button("Cancel", action: {
+                            onCancel?()
                         isPresented = false
                     })
+                    if compressible {
+                        Button("Use", action: {
+                            onUseAttachment?()
+                            isPresented = false
+                        })
+                    }
                 } message: {
-                    Text(settings.maxSize)
+                    Text(compressible == true ? settings.compressibleMaxSizeHint : settings.maxSizeHint)
                 }
         }
     }
@@ -247,9 +257,52 @@ extension View {
     func largeFileSizeAlert(
         isPresented: Binding<Bool>
     ) -> some View {
-        self.modifier(LargeFileSizeAlert(isPresented: isPresented))
+        self.modifier(LargeFileSizeAlert(isPresented: isPresented,
+                                         compressible: false))
     }
 }
+
+extension View {
+    func largeImageSizeAlert(
+        isPresented: Binding<Bool>,
+        onUseAttachment: @escaping () -> Void,
+        onCancel: @escaping () -> Void
+    ) -> some View {
+        self.modifier(LargeFileSizeAlert(isPresented: isPresented,
+                                         onUseAttachment: onUseAttachment,
+                                         onCancel: onCancel,
+                                         compressible: true))
+    }
+}
+
+public struct InvalidExtensionAlert: ViewModifier {
+    public var settings = QuickBloxUIKit.settings.dialogScreen
+    
+    @Binding var isPresented: Bool
+    
+    public func body(content: Content) -> some View {
+        ZStack {
+            content.blur(radius: isPresented ? settings.blurRadius : 0.0)
+                .alert("", isPresented: $isPresented) {
+                    Button("Cancel", action: {
+                        isPresented = false
+                    })
+                } message: {
+                    Text("File is not supported")
+                }
+        }
+    }
+}
+
+extension View {
+    func invalidExtensionAlert(
+        isPresented: Binding<Bool>
+    ) -> some View {
+        self.modifier(InvalidExtensionAlert(isPresented: isPresented))
+    }
+}
+
+
 
 public struct PermissionAlert<ViewModel: PermissionProtocol>: ViewModifier {
     public var settings = QuickBloxUIKit.settings.dialogScreen.permissions

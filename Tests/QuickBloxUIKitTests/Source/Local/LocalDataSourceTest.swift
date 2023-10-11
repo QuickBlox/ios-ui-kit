@@ -197,3 +197,23 @@ extension LocalDataSourceTest {
         return savedUser
     }
 }
+
+//MARK: Clear
+extension LocalDataSourceTest {
+    func testClearAll() async throws {
+        let dialog = try await saveAndGet(dialogWithId: Test.stringId)
+        let message = try await createAndSaveMessage()
+        let user = try await createAndSaveUser()
+        
+        try await storage.cleareAll()
+        
+        await XCTAssertThrowsException(
+            try await storage.get(dialog: dialog),
+            equelTo: DataSourceException.notFound()
+        )
+        
+        await XCTAssertThrowsException(
+            try await storage.get(user: user),
+            equelTo: DataSourceException.notFound())
+    }
+}

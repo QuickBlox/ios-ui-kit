@@ -73,6 +73,19 @@ public protocol SearchBarSettingsProtocol {
     init(_ theme: ThemeProtocol)
 }
 
+public protocol ProgressBarSettingsProtocol {
+    var segments: Int { get set }
+    var segmentColor: Color { get set }
+    var segmentDuration: Double { get set }
+    var progressSegmentColor: Color { get set }
+    var lineWidth: CGFloat { get set }
+    var rotationEffect: Angle { get set }
+    var emptySpaceAngle: Angle { get set }
+    var size: CGSize { get set }
+    
+    init(_ theme: ThemeProtocol)
+}
+
 public class ScreenSettings: ScreensProtocol {
     public var theme: ThemeProtocol {
         didSet {

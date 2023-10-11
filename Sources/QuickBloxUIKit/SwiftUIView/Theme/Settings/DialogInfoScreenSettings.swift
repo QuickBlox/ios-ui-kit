@@ -35,6 +35,7 @@ public class DialogInfoScreenSettings {
     public var segmentSpacing: CGFloat = 16.0
     public var regexDialogName = "^(?=.{3,60}$)(?!.*([\\s])\\1{2})[\\w\\s]+$"
     public var avatarSize: CGSize = CGSize(width: 80.0, height: 80.0)
+    public var maximumMB: Double = 10
     
     public init(_ theme: ThemeProtocol) {
         self.header = DialogInfoHeaderSettings(theme)

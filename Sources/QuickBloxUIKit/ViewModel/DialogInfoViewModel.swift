@@ -30,6 +30,7 @@ public protocol DialogInfoProtocol: ObservableObject, PermissionProtocol  {
     func deleteDialog()
     func openSettings()
     func requestPermission(_ mediaType: AVMediaType, completion: @escaping (_ granted: Bool) -> Void)
+    func sync()
 }
 
 open class DialogInfoViewModel: DialogInfoProtocol {
@@ -50,19 +51,22 @@ open class DialogInfoViewModel: DialogInfoProtocol {
         return dialog.photo.isEmpty == false
     }
     
+    private let dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs
     private let permissionsRepo: PermissionsRepository = RepositoriesFabric.permissions
     
     private var attachmentAsset: AttachmentAsset? = nil
+    
+    private var updateDialogLocalObserve: DialogUpdateObserver<DialogsRepository>!
     
     private var taskUpdate: Task<Void, Never>?
     private var taskDelete: Task<Void, Never>?
     private var taskGetAvatar: Task<Void, Never>?
     
-    private var publishers = Set<AnyCancellable>()
+    private var cancellables = Set<AnyCancellable>()
     
     init(_ dialog: Dialog) {
         self.dialog = dialog
-
+        
         let dialogName = dialog.name
         self.dialogName = dialogName
         
@@ -71,7 +75,42 @@ open class DialogInfoViewModel: DialogInfoProtocol {
         isDialogNameValidPublisher
             .receive(on: RunLoop.main)
             .assign(to: \.isValidDialogName, on: self)
-            .store(in: &publishers)
+            .store(in: &cancellables)
+        
+        if dialog.type == .group {
+            updateDialogLocalObserve = DialogUpdateObserver(repo: dialogsRepo)
+
+            updateDialogLocalObserve.execute()
+                .receive(on: RunLoop.main)
+                .sink { [weak self] dialogId in
+                    if dialogId == self?.dialog.id {
+                        self?.getDialog()
+                    }
+                }
+                .store(in: &cancellables)
+        }
+    }
+    
+    public func sync() {
+        if dialog.type == .group {
+            getDialog()
+        }
+    }
+    
+    public func getDialog() {
+        let getDialog = GetDialog(dialogId: self.dialog.id,
+                                  dialogsRepo: self.dialogsRepo)
+        
+        Task { [weak self] in
+            do {
+                let dialog = try await getDialog.execute()
+                await MainActor.run { [weak self, dialog] in
+                    self?.dialog = dialog
+                }
+            } catch {
+                prettyLog(error)
+            }
+        }
     }
     
     private func getAvatar() {

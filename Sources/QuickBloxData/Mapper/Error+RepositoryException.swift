@@ -40,7 +40,7 @@ extension Error {
         case .unauthorised( let info):
             return RepositoryException.unauthorised( info)
         case .incorrectData(description: let info):
-            return RepositoryException.incorrectData(description: info)
+            return RepositoryException.incorrectData(info)
         case .restrictedAccess(description: let info):
             return RepositoryException.restrictedAccess(description: info)
         case .connectionFailed(description: let info):
@@ -53,7 +53,7 @@ extension Error {
         case .unexpected(let info):
             return RepositoryException.unexpected(info)
         case .incorrectData(description: let info):
-            return RepositoryException.incorrectData(description: info)
+            return RepositoryException.incorrectData(info)
         }
     }
 }

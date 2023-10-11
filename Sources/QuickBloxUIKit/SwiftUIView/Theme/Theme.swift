@@ -262,15 +262,22 @@ public protocol ThemeStringProtocol {
     var invalidAIAnswerAssist: String { get set }
     var invalidAITranslate: String { get set }
     var invalidAIRephrase: String { get set }
+    var invalidAITranscribe: String { get set }
+    
+    var answerFailedAnswerAssist: String { get set }
+    var answerFailedTranslate: String { get set }
+    var answerFailedRephrase: String { get set }
     
     var maxSize: String { get set }
     var maxSizeHint: String { get set }
+    var compressibleMaxSizeHint: String { get set }
     var fileTitle: String { get set }
     var gif: String { get set }
     
     var showOriginal: String { get set }
     var showTranslation: String { get set }
     var answerAssistTitle: String { get set }
+    var transcribeTitle: String { get set }
     
     var permissionCameraTitle: String { get set }
     var permissionCameraMessage: String { get set }
@@ -285,6 +292,15 @@ public protocol ThemeStringProtocol {
     var addedBy: String { get set }
     var removedBy: String { get set }
     var hasLeft: String { get set }
+    var today: String { get set }
+    var yesterday: String { get set }
+    
+    var connecting: String { get set }
+    var update: String { get set }
+    var disconnected: String { get set }
+    var connected: String { get set }
+    var unauthorized: String { get set }
+    var authorized: String { get set }
 }
 
 public class ThemeString: ThemeStringProtocol {
@@ -344,18 +360,27 @@ public class ThemeString: ThemeStringProtocol {
     public var toDialog: String = String(localized: "alert.message.toDialog", bundle: .module)
     public var noResults: String = String(localized: "alert.message.noResults", bundle: .module)
     public var noMembers: String = String(localized: "alert.message.noMembers", bundle: .module)
+    
     public var invalidAIAnswerAssist: String = String(localized: "alert.message.invalidAIAnswerAssist", bundle: .module)
     public var invalidAITranslate: String = String(localized: "alert.message.invalidAITranslate", bundle: .module)
     public var invalidAIRephrase: String = String(localized: "alert.message.invalidAIRephrase", bundle: .module)
+    public var invalidAITranscribe: String = String(localized: "alert.message.invalidAITranscribe", bundle: .module)
+    
+    public var answerFailedAnswerAssist: String = String(localized: "alert.message.answerFailedAnswerAssist", bundle: .module)
+    public var answerFailedTranslate: String = String(localized: "alert.message.answerFailedTranslate", bundle: .module)
+    public var answerFailedRephrase: String = String(localized: "alert.message.answerFailedRephrase", bundle: .module)
     
     public var maxSize: String = String(localized: "attachment.maxSize.title", bundle: .module)
     public var maxSizeHint: String = String(localized: "attachment.maxSize.hint", bundle: .module)
+    public var compressibleMaxSizeHint: String = String(localized: "attachment.maxSize.compressibleHint", bundle: .module)
+    
     public var fileTitle: String  = String(localized: "attachment.title.file", bundle: .module)
     public var gif: String = String(localized: "attachment.title.gif", bundle: .module)
     
     public var showOriginal: String = String(localized: "ai.translate.showOriginal", bundle: .module)
     public var showTranslation: String = String(localized: "ai.translate.showTranslation", bundle: .module)
     public var answerAssistTitle: String = String(localized: "ai.answerAssist.title", bundle: .module)
+    public var transcribeTitle: String = String(localized: "ai.transcribe.title", bundle: .module)
     
     public var permissionCameraTitle: String = String(localized: "permission.camera.title", bundle: .module)
     public var permissionCameraMessage: String = String(localized: "permission.camera.message", bundle: .module)
@@ -370,6 +395,15 @@ public class ThemeString: ThemeStringProtocol {
     public var addedBy: String = String(localized: "utils.string.addedBy", bundle: .module)
     public var removedBy: String = String(localized: "utils.string.removedBy", bundle: .module)
     public var hasLeft: String = String(localized: "utils.string.hasLeft", bundle: .module)
+    public var today: String = String(localized: "utils.string.today", bundle: .module)
+    public var yesterday: String = String(localized: "utils.string.yesterday", bundle: .module)
+    
+    public var connecting: String = String(localized: "utils.string.connecting", bundle: .module)
+    public var update: String = String(localized: "utils.string.update", bundle: .module)
+    public var disconnected: String = String(localized: "utils.string.disconnected", bundle: .module)
+    public var connected: String = String(localized: "utils.string.connected", bundle: .module)
+    public var unauthorized: String = String(localized: "utils.string.unauthorized", bundle: .module)
+    public var authorized: String = String(localized: "utils.string.authorized", bundle: .module)
     
     public init() {}
 }

@@ -26,7 +26,16 @@ where User == Repo.UserEntityItem {
         if name.isEmpty == false {
             users = try await repo.get(usersFromRemote: name)
         } else {
-            users = try await repo.get(usersFromRemote: ids)
+            if ids.isEmpty == true {
+                users = try await repo.get(usersFromRemote: [])
+            } else {
+                users = try await repo.get(usersFromLocal: ids)
+                let userIds = users.map { $0.id }
+                let usersForUpdate = Set(ids).subtracting(Set(userIds))
+                if usersForUpdate.isEmpty == false {
+                    users = try await repo.get(usersFromRemote: Array(usersForUpdate))
+                }
+            }
         }
         return users
     }

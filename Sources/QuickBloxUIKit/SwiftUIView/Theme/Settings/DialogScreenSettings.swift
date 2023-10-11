@@ -19,7 +19,7 @@ private struct DialogScreenSettingsConstant {
 public class DialogScreenSettings {
     public var header: DialogHeaderSettings
     public var backgroundColor: Color
-    public var backgroundImage: Image? = Image("dialogBackground", bundle: .module)
+    public var backgroundImage: Image?
     public var backgroundImageColor: Color
     public var contentBackgroundColor: Color
     public var messageRow: MessageRowSettings
@@ -33,8 +33,12 @@ public class DialogScreenSettings {
     public var maximumMB: Double = 10
     public var dividerToMB: Double = 1048576
     public var maxSize: String
+    public var maxSizeHint: String
+    public var compressibleMaxSizeHint: String
     public var avatarSize: AvatarSizeSettings = AvatarSizeSettings()
     public var isHiddenFiles = false
+    public var connectForeground: Color
+    public var invalidFile: String = "Request failed: bad request (400)"
     
     public init(_ theme: ThemeProtocol) {
         self.header = DialogHeaderSettings(theme)
@@ -49,6 +53,9 @@ public class DialogScreenSettings {
         self.contentBackgroundColor = theme.color.secondaryBackground
         self.itemsIsEmpty = theme.string.messegesEmpty
         self.maxSize = theme.string.maxSize
+        self.maxSizeHint = theme.string.maxSizeHint
+        self.compressibleMaxSizeHint = theme.string.compressibleMaxSizeHint
+        self.connectForeground = theme.color.secondaryText
     }
 }
 
@@ -78,6 +85,8 @@ public struct StringUtilsConstant {
     public var addedBy: String = "added by"
     public var removedBy: String = "removed by"
     public var hasLeft: String = "has left"
+    public var today: String
+    public var yesterday: String
     
     public var createdGroupChatLocalize: String
     public var dialogRenamedByUserLocalize: String
@@ -86,6 +95,24 @@ public struct StringUtilsConstant {
     public var removedByLocalize: String
     public var hasLeftLocalize: String
     
+    public func notificationText(_ text: String) -> String {
+        if text.contains(createdGroupChat) == true {
+            return text.replacingOccurrences(of: createdGroupChat, with: createdGroupChatLocalize)
+        } else if text.contains(dialogRenamedByUser) == true {
+            return text.replacingOccurrences(of: dialogRenamedByUser, with: dialogRenamedByUserLocalize)
+        } else if text.contains(avatarWasChanged) == true {
+            return text.replacingOccurrences(of: avatarWasChanged, with: avatarWasChangedLocalize)
+        } else if text.contains(addedBy) == true {
+            return text.replacingOccurrences(of: addedBy, with: addedByLocalize)
+        } else if text.contains(removedBy) == true {
+            return text.replacingOccurrences(of: removedBy, with: removedByLocalize)
+        } else if text.contains(hasLeft) == true {
+            return text.replacingOccurrences(of: hasLeft, with: hasLeftLocalize)
+        } else {
+            return text
+        }
+    }
+    
     public init(_ theme: ThemeProtocol) {
         self.createdGroupChatLocalize = theme.string.createdGroupChat
         self.dialogRenamedByUserLocalize = theme.string.dialogRenamedByUser
@@ -93,6 +120,8 @@ public struct StringUtilsConstant {
         self.addedByLocalize = theme.string.addedBy
         self.removedByLocalize = theme.string.removedBy
         self.hasLeftLocalize = theme.string.hasLeft
+        self.today = theme.string.today
+        self.yesterday = theme.string.yesterday
     }
 }
 
@@ -103,14 +132,19 @@ public struct AvatarSizeSettings {
 }
 
 public struct TypingSettings {
+    public var timeInterval: TimeInterval = 3.0
     public var typingOne: String
     public var typingTwo: String
     public var typingFour: String
     public var color: Color
     public var font: Font
-    public var height: CGFloat = 31
-    public var offset: CGFloat = 52.0
+    public var height: CGFloat = 36
+    public var defaultOffset: CGFloat = 8
     public var enable: Bool = true
+    
+    public func offset(isOwner: Bool) -> CGFloat {
+        return isOwner == true ? 90 : 60
+    }
     
     public init(_ theme: ThemeProtocol) {
         self.font = theme.font.caption2
@@ -259,6 +293,7 @@ public struct MessageRowSettings {
     public var time: MessageTimeSettings
     public var message: MessageSettings
     public var progressBar: ProgressBarSettings
+    public var aiProgressBar: AIProgressBarSettings
     public var inboundForeground: Color
     public var inboundBackground: Color
     public var inboundFont: Font
@@ -381,16 +416,13 @@ public struct MessageRowSettings {
         )
     }
     
-    public var robot: Image
-    public var robotForeground: Color
-    public var robotSize: CGSize = CGSize(width: 24.0, height: 24.0)
-    
     public init(_ theme: ThemeProtocol) {
         self.avatar = MessageAvatarSettings(theme)
         self.name = MessageNameSettings(theme)
         self.time = MessageTimeSettings(theme)
         self.message = MessageSettings(theme)
         self.progressBar = ProgressBarSettings(theme)
+        self.aiProgressBar = AIProgressBarSettings(theme)
         self.inboundBackground = theme.color.incomingBackground
         self.outboundBackground = theme.color.outgoingBackground
         self.inboundForeground = theme.color.mainText
@@ -443,14 +475,28 @@ public struct MessageRowSettings {
             traitCollection.userInterfaceStyle == .dark ? UIColor(theme.color.mainText)
             : UIColor(hexRGB: "#3978FC") ?? UIColor.blue
         })
-        
-        self.robot = theme.image.robot
-        self.robotForeground = theme.color.mainElements
     }
     
-    public struct ProgressBarSettings {
+    public struct AIProgressBarSettings: ProgressBarSettingsProtocol {
         public var segments: Int = 8
         public var segmentColor: Color
+        public var segmentDuration: Double = 0.16
+        public var progressSegmentColor: Color
+        public var lineWidth: CGFloat = 2.0
+        public var rotationEffect: Angle = Angle(degrees: -90)
+        public var emptySpaceAngle: Angle = Angle(degrees: 10)
+        public var size: CGSize = CGSize(width: 24.0, height: 24.0)
+        
+        public init(_ theme: ThemeProtocol) {
+            self.segmentColor = theme.color.incomingBackground
+            self.progressSegmentColor = theme.color.mainElements
+        }
+    }
+    
+    public struct ProgressBarSettings: ProgressBarSettingsProtocol {
+        public var segments: Int = 8
+        public var segmentColor: Color
+        public var segmentDuration: Double = 0.16
         public var progressSegmentColor: Color
         public var lineWidth: CGFloat = 2.0
         public var rotationEffect: Angle = Angle(degrees: -90)
@@ -531,6 +577,7 @@ public struct MessageTextFieldSettings {
     public var rightButton: SendButton
     public var emojiButton: EmojiButton
     public var timer: RecordTimer
+    public var progressBar: TextFieldProgressBarSettings
     public var barHeight: CGFloat = 56.0
     public var barColor: Color
     public var height: CGFloat = 36.0
@@ -553,6 +600,23 @@ public struct MessageTextFieldSettings {
         self.emojiButton = EmojiButton(theme)
         self.timer = RecordTimer(theme)
         self.barColor = theme.color.mainBackground
+        self.progressBar = TextFieldProgressBarSettings(theme)
+    }
+    
+    public struct TextFieldProgressBarSettings: ProgressBarSettingsProtocol {
+        public var segments: Int = 8
+        public var segmentColor: Color
+        public var segmentDuration: Double = 0.16
+        public var progressSegmentColor: Color
+        public var lineWidth: CGFloat = 2.0
+        public var rotationEffect: Angle = Angle(degrees: -90)
+        public var emptySpaceAngle: Angle = Angle(degrees: 10)
+        public var size: CGSize = CGSize(width: 20.0, height: 20.0)
+        
+        public init(_ theme: ThemeProtocol) {
+            self.segmentColor = theme.color.incomingBackground
+            self.progressSegmentColor = theme.color.mainElements
+        }
     }
     
     public struct RecordTimer {
@@ -595,7 +659,7 @@ public struct MessageTextFieldSettings {
     
     public struct SendButton: ButtonSettingsProtocol {
         public var imageSize: CGSize?
-        public var frame: CGSize?
+        public var frame: CGSize? = CGSize(width: 44, height: 40)
         
         public var title: String? = nil
         public var image: Image

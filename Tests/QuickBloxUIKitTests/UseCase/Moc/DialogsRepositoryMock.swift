@@ -13,14 +13,18 @@ import Combine
 class DialogsRepositoryMock: Mock {
     var remotePublisher: AnyPublisher<RemoteDialogEvent<Message>, Never>
     var localPublisher: AnyPublisher<[Dialog], Never>
+    var localDialogPublisher: AnyPublisher<String, Never>
     
     init(remotePublisher: AnyPublisher<RemoteDialogEvent<Message>, Never> =
          PassthroughSubject<RemoteDialogEvent, Never>().eraseToAnyPublisher(),
          localPublisher: AnyPublisher<[Dialog], Never> =
          PassthroughSubject<[Dialog], Never>().eraseToAnyPublisher(),
+         localDialogPublisher: AnyPublisher<String, Never> =
+         PassthroughSubject<String, Never>().eraseToAnyPublisher(),
          results: [String: Result<[Any], Error>] = [:]) {
         self.remotePublisher = remotePublisher
         self.localPublisher = localPublisher
+        self.localDialogPublisher = localDialogPublisher
         let info = results
         super.init(info)
     }
@@ -40,6 +44,12 @@ extension DialogsRepositoryMock: DialogsRepositoryProtocol {
     var localDialogsPublisher: AnyPublisher<[QuickBloxData.Dialog], Never> {
         get async {
             return localPublisher
+        }
+    }
+    
+    var localDialogUpdatePublisher: AnyPublisher<String, Never> {
+        get async {
+            return localDialogPublisher
         }
     }
     

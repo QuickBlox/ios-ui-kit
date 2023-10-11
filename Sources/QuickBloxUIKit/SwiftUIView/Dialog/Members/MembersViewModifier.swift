@@ -108,11 +108,9 @@ public struct RemoveUserAlert: ViewModifier {
                 .alert(settings.alertTitle(name), isPresented: $isPresented) {
                     Button(settings.cancel, role: .cancel, action: {
                         onCancel()
-                        isPresented = false
                     })
                     Button(settings.remove, role: .destructive, action: {
                         onTap()
-                        isPresented = false
                     })
                 } message: {
                     Text(settings.message)
