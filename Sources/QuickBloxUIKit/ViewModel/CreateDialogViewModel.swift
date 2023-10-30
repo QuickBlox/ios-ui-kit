@@ -29,7 +29,7 @@ public protocol CreateDialogProtocol: QuickBloxUIKitViewModel {
     func createDialog()
 }
 
-open class CreateDialogViewModel: CreateDialogProtocol {
+final class CreateDialogViewModel: CreateDialogProtocol {
     public typealias UserItem = User
     
     @Published public var search = ""
@@ -78,10 +78,6 @@ open class CreateDialogViewModel: CreateDialogProtocol {
             taskUsers = nil
             taskUsers = Task { [weak self] in
                 do {
-                    let duration = UInt64(0.3 * 1_000_000_000)
-                    try await Task.sleep(nanoseconds: duration)
-                    try Task.checkCancellation()
-                    
                     let users = try await getUsers.execute()
                     try Task.checkCancellation()
                     
@@ -127,6 +123,9 @@ open class CreateDialogViewModel: CreateDialogProtocol {
     public func createDialog() {
         isProcessing = true
         modeldDialog.participantsIds = selected.map { $0.id }
+        if modeldDialog.photo.isEmpty {
+            modeldDialog.photo = "null"
+        }
         createTask = Task { [weak self] in
             do {
                 guard let dialog = self?.modeldDialog else { return }

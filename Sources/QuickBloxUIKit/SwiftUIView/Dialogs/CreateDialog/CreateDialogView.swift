@@ -55,7 +55,7 @@ where DialogItem == ViewModel.DialogItem, UserItem == ViewModel.UserItem {
         }, onTapCreate: {
             onTapCreate.toggle()
             viewModel.createDialog()
-        }, disabled: viewModel.selected.isEmpty || onTapCreate == true))
+        }, disabled: viewModel.isProcessing == true))
     }
 }
 

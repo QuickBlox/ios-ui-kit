@@ -194,11 +194,11 @@ struct InputView: View  {
                            height: textFieldSettings.rightButton.frame?.height)
                     .padding(.bottom, 8)
                 }
-                
-            }.background(textFieldSettings.backgroundColor)
+            }
         }
+        .disabled(viewModel.isProcessing == true)
         .fixedSize(horizontal: false, vertical: true)
-        .background(textFieldSettings.contentBackgroundColor)
+        .background(textFieldSettings.backgroundColor)
     }
 }
 
@@ -224,7 +224,6 @@ struct AIToneView: View {
             }
             .padding(settings.bubblePadding)
             .background(Capsule().fill(settings.bubbleBackground))
-            .frame(height: settings.height)
             .padding(settings.contentPadding)
         }
         .frame(height: settings.buttonHeight)
@@ -243,59 +242,31 @@ struct TextFieldView: View {
     let typing: (() -> Void)?
     
     var body: some View {
-        if #available(iOS 16.0, *) {
-            TextField(isDisabled ? "" : settings.placeholderText, text: $text, axis: .vertical)
-                .lineLimit(1...settings.lineLimit)
-                .font(settings.placeholderFont)
-                .padding(settings.padding)
-                .background(settings.placeholderBackgroundColor)
-                .cornerRadius(settings.radius)
-                .padding(.vertical, 8)
-                .textFieldStyle(.plain)
-                .disabled(isDisabled)
-                .onChange(of: text) { text in
-                    if text.isEmpty == false {
-                        typingPublisher.send()
-                    }
+        TextField(isDisabled ? "" : settings.placeholderText, text: $text, axis: .vertical)
+            .lineLimit(1...settings.lineLimit)
+            .font(settings.placeholderFont)
+            .padding(settings.padding)
+            .background(settings.placeholderBackgroundColor)
+            .cornerRadius(settings.radius)
+            .padding(.vertical, 8)
+            .textFieldStyle(.plain)
+            .disabled(isDisabled)
+            .onChange(of: text) { text in
+                if text.isEmpty == false {
+                    typingPublisher.send()
                 }
-                .onReceive(
-                    typingPublisher.throttle(
-                        for: 2.5,
-                        scheduler: DispatchQueue.main,
-                        latest: true
-                    )
-                ) {
-                    if let typing = typing {
-                        typing()
-                    }
+            }
+            .onReceive(
+                typingPublisher.throttle(
+                    for: 2.5,
+                    scheduler: DispatchQueue.main,
+                    latest: true
+                )
+            ) {
+                if let typing = typing {
+                    typing()
                 }
-        } else {
-            TextField(isDisabled ? "" : settings.placeholderText, text: $text)
-                .font(settings.placeholderFont)
-                .padding(settings.padding)
-                .background(settings.placeholderBackgroundColor)
-                .cornerRadius(settings.radius)
-                .frame(height: settings.height)
-                .textFieldStyle(.plain)
-                .disabled(isDisabled)
-                .onChange(of: text) { text in
-                    if text.isEmpty == false {
-                        typingPublisher.send()
-                    }
-                }
-                .onReceive(
-                    
-                    typingPublisher.throttle(
-                        for: 2.5,
-                        scheduler: DispatchQueue.main,
-                        latest: true
-                    )
-                ) {
-                    if let typing = typing {
-                        typing()
-                    }
-                }
-        }
+            }
     }
 }
 

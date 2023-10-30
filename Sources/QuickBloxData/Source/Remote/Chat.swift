@@ -80,14 +80,12 @@ private actor Chat {
             if dialog.type != .private {
                 if dialog.isJoined() == false {
                     await join(dialog)
-                    try await Task.wait(second: 1.3)
+                    try Task.checkCancellation()
                 }
-                try Task.checkCancellation()
                 message.dateSent = Date()
                 try await dialog.sendAsync(message)
                 try Task.checkCancellation()
             } else {
-                try Task.checkCancellation()
                 message.dateSent = Date()
                 try await dialog.sendAsync(message)
                 try Task.checkCancellation()
@@ -108,8 +106,6 @@ private actor Chat {
         guard dialog.isJoined() else { return }
         do {
             try await dialog.leaveAsync()
-            let duration = UInt64(0.2 * 1_000_000_000)
-            try await Task.sleep(nanoseconds: duration)
         } catch {
             prettyLog(label: "Leave from \(id)", error)
         }
@@ -125,16 +121,15 @@ private extension QBChatDialog {
         return try await withCheckedThrowingContinuation { continuation in
             if type == .private || isJoined() == true {
                 continuation.resume()
-                return
-            }
-            
-            join { error in
-                if let error = error, error._code == -1006 {
-                    continuation.resume()
-                } else if let error {
-                    continuation.resume(throwing:error)
-                } else {
-                    continuation.resume()
+            } else {
+                join { error in
+                    if let error = error, error._code == -1006 {
+                        continuation.resume()
+                    } else if let error {
+                        continuation.resume(throwing:error)
+                    } else {
+                        continuation.resume()
+                    }
                 }
             }
         }
@@ -160,8 +155,8 @@ private extension QBChatDialog {
     }
     
     func sendAsync(_ message: QBChatMessage) async throws {
-            return try await withCheckedThrowingContinuation({
-                (continuation: CheckedContinuation<Void, Error>) in
+            return try await withCheckedThrowingContinuation{
+                continuation in
                 send(message) { (error) in
                     if let error = error {
                         prettyLog(error)
@@ -170,17 +165,23 @@ private extension QBChatDialog {
                         continuation.resume()
                     }
                 }
-            })
+            }
         }
 }
 
-actor ChatStream {
+actor ChatStream: NSObject, QBChatDelegate {
     private let subject = PassthroughSubject<RemoteEvent, Never>()
     var eventPublisher: AnyPublisher<RemoteEvent, Never> {
         subject.eraseToAnyPublisher()
     }
     private var cancellables: Set<AnyCancellable> = Set<AnyCancellable>()
     private var chats: [String: Chat] = [:]
+    
+    override init() {
+        super.init()
+        
+        QBChat.instance.addDelegate(self)
+    }
     
     func typeOf(chat chatId: String) async throws -> DialogType {
         guard let chat = chats[chatId] else {
@@ -198,23 +199,11 @@ actor ChatStream {
         return await chat.qbChat
     }
     
-    func add(chat dialog: QBChatDialog) async {
-        guard let id = dialog.id else { return }
-        if let old = chats[id] {
-            Task { await old.subscribe() }
-            return
-        }
-        let new = Chat(dialog)
-        chats[id] = new
-        Task { await new.subscribe() }
-        await subscribeEvents(new)
-    }
-    
-    func update(chat dialog: QBChatDialog) async {
+    func update(with dialog: QBChatDialog) async {
         guard let id = dialog.id else { return }
         let new = Chat(dialog)
         chats[id] = new
-        Task { await new.subscribe() }
+        await new.subscribe()
         await subscribeEvents(new)
     }
     
@@ -227,6 +216,30 @@ actor ChatStream {
     func send(_ message: QBChatMessage) async {
         guard let id = message.dialogID, let chat = chats[id] else { return }
         await chat.send(message)
+    }
+    
+    func read(_ message: QBChatMessage) async throws {
+        return try await withCheckedThrowingContinuation { continuation in
+            QBChat.instance.read(message) { error in
+                if let error = error {
+                    continuation.resume(throwing:error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+    
+    func delivered(_ message: QBChatMessage) async throws {
+        return try await withCheckedThrowingContinuation { continuation in
+            QBChat.instance.mark(asDelivered: message) { error in
+                if let error = error {
+                    continuation.resume(throwing:error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
     }
     
     func subscribeToTyping(chat id: String) async {
@@ -245,28 +258,14 @@ actor ChatStream {
     }
     
     func process(_ message: QBChatMessage) async {
-        let event = RemoteEvent(RemoteMessageDTO(message))
-        subject.send(event)
-    }
-    
-    func didRead(_ messageID: String, dialogID: String, readerID: String) async {
-        var dto = RemoteMessageDTO()
-        dto.dialogId = dialogID
-        dto.id = messageID
-        dto.readIds.append(readerID)
-        dto.type = .event
-        dto.eventType = .read
+        let dto = RemoteMessageDTO(message)
         let event = RemoteEvent(dto)
         subject.send(event)
     }
     
-    func didDilivered(_ messageID: String, dialogID: String, toUserID userID: String) async {
-        var dto = RemoteMessageDTO()
-        dto.dialogId = dialogID
-        dto.id = messageID
-        dto.deliveredIds.append(userID)
-        dto.type = .event
-        dto.eventType = .delivered
+    func processSystem(_ message: QBChatMessage) async {
+        var dto = RemoteMessageDTO(message)
+        dto.type = .system
         let event = RemoteEvent(dto)
         subject.send(event)
     }
@@ -277,7 +276,10 @@ actor ChatStream {
     
     func clear() async {
         for id in chats.keys {
-            if let chat = chats[id] { await chat.unsubscribe() }
+            if let chat = chats[id] {
+                //TODO: Use Task Group
+                await chat.unsubscribe()
+            }
         }
         chats.removeAll()
     }
@@ -288,5 +290,89 @@ actor ChatStream {
                 self.subject.send(event)
             })
             .store(in: &cancellables)
+    }
+}
+
+extension ChatStream: QBChatReceiveMessageProtocol {
+    nonisolated private var currentUserId: UInt {
+        return QBSession.current.currentUserID
+    }
+    
+    nonisolated func chatDidReceive(_ message: QBChatMessage) {
+        if message.senderID == currentUserId { return }
+        Task { [weak self] in
+            await self?.process(message)
+        }
+    }
+    
+    nonisolated func chatRoomDidReceive(_ message: QBChatMessage,
+                            fromDialogID dialogID: String) {
+        message.dialogID = dialogID
+        
+        if message.senderID == currentUserId {
+            if message.type == .leave {
+                Task { [weak self] in
+                    await self?.remove(chat:dialogID)
+                    await self?.process(message)
+                }
+            }
+            return
+        }
+        
+        if message.type == .removed {
+            Task { [weak self] in
+                await self?.remove(chat:dialogID)
+                await self?.process(message)
+            }
+        } else {
+            Task { [weak self] in
+                await self?.process(message)
+            }
+        }
+    }
+    
+    nonisolated func chatDidReceiveSystemMessage(_ message: QBChatMessage) {
+        if message.senderID == currentUserId { return }
+        Task { [weak self] in
+            if message.type == .removed {
+                var dialogId = message.dialogID ?? ""
+                if dialogId.isEmpty, 
+                    let params = message.customParameters as? [String: String],
+                    let id = params[QBChatMessage.Key.dialogId] {
+                    dialogId = id
+                }
+                await self?.remove(chat:dialogId)
+            }
+            await self?.processSystem(message)
+        }
+    }
+    
+    nonisolated func chatDidReadMessage(withID messageID: String,
+                                        dialogID: String,
+                                        readerID: UInt) {
+        if readerID == QBSession.current.currentUserID { return }
+        var dto = RemoteMessageDTO()
+        dto.dialogId = dialogID
+        dto.id = messageID
+        dto.readIds.append(String(readerID))
+        dto.type = .event
+        dto.eventType = .read
+        let event = RemoteEvent(dto)
+        subject.send(event)
+    }
+    
+    nonisolated func chatDidDeliverMessage(withID messageID: String, 
+                                           dialogID: String,
+                                           toUserID userID: UInt) {
+        if userID == QBSession.current.currentUserID { return }
+        
+        var dto = RemoteMessageDTO()
+        dto.dialogId = dialogID
+        dto.id = messageID
+        dto.deliveredIds.append(String(userID))
+        dto.type = .event
+        dto.eventType = .delivered
+        let event = RemoteEvent(dto)
+        subject.send(event)
     }
 }

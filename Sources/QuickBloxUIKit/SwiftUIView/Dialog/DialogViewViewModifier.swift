@@ -112,19 +112,20 @@ public struct DialogHeader: ViewModifier {
         .navigationTitle("")
         .navigationBarBackButtonHidden(true)
         .navigationBarHidden(settings.isHidden)
-    }
+        .toolbarBackground(settings.backgroundColor,for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)    }
 }
 
 public struct TypingView: View {
-    let settings = QuickBloxUIKit.settings.dialogScreen
+    let settings = QuickBloxUIKit.settings.dialogScreen.typing
     var typing: String
     
     public var body: some View {
         VStack(alignment: .leading) {
             HStack {
                 Text(typing)
-                    .font(settings.typing.font)
-                    .foregroundColor(settings.typing.color)
+                    .font(settings.font)
+                    .foregroundColor(settings.color)
                     .lineLimit(1)
                 
                 Spacer()
@@ -132,30 +133,46 @@ public struct TypingView: View {
             
             Spacer()
         }
-        .frame(height: settings.typing.height)
+        .frame(height: settings.height)
         .fixedSize(horizontal: false, vertical: true)
-        .padding(.top, 8)
+        .padding(.bottom, 8)
     }
 }
 
 public struct MessagesScrollView<Content: View>: View {
+    let settings = QuickBloxUIKit.settings.dialogScreen
     var content: Content
-    
-    init(@ViewBuilder builder: @escaping ()-> Content) {
+
+    init(@ViewBuilder builder: @escaping () -> Content) {
         self.content = builder()
     }
-    
+
     public var body: some View {
-        GeometryReader { proxy in
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 0) {
-                    Spacer()
-                    content
-                }
-                .frame(minWidth: proxy.size.width)
-                .frame(minHeight: proxy.size.height)
-            }
+        List {
+            content
+            .flipContentVertical()
+            .listRowSeparator(.hidden)
+            .listRowSeparatorTint(.clear)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
         }
+        .scrollContentBackground(.hidden)
+        .flipContentVertical()
+        .listStyle(.plain)
+    }
+}
+
+public struct FlipContentVertical: ViewModifier {
+    public func body(content: Content) -> some View {
+        content
+            .rotationEffect(.degrees(180))
+            .scaleEffect(x: -1, y: 1, anchor: .center)
+    }
+}
+
+extension View {
+    func flipContentVertical() -> some View {
+        self.modifier(FlipContentVertical())
     }
 }
 
@@ -169,7 +186,10 @@ public struct BubbleCornerRadius: ViewModifier {
         var corners = UIRectCorner.allCorners
         
         func path(in rect: CGRect) -> Path {
-            let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
+            let path = UIBezierPath(roundedRect: rect,
+                                    byRoundingCorners: corners,
+                                    cornerRadii: CGSize(width: radius,
+                                                        height: radius))
             return Path(path.cgPath)
         }
     }

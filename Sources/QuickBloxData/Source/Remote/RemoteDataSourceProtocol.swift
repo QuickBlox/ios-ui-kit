@@ -104,7 +104,7 @@ public protocol RemoteDataSourceProtocol {
     /// - Parameter dto: message's dto item.
     ///
     /// - Throws: ``DataSourceException``**.notFound**  when an message item is missing from remote storage.
-    func markAsDelivered(message dto: RemoteMessageDTO) async throws
+    func delivered(message dto: RemoteMessageDTO) async throws
     
     //MARK: Users
     
@@ -159,5 +159,5 @@ public protocol RemoteDataSourceProtocol {
     
     func disconnect() async throws
     
-    func checkConnection() async throws
+    func checkConnection() async throws -> ConnectionState
 }

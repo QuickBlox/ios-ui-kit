@@ -63,8 +63,8 @@ extension RemoteDataSourceMock: RemoteDataSourceProtocol {
         try await mock().callAcyncVoid()
     }
     
-    func checkConnection() async throws {
-        try await mock().callAcyncVoid()
+    func checkConnection() async throws -> ConnectionState {
+        return try mock().getFirst()
     }
     
     func create(dialog dto: RemoteDialogDTO) async throws -> RemoteDialogDTO {
@@ -124,7 +124,7 @@ extension RemoteDataSourceMock: RemoteDataSourceProtocol {
         _ = try mock().get()
     }
     
-    func markAsDelivered(message dto: RemoteMessageDTO) async throws {
+    func delivered(message dto: RemoteMessageDTO) async throws {
         _ = try mock().get()
     }
     

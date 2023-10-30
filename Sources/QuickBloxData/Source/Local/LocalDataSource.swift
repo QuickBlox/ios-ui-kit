@@ -109,7 +109,11 @@ extension LocalDataSource {
         if dto.messages.isEmpty == false {
             for new in dto.messages {
                 isUpdated = true
-                dialog.messages.insertElement(new, withSorting: .orderedAscending)
+                if let index = dialog.messages.firstIndex(where: { $0.id == new.id }) {
+                    dialog.messages[index] = new
+                } else {
+                    dialog.messages.insertElement(new, withSorting: .orderedAscending)
+                }
             }
         }
         
@@ -146,11 +150,10 @@ extension LocalDataSource {
             value.remove(at: index)
             value.insert(dialog, at: 0)
             dialogs.value = value
+            updatedDialog.value = dto.id
         } else {
             dialogs.value[index] = dialog
         }
-        
-        updatedDialog.value = dto.id
     }
     
     func getAllDialogs() async throws -> LocalDialogsDTO {

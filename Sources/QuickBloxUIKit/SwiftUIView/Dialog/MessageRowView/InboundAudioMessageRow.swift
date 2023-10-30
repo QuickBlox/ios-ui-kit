@@ -40,16 +40,17 @@ public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
             
             MessageRowAvatar(message: message)
             
-            VStack(alignment: .leading, spacing: settings.infoSpacing) {
-                Spacer()
+            VStack(alignment: .leading, spacing: 0) {
                 
                 MessageRowName(message: message)
                 
-                VStack(alignment: .leading, spacing: settings.infoSpacing) {
+                VStack(alignment: .leading) {
                     HStack(alignment: .center, spacing: 8) {
+                        
                         Button {
-                            play()
-                            
+                            if fileTuple?.url != nil {
+                                play()
+                            }
                         } label: {
                             
                             HStack(alignment: .center, spacing: 8) {
@@ -75,9 +76,7 @@ public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
                             .frame(height: settings.audioBubbleHeight)
                             .background(settings.inboundBackground)
                             .cornerRadius(settings.bubbleRadius, corners: settings.inboundCorners)
-                            .padding(settings.inboundPadding(showName: settings.isHiddenName))
                         }
-                        .disabled(fileTuple?.url == nil)
                         .task {
                             do { fileTuple = try await message.audioFile } catch { prettyLog(error)}
                         }
@@ -96,6 +95,7 @@ public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
             Spacer(minLength: settings.inboundSpacer)
             
         }
+        .padding(.bottom, settings.spacerBetweenRows)
         .fixedSize(horizontal: false, vertical: true)
         .id(message.id)
         .contextMenu {

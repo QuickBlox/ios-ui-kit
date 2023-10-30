@@ -70,10 +70,6 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
             }
         })
         
-        .navigationBar(titleColor: UIColor(settings.header.title.color),
-                       barColor: UIColor(settings.header.backgroundColor),
-                       shadowColor: UIColor(settings.dialogRow.dividerColor))
-        
         .modifier(DialogListHeader(onDismiss: {
             onBack()
             dismiss()
@@ -82,9 +78,6 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
             onAppear(false)
         }))
         .navigationBarHidden(isDialogTypePresented)
-        .onAppear {
-            dialogsList.sync()
-        }
         .onDisappear {
             dialogsList.unsync()
         }
@@ -97,26 +90,20 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
     }
     
     public var body: some View {
-        if #available(iOS 16, *) {
-            if isIphone {
-                NavigationView {
-                    container()
-                }.navigationViewStyle(.stack)
-            } else if isIPad {
-                NavigationSplitView(columnVisibility: Binding.constant(.all)) {
-                    container()
-                } detail: {
-                    if let dialog = dialogsList.selectedItem {
-                        detailContent(dialog, {
-                            dialogsList.selectedItem = nil
-                        })
-                    }
-                }.navigationSplitViewStyle(.balanced)
-            }
-        } else {
-            NavigationView {
+        if isIphone {
+            NavigationStack {
                 container()
             }
+        } else if isIPad {
+            NavigationSplitView(columnVisibility: Binding.constant(.all)) {
+                container()
+            } detail: {
+                if let dialog = dialogsList.selectedItem {
+                    detailContent(dialog, {
+                        dialogsList.selectedItem = nil
+                    })
+                }
+            }.navigationSplitViewStyle(.balanced)
         }
     }
 }

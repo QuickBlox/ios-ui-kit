@@ -42,7 +42,6 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
     @State private var attachmentAsset: AttachmentAsset? = nil
     
     @State private var tappedMessage: ViewModel.DialogItem.MessageItem? = nil
-    @State private var isNewTyping: Bool = true
     
     let onDismiss: () -> Void
     
@@ -75,11 +74,24 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
                     }
                 case .synced:
                     VStack(spacing: 20) {
+                        
+                        if viewModel.isProcessing {
+                            HStack(spacing: 12) {
+                                ProgressView()
+                                Text(" " + connectStatus.connectionText(connectStatus.update) )
+                                    .foregroundColor(settings.connectForeground)
+                            }.padding(.top)
+                        }
+                        
                         aiAnswerFiled(viewModel.aiAnswerFailed.feature)
                         if viewModel.dialog.displayedMessages.isEmpty {
                             Spacer()
                         } else {
                             messagesView()
+                        }
+                        if settings.typing.enable == true && viewModel.typing.isEmpty == false {
+                            TypingView(typing: viewModel.typing)
+                                .animation(.easeInOut, value: viewModel.typing.isEmpty)
                         }
                     }
                 }
@@ -95,11 +107,10 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
                         aiFeature = .rephrase
                         isAIAlertPresented = true
                     }
-                }).disabled(viewModel.isProcessing == true)
-                    .background(settings.backgroundColor)
-                
+                })
+                .background(settings.backgroundColor)
             }
-            .background(
+            .background {
                 ZStack {
                     settings.contentBackgroundColor
                     if settings.backgroundImage != nil {
@@ -112,12 +123,12 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
                             .edgesIgnoringSafeArea(.all)
                     }
                 }
-            )
+            }
             
             .mediaAlert(isAlertPresented: $isAttachmentAlertPresented,
                         isExistingImage: false,
                         isHiddenFiles: settings.isHiddenFiles,
-                        mediaTypes: [UTType.movie.identifier, UTType.image.identifier],
+                        mediaTypes: [.videos, .images],
                         viewModel: viewModel,
                         onRemoveImage: {
             }, onGetAttachment: { attachmentAsset in
@@ -129,12 +140,6 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
                     isSizeAlertPresented = true
                 } else {
                     viewModel.handleOnSelect(attachment: attachmentAsset)
-                }
-            })
-            
-            .onChange(of: viewModel.typing.count, perform: { newValue in
-                if newValue == 0 && isNewTyping == true {
-                    isNewTyping = false
                 }
             })
             
@@ -195,7 +200,6 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
                 
                                     .modifier(DialogHeader(dialog: viewModel.dialog,
                                                            onDismiss: {
-                                        viewModel.unsubscribe()
                                         dismiss()
                                         onDismiss()
                                     }, onTapInfo: {
@@ -205,7 +209,7 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
                                         .environmentObject(viewModel)
                 
                                         .if(isInfoPresented == true, transform: { view in
-                                            view.fullScreenCover(isPresented: $isInfoPresented) {
+                                            view.navigationDestination(isPresented: $isInfoPresented) {
                                                 if let dialog = viewModel.dialog as? Dialog {
                                                     if dialog.isOwnedByCurrentUser == true {
                                                         GroupDialogInfoView(DialogInfoViewModel(dialog))
@@ -219,26 +223,10 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
     }
     
     @ViewBuilder
-    private func aiAnswerFiled(_ feature: AIFeatureType) -> some View {
-        if viewModel.aiAnswerFailed.failed {
-            Text(feature.answerFailed)
-                .font(aiFeatures.ui.answerFailed.font)
-                .foregroundColor(aiFeatures.ui.answerFailed.foreground)
-                .padding(aiFeatures.ui.answerFailed.padding)
-                .frame(height: isAiAnswerFailedPresented ? 24 : nil)
-                .background(Capsule().fill(aiFeatures.ui.answerFailed.background))
-                .padding(.top, isAiAnswerFailedPresented ? 16 : 0)
-                .offset(y: isAiAnswerFailedPresented ? 10 : -20)
-        } else {
-            EmptyView()
-        }
-    }
-    
-    @ViewBuilder
     private func messagesView() -> some View {
         ScrollViewReader { scrollView in
             MessagesScrollView() {
-                ForEach(viewModel.dialog.displayedMessages) { message in
+                ForEach(viewModel.dialog.displayedMessages.reversed()) { message in
                     MessageRowView(message: message,
                                    isPlaying: $viewModel.audioPlayer.isPlaying,
                                    currentTime: $viewModel.audioPlayer.currentTime,
@@ -281,45 +269,28 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
                         }
                     }, aiAnswerWaiting: $viewModel.waitingAnswer)
                     .onAppear {
-                        viewModel.handleOnAppear(message)
-                    }
-                    .offset(y:offset(typing: viewModel.typing.isEmpty == false,
-                                     isOwnLast: viewModel.targetMessage?.isOwnedByCurrentUser == true))
-                    .animation(.easeInOut, value: viewModel.typing.isEmpty)
+                        viewModel.handleOnAppear(message)                    }
                 }
-            }
-                
-                .onChange(of: viewModel.targetMessage) { message in
-                if let message = message {
-                    isNewTyping = true
-                    viewModel.targetMessage = nil
-                    if viewModel.withAnimation == true {
-                        withAnimation(.default) {
-                            scrollView.scrollTo(message.id)
-                        }
-                    } else {
-                        scrollView.scrollTo(message.id)
-                    }
-                }
-            }
-            
-            if settings.typing.enable == true && viewModel.typing.isEmpty == false {
-                TypingView(typing: viewModel.typing)
             }
         }
         
-        .gesture(DragGesture().onChanged { gesture in
-            if (gesture.location.y < gesture.predictedEndLocation.y) {
-                UIApplication.shared.endEditing(true)
-                isNewTyping = false
-            }
-        })
+        .scrollDismissesKeyboard(.interactively)
     }
     
-    private func offset(typing: Bool, isOwnLast: Bool) -> CGFloat {
-        return typing == true ? (isNewTyping == true ? -settings.typing.defaultOffset
-                                 : -settings.typing.offset(isOwner: isOwnLast))
-        : -settings.typing.defaultOffset
+    @ViewBuilder
+    private func aiAnswerFiled(_ feature: AIFeatureType) -> some View {
+        if viewModel.aiAnswerFailed.failed {
+            Text(feature.answerFailed)
+                .font(aiFeatures.ui.answerFailed.font)
+                .foregroundColor(aiFeatures.ui.answerFailed.foreground)
+                .padding(aiFeatures.ui.answerFailed.padding)
+                .frame(height: isAiAnswerFailedPresented ? 24 : nil)
+                .background(Capsule().fill(aiFeatures.ui.answerFailed.background))
+                .padding(.top, isAiAnswerFailedPresented ? 16 : 0)
+                .offset(y: isAiAnswerFailedPresented ? 10 : -20)
+        } else {
+            EmptyView()
+        }
     }
     
     public var body: some View {

@@ -39,7 +39,7 @@ extension ConnectionRepositoryMock: ConnectionRepositoryProtocol {
         try await mock().callAcyncVoid()
     }
     
-    func checkConnection() async throws {
-        try await mock().callAcyncVoid()
+    func checkConnection() async throws -> ConnectionState {
+       return try mock().getFirst()
     }
 }

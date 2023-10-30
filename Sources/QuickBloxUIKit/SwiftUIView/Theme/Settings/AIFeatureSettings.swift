@@ -367,16 +367,15 @@ public struct AIRephraseUISettings {
     public var bubbleBackground: Color
     public var bubbleRadius: CGFloat = 12.5
     public var contentSpacing: CGFloat = 4.0
-    public var height: CGFloat = 25.0
-    public var buttonHeight: CGFloat = 38.0
-    public var contentPadding: EdgeInsets = EdgeInsets(top: 6,
+    public var buttonHeight: CGFloat = 52.0
+    public var contentPadding: EdgeInsets = EdgeInsets(top: 8,
                                                 leading: 4,
-                                                bottom: 6,
+                                                bottom: 0,
                                                 trailing: 4)
     
-    public var bubblePadding: EdgeInsets = EdgeInsets(top: 2,
+    public var bubblePadding: EdgeInsets = EdgeInsets(top: 6,
                                                       leading: 8,
-                                                      bottom: 2,
+                                                      bottom: 6,
                                                       trailing: 8)
     
     public init(_ theme: ThemeProtocol) {
@@ -391,6 +390,7 @@ public struct AITranslateUISettings {
     public var showOriginal: String
     public var showTranslation: String
     public var width: CGFloat
+    public var buttonOffset: CGFloat = 18.0
     
     public init(_ theme: ThemeProtocol) {
         self.showOriginal = theme.string.showOriginal

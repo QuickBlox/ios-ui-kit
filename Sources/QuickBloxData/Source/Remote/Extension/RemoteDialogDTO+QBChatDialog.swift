@@ -63,7 +63,7 @@ extension RemoteDialogDTO {
             }
             
         }
-        photo = value.photo ?? ""
+        photo = value.photo ?? "null"
         unreadMessagesCount = Int(value.unreadMessagesCount)
     }
 }

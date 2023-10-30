@@ -12,6 +12,7 @@ import QuickBloxData
 import Combine
 import QuickBloxLog
 
+@MainActor
 public protocol DialogsListProtocol: QuickBloxUIKitViewModel {
     associatedtype Item: DialogEntity
     associatedtype DialogsRepo: DialogsRepositoryProtocol
@@ -22,7 +23,6 @@ public protocol DialogsListProtocol: QuickBloxUIKitViewModel {
     var dialogsRepo: DialogsRepo { get }
     
     var selectedItem: Item? { get set }
-    var needUpdate: Bool { get set }
     
     func deleteDialog(withID dialogId: String)
     
@@ -31,15 +31,13 @@ public protocol DialogsListProtocol: QuickBloxUIKitViewModel {
     init(dialogsRepo: DialogsRepo)
 }
 
-open class DialogsViewModel: DialogsListProtocol {
+@MainActor
+final class DialogsViewModel: DialogsListProtocol {
     
     @Published public var selectedItem: Dialog? = nil
     @Published public var dialogToBeDeleted: Dialog? = nil
     @Published public var dialogs: [Dialog] = []
-    @Published public var syncState: SyncState = .synced
-    
-    @Published public var needUpdate: Bool = false
-    
+    @Published public var syncState: SyncState = .syncing(stage: SyncState.Stage.disconnected)
     public let dialogsRepo: DialogsRepository
     
     private let leaveDialogObserve: LeaveDialogObserver<Dialog, DialogsRepository>!
@@ -60,7 +58,6 @@ open class DialogsViewModel: DialogsListProtocol {
                 if self?.selectedItem == nil, dialog.isOwnedByCurrentUser == true {
                     self?.selectedItem = dialog
                 }
-                self?.needUpdate = true
             }
             .store(in: &cancellables)
         
@@ -70,7 +67,6 @@ open class DialogsViewModel: DialogsListProtocol {
                 if dialogId == self?.selectedItem?.id {
                     self?.selectedItem = nil
                 }
-                self?.needUpdate = true
                 self?.dialogToBeDeleted = nil
             }
             .store(in: &cancellables)
@@ -85,7 +81,6 @@ open class DialogsViewModel: DialogsListProtocol {
                         return
                     }
                     self?.dialogs = updated
-                    self?.needUpdate = true
                 }
                 .store(in: &strSelf.cancellables)
             strSelf.updateDialogs = nil

@@ -20,18 +20,23 @@ public struct DateDividerMessageRowView<MessageItem: MessageEntity>: View {
     }
     
     public var body: some View {
-        VStack {
+        HStack {
             Spacer()
-            Text(message.text)
-                .font(settings.dateFont)
-                .foregroundColor(settings.dateForeground)
-                .padding(settings.datePadding)
-                .background(Capsule().fill(settings.dateBackground))
-                .padding(.horizontal)
-                .padding(.top, 22)
-                .padding(.bottom, 0)
-                .id(message.id)
-        }.fixedSize(horizontal: false, vertical: true)
+            VStack {
+                Text(message.text)
+                    .font(settings.dateFont)
+                    .foregroundColor(settings.dateForeground)
+                    .padding(settings.datePadding)
+                    .background(Capsule().fill(settings.dateBackground))
+                    .padding(.horizontal)
+            }
+            
+            Spacer()
+        }
+        .id(message.id)
+        .padding(.bottom, settings.spacerBetweenRows)
+        
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 

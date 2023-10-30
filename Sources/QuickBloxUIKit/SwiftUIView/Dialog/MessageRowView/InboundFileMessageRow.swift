@@ -32,16 +32,17 @@ public struct InboundFileMessageRow<MessageItem: MessageEntity>: View {
             
             MessageRowAvatar(message: message)
             
-            VStack(alignment: .leading, spacing: settings.infoSpacing) {
-                Spacer()
+            VStack(alignment: .leading, spacing: 0) {
                 
                 MessageRowName(message: message)
                 
                 HStack(alignment: .center, spacing: 8) {
                     Button {
-                        open()
+                        if fileTuple?.url != nil {
+                            open()
+                        }
                     } label: {
-                    
+                        
                         HStack(alignment: .center, spacing: 8) {
                             if fileTuple?.url != nil {
                                 InboundFilePlaceholder()
@@ -62,9 +63,7 @@ public struct InboundFileMessageRow<MessageItem: MessageEntity>: View {
                         .frame(height: settings.fileBubbleHeight)
                         .background(settings.inboundBackground)
                         .cornerRadius(settings.bubbleRadius, corners: settings.inboundCorners)
-                        .padding(settings.inboundPadding(showName: settings.isHiddenName))
                     }
-                    .disabled(fileTuple?.url == nil)
                     .task {
                         do { fileTuple = try await message.file(size: nil) } catch { prettyLog(error)}
                     }
@@ -82,6 +81,7 @@ public struct InboundFileMessageRow<MessageItem: MessageEntity>: View {
             Spacer(minLength: settings.inboundSpacer)
             
         }
+        .padding(.bottom, settings.spacerBetweenRows)
         .fixedSize(horizontal: false, vertical: true)
         .id(message.id)
     }

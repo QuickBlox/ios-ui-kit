@@ -34,27 +34,25 @@ public struct DialogTypeView: View {
             
             Spacer().materialModifier()
             
-            if let selectedSegment {
-                NavigationLink (
-                    tag: selectedSegment,
-                    selection: $selectedSegment
-                ) {
-                    if selectedSegment == .private {
-                        CreateDialogView(viewModel: CreateDialogViewModel(users: [], modeldDialog: Dialog(type: .private)),
-                                     content: {
-                            viewModel in
+                .if(selectedSegment != nil) { view in
+                    view.navigationDestination(isPresented: Binding.constant(selectedSegment != nil) ) {
+                        if let selectedSegment {
                             
-                            UserListView(viewModel: viewModel,
-                                         content: { item, isSelected, onTap in
-                                UserRow(item, isSelected: isSelected, onTap: onTap)
-                            })})
-                    } else {
-                        NewDialog(NewDialogViewModel(), type: selectedSegment)
+                            if selectedSegment == .private {
+                                CreateDialogView(viewModel: CreateDialogViewModel(users: [], modeldDialog: Dialog(type: .private)),
+                                                 content: {
+                                    viewModel in
+                                    
+                                    UserListView(viewModel: viewModel,
+                                                 content: { item, isSelected, onTap in
+                                        UserRow(item, isSelected: isSelected, onTap: onTap)
+                                    })})
+                            } else {
+                                NewDialog(NewDialogViewModel(), type: selectedSegment)
+                            }
+                        }
                     }
-                } label: {
-                    EmptyView()
                 }
-            }
         }
         .onChange(of: selectedSegment, perform: { selectedType in
             selectedSegment = selectedType
@@ -107,9 +105,6 @@ public struct DialogTypeHeaderView: View {
     }
 }
 
-private struct DialogTypeConstant {
-    static let height: CGFloat = 44.0 + 1.0 // navBarHeight + dividerHeight
-}
 
 //struct DialogTypeView_Previews: PreviewProvider {
 //    @State var isModalPresented: Bool = true

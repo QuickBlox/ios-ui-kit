@@ -12,8 +12,10 @@ import QuickBloxDomain
 import QuickBloxData
 import QuickBloxLog
 import AVFoundation
+import PhotosUI
+import CoreTransferable
 
-public protocol DialogInfoProtocol: ObservableObject, PermissionProtocol  {
+public protocol DialogInfoProtocol: QuickBloxUIKitViewModel, PermissionProtocol {
     associatedtype Item: DialogEntity
     var dialog: Item { get set }
     var dialogName: String { get set }
@@ -30,10 +32,9 @@ public protocol DialogInfoProtocol: ObservableObject, PermissionProtocol  {
     func deleteDialog()
     func openSettings()
     func requestPermission(_ mediaType: AVMediaType, completion: @escaping (_ granted: Bool) -> Void)
-    func sync()
 }
 
-open class DialogInfoViewModel: DialogInfoProtocol {
+final class DialogInfoViewModel: DialogInfoProtocol {
     let settings = QuickBloxUIKit.settings.dialogInfoScreen
     
     @Published public var dialog: Dialog
@@ -45,7 +46,7 @@ open class DialogInfoViewModel: DialogInfoProtocol {
     @Published public var permissionNotGranted: PermissionInfo = PermissionInfo(mediaType: .video)
     
     @Published public var avatar: Image? = nil
-    
+
     public var isExistingImage: Bool {
         if dialog.photo == "null" { return false }
         return dialog.photo.isEmpty == false
@@ -62,7 +63,8 @@ open class DialogInfoViewModel: DialogInfoProtocol {
     private var taskDelete: Task<Void, Never>?
     private var taskGetAvatar: Task<Void, Never>?
     
-    private var cancellables = Set<AnyCancellable>()
+    public var cancellables = Set<AnyCancellable>()
+    public var tasks = Set<Task<Void, Never>>()
     
     init(_ dialog: Dialog) {
         self.dialog = dialog
@@ -97,7 +99,7 @@ open class DialogInfoViewModel: DialogInfoProtocol {
         }
     }
     
-    public func getDialog() {
+    private func getDialog() {
         let getDialog = GetDialog(dialogId: self.dialog.id,
                                   dialogsRepo: self.dialogsRepo)
         
@@ -109,6 +111,32 @@ open class DialogInfoViewModel: DialogInfoProtocol {
                 }
             } catch {
                 prettyLog(error)
+            }
+        }
+    }
+    
+    private func updateDialog(_ modeldDialog: Dialog) {
+        isProcessing = true
+        taskUpdate = Task { [weak self] in
+            do {
+                let update = UpdateDialog(dialog: modeldDialog,
+                                          users: [],
+                                          repo: RepositoriesFabric.dialogs)
+                try await update.execute()
+                
+                await MainActor.run { [weak self] in
+                    self?.getAvatar()
+                }
+                self?.taskUpdate = nil
+            } catch {
+                prettyLog(error)
+                if error is RepositoryException {
+                    await MainActor.run { [weak self] in
+                        guard let self = self else { return }
+                        self.isProcessing = false
+                    }
+                    self?.taskUpdate = nil
+                }
             }
         }
     }
@@ -137,32 +165,6 @@ open class DialogInfoViewModel: DialogInfoProtocol {
         }
     }
     
-    public func updateDialog(_ modeldDialog: Dialog) {
-        isProcessing = true
-        taskUpdate = Task { [weak self] in
-            do {
-                let update = UpdateDialog(dialog: modeldDialog,
-                                          users: [],
-                                          repo: RepositoriesFabric.dialogs)
-                try await update.execute()
-                
-                await MainActor.run { [weak self] in
-                    self?.getAvatar()
-                }
-                self?.taskUpdate = nil
-            } catch {
-                prettyLog(error)
-                if error is RepositoryException {
-                    await MainActor.run { [weak self] in
-                        guard let self = self else { return }
-                        self.isProcessing = false
-                    }
-                    self?.taskUpdate = nil
-                }
-            }
-        }
-    }
-    
     public func handleOnSelect(attachmentAsset: AttachmentAsset) {
         if let uiImage = attachmentAsset.image {
             isProcessing = true
@@ -171,12 +173,8 @@ open class DialogInfoViewModel: DialogInfoProtocol {
         }
     }
     
-    @MainActor public func removeExistingImage() {
+    public func removeExistingImage() {
         attachmentAsset = nil
-        removeDialogAvatar()
-    }
-    
-    public func removeDialogAvatar() {
         self.isProcessing = true
         dialog.photo = "null"
         dialog.removeAvatar()

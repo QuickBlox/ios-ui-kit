@@ -35,20 +35,21 @@ public struct OutboundFileMessageRow<MessageItem: MessageEntity>: View {
             VStack(alignment: .trailing) {
                 Spacer()
                 HStack(spacing: 3) {
-
+                    
                     MessageRowStatus(message: message)
-
+                    
                     MessageRowTime(date: message.date)
-
+                    
                 }.padding(.bottom, 2)
             }
             
             Button {
-                open()
+                if fileTuple?.url != nil {
+                    open()
+                }
             } label: {
                 
-                VStack(alignment: .leading, spacing: 2) {
-                    Spacer()
+                VStack(alignment: .leading, spacing: 0) {
                     
                     HStack(alignment: .center, spacing: 8) {
                         if fileTuple?.url != nil {
@@ -71,14 +72,14 @@ public struct OutboundFileMessageRow<MessageItem: MessageEntity>: View {
                     .frame(height: settings.fileBubbleHeight)
                     .background(settings.outboundBackground)
                     .cornerRadius(settings.bubbleRadius, corners: settings.outboundCorners)
+                    .padding(settings.outboundPadding)
                     
                 }
-                .padding(settings.outboundAudioPadding)
-            }.disabled(fileTuple?.url == nil)
-                .task {
-                    do { fileTuple = try await message.file(size: nil) } catch { prettyLog(error)}
-                }
+            }.task {
+                do { fileTuple = try await message.file(size: nil) } catch { prettyLog(error)}
+            }
         }
+        .padding(.bottom, settings.spacerBetweenRows)
         .fixedSize(horizontal: false, vertical: true)
         .id(message.id)
     }
@@ -113,26 +114,26 @@ private struct OutboundFilePlaceholder: View {
 import QuickBloxData
 
 struct OutboundFileMessageRow_Previews: PreviewProvider {
-
+    
     static var previews: some View {
         Group {
             OutboundFileMessageRow(message: Message(id: UUID().uuidString,
-                                                     dialogId: "1f2f3ds4d5d6d",
-                                                     text: "[Attachment]",
-                                                     userId: "2d3d4d5d6d",
-                                                     date: Date()),
+                                                    dialogId: "1f2f3ds4d5d6d",
+                                                    text: "[Attachment]",
+                                                    userId: "2d3d4d5d6d",
+                                                    date: Date()),
                                    onTap: { (_,_) in})
-                .previewDisplayName("Out Message")
-
-
+            .previewDisplayName("Out Message")
+            
+            
             OutboundFileMessageRow(message: Message(id: UUID().uuidString,
-                                                     dialogId: "1f2f3ds4d5d6d",
-                                                     text: "[Attachment]",
-                                                     userId: "2d3d4d5d6d",
-                                                     date: Date()),
+                                                    dialogId: "1f2f3ds4d5d6d",
+                                                    text: "[Attachment]",
+                                                    userId: "2d3d4d5d6d",
+                                                    date: Date()),
                                    onTap: { (_,_) in})
-                .previewDisplayName("Out Dark Message")
-                .preferredColorScheme(.dark)
+            .previewDisplayName("Out Dark Message")
+            .preferredColorScheme(.dark)
         }
     }
 }

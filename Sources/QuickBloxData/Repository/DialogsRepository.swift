@@ -30,17 +30,15 @@ extension DialogsRepository: DialogsRepositoryProtocol {
                 .compactMap { event in
                     switch event {
                     case .create(let dialogId, let isCurrent, let message): return .create(dialogId, byUser: isCurrent, message: Message(message))
-                    case .update(withDialogId: let dialogId): return .update(dialogId)
-                    case .leave( let dialogId, let isCurrentUser):
-                        return .leave(dialogId, byUser: isCurrentUser)
-                    case .removed(let dialogId, let isCurrentUser):
-                        return .removed(dialogId, byUser: isCurrentUser)
+                    case .update(let message): return .update(Message(message))
+                    case .leave( let dialogId):
+                        return .leave(dialogId)
+                    case .userLeave(let message):
+                        return .userLeave(Message(message))
+                    case .removed(let dialogId):
+                        return .removed(dialogId)
                     case .newMessage(let message):
                         return .newMessage(Message(message))
-                    case .history(let dto):
-                        return .history(dto.dialogId,
-                                        dto.messages.map { Message($0) })
-                    
                     case .read(let messageID, let dialogID):
                         return .read(messageID, dialogID: dialogID)
                     case .delivered(let messageID, let dialogID):

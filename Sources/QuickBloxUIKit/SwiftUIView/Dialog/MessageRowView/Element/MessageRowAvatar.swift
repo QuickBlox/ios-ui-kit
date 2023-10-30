@@ -22,8 +22,10 @@ public struct MessageRowAvatar<MessageItem: MessageEntity>: View {
     }
     public var body: some View {
         if settings.isHiddenAvatar == false {
-            VStack(spacing: settings.spacing) {
-                Spacer()
+            VStack {
+                if settings.isHiddenName == false {
+                    Spacer()
+                }
                 avatar.resizable()
                     .scaledToFill()
                     .frame(width: settings.avatar.height,
@@ -34,7 +36,7 @@ public struct MessageRowAvatar<MessageItem: MessageEntity>: View {
                                               settings.avatar.height)
                         do { avatar = try await message.avatar(size: size) } catch { prettyLog(error) }
                     }
-            }.padding(.leading)
+            }.padding(.leading, 8)
         }
     }
 }

@@ -22,6 +22,7 @@ public enum MessageType: Codable {
     case chat
     case event
     case divider
+    case system
 }
 
 /// Describes a set of data and functions that represent a message entity.

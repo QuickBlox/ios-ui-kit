@@ -20,9 +20,9 @@ public class ConnectionRepository {
 }
 
 extension ConnectionRepository: ConnectionRepositoryProtocol {
-    public func checkConnection() async throws {
+    public func checkConnection() async throws -> ConnectionState {
         do {
-            try await remote.checkConnection()
+           return try await remote.checkConnection()
         } catch {
             throw try error.repositoryException
         }

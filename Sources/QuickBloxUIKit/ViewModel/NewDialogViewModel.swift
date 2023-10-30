@@ -12,6 +12,8 @@ import QuickBloxDomain
 import QuickBloxData
 import AVFoundation
 import QuickBloxLog
+import PhotosUI
+import CoreTransferable
 
 public enum AttachmentType: String {
     case image = "image"
@@ -44,7 +46,7 @@ public protocol NewDialogProtocol: QuickBloxUIKitViewModel, PermissionProtocol  
     func requestPermission(_ mediaType: AVMediaType, completion: @escaping (_ granted: Bool) -> Void)
 }
 
-open class NewDialogViewModel: NewDialogProtocol {
+final class NewDialogViewModel: NewDialogProtocol {
     let settings = QuickBloxUIKit.settings.dialogNameScreen
     
     @Published public var dialogName = ""
@@ -126,7 +128,7 @@ open class NewDialogViewModel: NewDialogProtocol {
                 }
             }
         } else {
-            modelDialog = Dialog(type: .group, name: dialogName, photo:"")
+            modelDialog = Dialog(type: .group, name: dialogName, photo:"null")
         }
     }
     
@@ -210,4 +212,3 @@ extension UIView {
         }
     }
 }
-

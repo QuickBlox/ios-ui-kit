@@ -18,7 +18,7 @@ public class ScreenFabric { }
 
 // Creating the screen for adding participants to a dialogue.
 public extension ScreenFabric {
-    func addMembers<T: DialogEntity>(
+    @MainActor func addMembers<T: DialogEntity>(
         to entity: T,
         settings: AddMembersScreenSettings
         = QuickBloxUIKit.settings.addMembersScreen
@@ -40,7 +40,7 @@ public extension ScreenFabric {
 
 // Creating the screen for remove participants from a dialogue.
 public extension ScreenFabric {
-    func members<T: DialogEntity>(
+    @MainActor func members<T: DialogEntity>(
         to entity: T,
         settings: MembersScreenSettings
         = QuickBloxUIKit.settings.membersScreen

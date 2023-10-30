@@ -35,7 +35,7 @@ open class AudioPlayer: NSObject, ObservableObject, AVAudioPlayerDelegate {
             }
         }
     }
-
+    
     private var audioPlayer: AVPlayer!
     private var playerItem: AVPlayerItem!
     
@@ -65,6 +65,7 @@ open class AudioPlayer: NSObject, ObservableObject, AVAudioPlayerDelegate {
             debugPrint(asset.duration)
             self.duration = asset.duration
         })
+        
         let playerItem = AVPlayerItem(asset: asset)
         audioPlayer = AVPlayer(playerItem:playerItem)
         audioPlayer.rate = 1.0;

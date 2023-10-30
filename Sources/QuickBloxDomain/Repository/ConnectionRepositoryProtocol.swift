@@ -28,5 +28,5 @@ public protocol ConnectionRepositoryProtocol {
     func disconnect() async throws
     
     /// Update connection state status
-    func checkConnection() async throws
+    func checkConnection() async throws -> ConnectionState
 }

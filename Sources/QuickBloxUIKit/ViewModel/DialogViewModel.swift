@@ -15,6 +15,8 @@ import QuickBloxLog
 import QBAIRephrase
 import QBAITranslate
 import QBAIAnswerAssistant
+import PhotosUI
+import CoreTransferable
 
 public enum Role {
     case owner, opponent
@@ -44,7 +46,7 @@ public struct PermissionInfo {
     var notGranted: Bool = false
 }
 
-public protocol PermissionProtocol {
+public protocol PermissionProtocol: ObservableObject {
     var permissionNotGranted: PermissionInfo { get set }
     
     func openSettings()
@@ -78,7 +80,6 @@ public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel, PermissionProt
     func playAudio(_ url: URL, action: MessageAttachmentAction)
     func sendStopTyping()
     func sendTyping()
-    func unsubscribe()
     func applyAIAnswerAssist(_ message: DialogItem.MessageItem)
     func applyAITranslate(_ message: DialogItem.MessageItem)
     func applyAIRephrase(_ tone: QBAIRephrase.AITone, text: String, needToUpdate: Bool)
@@ -88,14 +89,15 @@ public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel, PermissionProt
 
 public extension QBAIRephrase.AITone {
     static let original = QBAIRephrase.AITone(
-    name: "Back to original text",
-    description: "",
-    icon: "✅"
-  )
+        name: "Back to original text",
+        description: "",
+        icon: "✅"
+    )
 }
 
 open class DialogViewModel: DialogViewModelProtocol {
     @Published public var waitingAnswer: AIAnswerInfo = AIAnswerInfo()
+    @MainActor
     @Published public var dialog: Dialog
     @Published public var targetMessage: QuickBloxData.Message?
     @Published public var audioPlayer = AudioPlayer()
@@ -107,14 +109,14 @@ open class DialogViewModel: DialogViewModelProtocol {
     @Published public var syncState: SyncState = .synced
     @Published public var error = ""
     @Published public var aiAnswerFailed: AIAnswerFailedInfo = AIAnswerFailedInfo() {
-            didSet {
-                if aiAnswerFailed.failed == true {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-                        self.aiAnswerFailed.failed = false
-                    }
+        didSet {
+            if aiAnswerFailed.failed == true {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                    self.aiAnswerFailed.failed = false
                 }
             }
         }
+    }
     
     public var tones: [QBAIRephrase.AITone] = {
         let tones: [any QBAIRephrase.Tone]  =
@@ -144,7 +146,6 @@ open class DialogViewModel: DialogViewModelProtocol {
                                        Pagination>?
     
     private var typingObserve: TypingObserver<DialogsRepository>!
-    private var updateDialogObserve: UpdateDialogObserver<Dialog, DialogsRepository>!
     
     public var cancellables = Set<AnyCancellable>()
     public var tasks = Set<Task<Void, Never>>()
@@ -175,8 +176,6 @@ open class DialogViewModel: DialogViewModelProtocol {
         
         typingObserve = TypingObserver(repo: dialogsRepo,
                                        dialogId: dialog.id)
-        updateDialogObserve = UpdateDialogObserver(repo: dialogsRepo,
-                                                   dialogId: dialog.id)
         
         typingObserve.execute()
             .receive(on: RunLoop.main)
@@ -188,15 +187,6 @@ open class DialogViewModel: DialogViewModelProtocol {
             }
             .store(in: &cancellables)
         
-        updateDialogObserve.execute()
-            .receive(on: RunLoop.main)
-            .sink { [weak self] dialogId in
-                if dialogId == self?.dialog.id {
-                    self?.sync()
-                }
-            }
-        .store(in: &cancellables)
-        
         audioPlayer
             .objectWillChange
             .receive(on: RunLoop.main)
@@ -207,6 +197,7 @@ open class DialogViewModel: DialogViewModelProtocol {
         QuickBloxUIKit.syncState
             .receive(on: RunLoop.main)
             .sink { [weak self] syncState in
+                if self?.syncState == syncState { return }
                 self?.syncState = syncState
                 if syncState == .synced {
                     self?.sync()
@@ -216,46 +207,30 @@ open class DialogViewModel: DialogViewModelProtocol {
     }
     
     deinit {
-        unsubscribe()
-    }
-    
-    public func unsubscribe() {
         typingObserve = nil
     }
     
     public func sync() {
-        
         if syncDialog == nil {
             syncDialog = SyncDialog(dialogId: dialog.id,
                                     dialogsRepo: dialogsRepo,
                                     usersRepo: usersRepo,
                                     messageRepo: RepositoriesFabric.messages)
         }
-        
         syncDialog?.execute()
             .receive(on: RunLoop.main)
+            .debounce(for: .seconds(1.0), scheduler: DispatchQueue.main)
             .sink { [weak self] dialog in
-                
-                var withAnimation = false
-                
-                if dialog.messages.isEmpty == false {
-                    if let messagesCount = self?.dialog.displayedMessages.count,
-                       dialog.displayedMessages.count - messagesCount == 1 {
-                        withAnimation = true
-                    } else {
-                        withAnimation = false
-                    }
-                    self?.dialog = dialog
-                    if let draftAttachmentMessage = self?.draftAttachmentMessage {
-                        self?.dialog.messages.append(draftAttachmentMessage)
-                    }
+                if dialog.messages.count == 0 { return }
+                self?.isProcessing = true
+                self?.dialog = dialog
+                if let draftAttachmentMessage = self?.draftAttachmentMessage {
+                    self?.dialog.messages.append(draftAttachmentMessage)
                 }
-                self?.withAnimation = withAnimation
-                self?.targetMessage = dialog.displayedMessages.last
-                if let userId = self?.targetMessage?.userId,
-                   self?.targetMessage?.isOwnedByCurrentUser == false {
-                    self?.typingProvider.stopTypingUser(userId)
+                if let lastMessage = dialog.displayedMessages.last, lastMessage.isOwnedByCurrentUser == false {
+                    self?.typingProvider.stopTypingUser(lastMessage.userId)
                 }
+                self?.isProcessing = false
             }
             .store(in: &cancellables)
     }
@@ -264,7 +239,7 @@ open class DialogViewModel: DialogViewModelProtocol {
     @objc public func sendStopTyping() {
         typingProvider.sendStopTyping()
     }
-
+    
     public func sendTyping() {
         typingProvider.sendTyping()
     }
@@ -311,16 +286,15 @@ open class DialogViewModel: DialogViewModelProtocol {
         sendStopTyping()
         
         draftAttachmentMessage = Message(dialogId: dialog.id,
-                              text: "[Attachment]",
-                              isOwnedByCurrentUser: true,
-                              type: .chat,
-                              fileInfo: FileInfo(id: UUID().uuidString, ext: ext, name: "Draft/Attachment"))
+                                         text: "[Attachment]",
+                                         isOwnedByCurrentUser: true,
+                                         type: .chat,
+                                         fileInfo: FileInfo(id: UUID().uuidString, ext: ext, name: "Draft/Attachment"))
         
         if let draftAttachmentMessage {
             dialog.messages.append(draftAttachmentMessage)
-            targetMessage = draftAttachmentMessage
         }
-       
+        
         Task {
             do {
                 let uploadFile = UploadFile(data: data,
@@ -338,8 +312,6 @@ open class DialogViewModel: DialogViewModelProtocol {
                 let sendMessage = SendMessage(message: message,
                                               messageRepo: RepositoriesFabric.messages)
                 try await sendMessage.execute()
-                
-                dialog.messages.removeAll(where: { $0.id == draftAttachmentMessage?.id })
                 draftAttachmentMessage = nil
                 await MainActor.run { [weak self] in
                     guard let self = self else { return }
@@ -408,16 +380,22 @@ open class DialogViewModel: DialogViewModelProtocol {
     }
     
     public func handleOnAppear(_ message: QuickBloxData.Message) {
-        if dialog.unreadMessagesCount == 0 { return }
-        if message.isOwnedByCurrentUser { return }
-        if message.isRead { return }
-        if message.userId.isEmpty == true { return }
+        if message.isOwnedByCurrentUser {
+            return
+        }
+        if message.isRead {
+            return
+        }
+        if message.userId.isEmpty == true {
+            return
+        }
         
         var updatedMessage = message
         updatedMessage.isRead = true
         
         var updated = dialog
         updated.decrementCounter = true
+        updated.messages = []
         
         let readMessage = ReadMessage(message: updatedMessage,
                                       messageRepo: RepositoriesFabric.messages,
@@ -447,22 +425,22 @@ open class DialogViewModel: DialogViewModelProtocol {
         if answerAssist.serverPath.isEmpty == false {
             
             settings = QBAIAnswerAssistant.AISettings(token: "",
-                                           serverPath: answerAssist.serverPath,
-                                           apiVersion: answerAssist.apiVersion,
-                                           organization: answerAssist.organization,
-                                           model: answerAssist.model,
-                                           temperature: answerAssist.temperature,
-                                           maxRequestTokens: answerAssist.maxRequestTokens,
-                                           maxResponseTokens: answerAssist.maxResponseTokens)
+                                                      serverPath: answerAssist.serverPath,
+                                                      apiVersion: answerAssist.apiVersion,
+                                                      organization: answerAssist.organization,
+                                                      model: answerAssist.model,
+                                                      temperature: answerAssist.temperature,
+                                                      maxRequestTokens: answerAssist.maxRequestTokens,
+                                                      maxResponseTokens: answerAssist.maxResponseTokens)
         } else if answerAssist.apiKey.isEmpty == false {
             
             settings = QBAIAnswerAssistant.AISettings(apiKey: answerAssist.apiKey,
-                                           apiVersion: answerAssist.apiVersion,
-                                           organization: answerAssist.organization,
-                                           model: answerAssist.model,
-                                           temperature: answerAssist.temperature,
-                                           maxRequestTokens: answerAssist.maxRequestTokens,
-                                           maxResponseTokens: answerAssist.maxResponseTokens)
+                                                      apiVersion: answerAssist.apiVersion,
+                                                      organization: answerAssist.organization,
+                                                      model: answerAssist.model,
+                                                      temperature: answerAssist.temperature,
+                                                      maxRequestTokens: answerAssist.maxRequestTokens,
+                                                      maxResponseTokens: answerAssist.maxResponseTokens)
         }
         
         guard let settings = settings else {
@@ -505,24 +483,24 @@ open class DialogViewModel: DialogViewModelProtocol {
         if translate.serverPath.isEmpty == false {
             
             settings = QBAITranslate.AISettings(token: "",
-                                           serverPath: translate.serverPath,
-                                           language: translate.language,
-                                           apiVersion: translate.apiVersion,
-                                           organization: translate.organization,
-                                           model: translate.model,
-                                           temperature: translate.temperature,
-                                           maxRequestTokens: translate.maxRequestTokens,
-                                           maxResponseTokens: translate.maxResponseTokens)
+                                                serverPath: translate.serverPath,
+                                                language: translate.language,
+                                                apiVersion: translate.apiVersion,
+                                                organization: translate.organization,
+                                                model: translate.model,
+                                                temperature: translate.temperature,
+                                                maxRequestTokens: translate.maxRequestTokens,
+                                                maxResponseTokens: translate.maxResponseTokens)
         } else if translate.apiKey.isEmpty == false {
             
             settings = QBAITranslate.AISettings(apiKey: translate.apiKey,
-                                           language: translate.language,
-                                           apiVersion: translate.apiVersion,
-                                           organization: translate.organization,
-                                           model: translate.model,
-                                           temperature: translate.temperature,
-                                           maxRequestTokens: translate.maxRequestTokens,
-                                           maxResponseTokens: translate.maxResponseTokens)
+                                                language: translate.language,
+                                                apiVersion: translate.apiVersion,
+                                                organization: translate.organization,
+                                                model: translate.model,
+                                                temperature: translate.temperature,
+                                                maxRequestTokens: translate.maxRequestTokens,
+                                                maxResponseTokens: translate.maxResponseTokens)
         }
         
         guard let settings = settings else {
@@ -550,9 +528,7 @@ open class DialogViewModel: DialogViewModelProtocol {
                       let index = self.dialog.messages.firstIndex(where: { $0.id == message.id }) else {
                     return
                 }
-                await MainActor.run { [self, index, translatedMessage] in
-                    self.dialog.messages[index] = translatedMessage
-                }
+                self.dialog.messages[index] = translatedMessage
             } catch {
                 prettyLog(error)
                 await MainActor.run { [weak self] in
@@ -578,7 +554,7 @@ open class DialogViewModel: DialogViewModelProtocol {
             rephrasedContent = [:]
             rephrasedContent[.original] = text
         }
-
+        
         if let rephrased = rephrasedContent[tone] {
             waitingAnswer = AIAnswerInfo(id: "", waiting: false)
             self.aiAnswer = rephrased
@@ -635,7 +611,7 @@ open class DialogViewModel: DialogViewModelProtocol {
                         self.waitingAnswer = AIAnswerInfo(id: "", waiting: false)
                         return
                     }
-                    self.rephrasedContent[tone] = rephrased
+                    self.updateRephrasedContent(tone, rephrased: rephrased)
                     self.aiAnswer = rephrased
                 }
             } catch {
@@ -650,6 +626,10 @@ open class DialogViewModel: DialogViewModelProtocol {
                 self.waitingAnswer = AIAnswerInfo(id: "", waiting: false)
             }
         }
+    }
+    
+    private func updateRephrasedContent(_ tone: QBAIRephrase.AITone, rephrased: String) {
+        rephrasedContent[tone] = rephrased
     }
     
     private func filterTextHistory(from date: Date) -> [QuickBloxData.Message] {
@@ -904,14 +884,14 @@ extension UIImage {
         : CGSize(width: size.width * widthRatio,
                  height: size.height * widthRatio)
         let rect = CGRect(x: 0, y: 0, width: newSize.width, height: newSize.height)
-
+        
         UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
         self.draw(in: rect)
         guard let resizedImage = UIGraphicsGetImageFromCurrentImageContext() else {
             return self
         }
         UIGraphicsEndImageContext()
-
+        
         return resizedImage
-      }
+    }
 }

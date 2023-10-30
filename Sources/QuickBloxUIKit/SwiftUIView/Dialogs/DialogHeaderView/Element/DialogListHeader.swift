@@ -42,7 +42,6 @@ struct DialogListHeaderToolbarContent: ToolbarContent {
             }
         }
         
-        
         ToolbarItem(placement: .principal) {
             Text(settings.title.text)
                 .font(settings.title.font)
@@ -70,13 +69,14 @@ struct DialogListHeaderToolbarContent: ToolbarContent {
 
 public struct DialogListHeader: ViewModifier {
     
-    private var settings = QuickBloxUIKit.settings.dialogsScreen
+    private var settings = QuickBloxUIKit.settings.dialogsScreen.header
     
     let onDismiss: () -> Void
     let onTapDialogType: () -> Void
     
     public init(onDismiss: @escaping () -> Void,
-                onTapDialogType: @escaping () -> Void) {
+                onTapDialogType: @escaping () -> Void
+    ) {
         self.onDismiss = onDismiss
         self.onTapDialogType = onTapDialogType
     }
@@ -87,9 +87,12 @@ public struct DialogListHeader: ViewModifier {
                                            onTapDialogType: onTapDialogType)
         }
         .navigationTitle("")
-        .navigationBarTitleDisplayMode(settings.header.displayMode)
+        .navigationBarTitleDisplayMode(settings.displayMode)
         .navigationBarBackButtonHidden(true)
-        .navigationBarHidden(settings.header.isHidden)
+        .navigationBarHidden(settings.isHidden)
+        .toolbarBackground(settings.backgroundColor,for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarRole(.editor)
     }
 }
 
@@ -101,15 +104,6 @@ public extension View {
             self
         }
     }
-    
-    func navigationBar(titleColor: UIColor,
-                                      barColor: UIColor,
-                                      shadowColor: UIColor) -> some View {
-        
-        self.modifier(NavigationBarColor(titleColor: titleColor,
-                                         barColor: barColor,
-                                         shadowColor: shadowColor))
-    }
 }
 
 public var isIphone: Bool {
@@ -118,27 +112,6 @@ public var isIphone: Bool {
 
 public var isIPad: Bool {
     UIDevice.current.userInterfaceIdiom == .pad
-}
-
-struct NavigationBarColor: ViewModifier {
-
-  init(titleColor: UIColor, barColor: UIColor, shadowColor: UIColor) {
-    let appearance = UINavigationBarAppearance()
-      appearance.configureWithOpaqueBackground()
-      appearance.backgroundColor = barColor
-      appearance.titleTextAttributes = [.foregroundColor: titleColor]
-      appearance.largeTitleTextAttributes = [.foregroundColor: titleColor]
-      appearance.shadowColor = shadowColor
-                   
-    UINavigationBar.appearance().standardAppearance = appearance
-    UINavigationBar.appearance().scrollEdgeAppearance = appearance
-    UINavigationBar.appearance().compactAppearance = appearance
-    UINavigationBar.appearance().tintColor = titleColor
-  }
-
-  func body(content: Content) -> some View {
-    content
-  }
 }
 
 public struct DeleteDialogAlert: ViewModifier {
@@ -179,5 +152,54 @@ extension View {
                                       name: name,
                                       onCancel: onCancel,
                                       onTap: onTap))
+    }
+}
+
+struct CustomProgressView: View {
+    var body: some View {
+        ZStack {
+            Color.black.frame(width: 100, height: 100)
+                .cornerRadius(12)
+                .opacity(0.6)
+            ProgressView().controlSize(.large).tint(Color.white)
+        }
+    }
+}
+
+struct Separator: View {
+    let settings = QuickBloxUIKit.settings.dialogsScreen.dialogRow
+    
+    var isLastRow: Bool
+    var body: some View {
+        VStack {
+            Spacer()
+            HStack() {
+                Spacer(minLength: isLastRow == false ? settings.separatorInset: 0.0)
+                Rectangle()
+                    .fill(settings.dividerColor.opacity(0.4))
+                    .frame(height: 1.0, alignment: .trailing)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+    }
+}
+
+struct EmptyDialogsView: View {
+    let settings = QuickBloxUIKit.settings.dialogsScreen
+    
+    var body: some View {
+        Spacer()
+        VStack(spacing: 16.0) {
+            settings.messageImage
+                .resizable()
+                .scaledToFit()
+                .foregroundColor(settings.messageImageColor)
+                .frame(width: 60, height: 60)
+            Text(settings.itemsIsEmpty)
+                .font(settings.itemsIsEmptyFont)
+                .foregroundColor(settings.itemsIsEmptyColor)
+            
+        }
+        Spacer()
     }
 }

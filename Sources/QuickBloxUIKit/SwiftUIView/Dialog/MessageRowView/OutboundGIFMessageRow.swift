@@ -45,11 +45,12 @@ public struct OutboundGIFMessageRow<MessageItem: MessageEntity>: View {
             }
             
             Button {
-                open()
+                if fileTuple?.url != nil {
+                    open()
+                }
             } label: {
                 
-                VStack(alignment: .leading, spacing: 2) {
-                    Spacer()
+                VStack(alignment: .leading, spacing: 0) {
                     
                     ZStack(alignment: .center) {
                         if let image = fileTuple?.image {
@@ -81,15 +82,14 @@ public struct OutboundGIFMessageRow<MessageItem: MessageEntity>: View {
                                 .padding(settings.outboundPadding)
                             
                             SegmentedCircularBar(settings: settings.progressBar)
-                                .padding([.top, .trailing])
                         }
                     }
                 }
-            }.disabled(fileTuple?.image == nil)
-                .task {
-                    do { fileTuple = try await message.file(size: settings.imageSize) } catch { prettyLog(error)}
-                }
+            }.task {
+                do { fileTuple = try await message.file(size: settings.imageSize) } catch { prettyLog(error)}
+            }
         }
+        .padding(.bottom, settings.spacerBetweenRows)
         .fixedSize(horizontal: false, vertical: true)
         .id(message.id)
         
