@@ -21,7 +21,7 @@ where Item == Repo.DialogEntityItem {
     private var dialogId: String
     private let subject = PassthroughSubject<String, Never>()
     private var cancellables = Set<AnyCancellable>()
-    private var taskLeave: Task<Void, Never>?
+    private var taskUpdate: Task<Void, Never>?
     
     public init(repo: Repo, dialogId: String) {
         self.repo = repo
@@ -29,23 +29,23 @@ where Item == Repo.DialogEntityItem {
     }
     
     deinit {
-        taskLeave?.cancel()
-        taskLeave = nil
+        taskUpdate?.cancel()
+        taskUpdate = nil
     }
     
     public func execute() -> AnyPublisher<String, Never> {
-        processLeaveEvents()
+        processUpdateEvents()
        return subject.eraseToAnyPublisher()
     }
     
-    private func processLeaveEvents() {
-        taskLeave = Task { [weak self] in
+    private func processUpdateEvents() {
+        taskUpdate = Task { [weak self] in
             let sub = await self?.repo.remoteEventPublisher
                 .receive(on: DialogQueue.update)
                 .sink { [weak self]  event in
                     switch event {
-                    case .update(let dialogId):
-                        if self?.dialogId == dialogId { self?.subject.send(dialogId) }
+                    case .update(let message):
+                        if self?.dialogId == message.dialogId { self?.subject.send(message.dialogId) }
                     default:
                         break
                     }

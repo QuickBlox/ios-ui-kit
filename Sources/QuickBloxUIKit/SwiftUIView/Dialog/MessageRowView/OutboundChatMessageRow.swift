@@ -26,7 +26,7 @@ public struct OutboundChatMessageRow<MessageItem: MessageEntity>: View {
             Spacer(minLength: settings.outboundSpacer)
             
             if settings.isHiddenTime == false {
-                VStack(alignment: .trailing) {
+                VStack(alignment: .trailing, spacing: 0) {
                     Spacer()
                     HStack(spacing: 3) {
                         
@@ -38,13 +38,14 @@ public struct OutboundChatMessageRow<MessageItem: MessageEntity>: View {
                 }
             }
             
-            VStack(alignment: .leading, spacing: 2) {
-                Spacer()
+            VStack(alignment: .leading, spacing: 0) {
                 
                 MessageRowText(isOutbound: true, text: message.text)
                 
-            }
+            }.padding(settings.outboundPadding)
         }
+        .padding(.bottom, settings.spacerBetweenRows)
+        
         .fixedSize(horizontal: false, vertical: true)
         .id(message.id)
     }

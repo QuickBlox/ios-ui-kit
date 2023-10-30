@@ -84,14 +84,8 @@ extension QBChatMessage {
         return system
     }
     
-    static func leave(dialog id: String) throws -> QBChatMessage {
-        guard let user = QBSession.current.currentUser,
-              user.id != 0,
-              let name = user.fullName else {
-            let info = "Internal: Invalid or unauthorized current user."
-            throw RepositoryException.incorrectData(info)
-        }
-        
+    static func event(_ user: QBUUser, leaveDialog id: String) throws -> QBChatMessage {
+        let name = user.fullName ?? String(user.id)
         let message = QBChatMessage()
         
         message.senderID = user.id

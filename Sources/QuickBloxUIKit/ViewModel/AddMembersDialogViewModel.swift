@@ -24,14 +24,17 @@ public protocol AddMembersDialogProtocol: QuickBloxUIKitViewModel {
     func addSelectedUser()
 }
 
-open class AddMembersDialogViewModel: AddMembersDialogProtocol {
+final class AddMembersDialogViewModel: AddMembersDialogProtocol {
     @Published public var search: String = ""
     @Published public var displayed: [User] = []
     @Published public var selected: User? = nil
     @Published public var isProcessing: Bool = false
-    @Published public var  isSynced: Bool = false
+    @Published public var isSynced: Bool = false
     
     private var dialog: Dialog
+    
+    public private(set) var dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs
+    private var updateDialogLocalObserve: DialogUpdateObserver<DialogsRepository>!
     
     public var cancellables = Set<AnyCancellable>()
     public var tasks = Set<Task<Void, Never>>()
@@ -42,6 +45,19 @@ open class AddMembersDialogViewModel: AddMembersDialogProtocol {
     // use for PreviewProvider
     public init(_ dialog: Dialog) {
         self.dialog = dialog
+        
+        if dialog.type == .group {
+            updateDialogLocalObserve = DialogUpdateObserver(repo: dialogsRepo)
+            
+            updateDialogLocalObserve.execute()
+                .receive(on: RunLoop.main)
+                .sink { [weak self] dialogId in
+                    if dialogId == self?.dialog.id {
+                        self?.getDialog()
+                    }
+                }
+                .store(in: &cancellables)
+        }
     }
     
     public func sync() {
@@ -55,6 +71,23 @@ open class AddMembersDialogViewModel: AddMembersDialogProtocol {
             .store(in: &cancellables)
     }
     
+    public func getDialog() {
+        let getDialog = GetDialog(dialogId: self.dialog.id,
+                                  dialogsRepo: self.dialogsRepo)
+        
+        Task { [weak self] in
+            do {
+                let dialog = try await getDialog.execute()
+                await MainActor.run { [weak self, dialog] in
+                    self?.dialog = dialog
+                    self?.displayDialogMembers()
+                }
+            } catch {
+                prettyLog(error)
+            }
+        }
+    }
+    
     private func displayDialogMembers(by text: String = "") {
         if text.isEmpty || text.count > 2 {
             isSynced = false
@@ -66,10 +99,6 @@ open class AddMembersDialogViewModel: AddMembersDialogProtocol {
             taskUsers = nil
             taskUsers = Task { [weak self] in
                 do {
-                    let duration = UInt64(0.3 * 1_000_000_000)
-                    try await Task.sleep(nanoseconds: duration)
-                    try Task.checkCancellation()
-                    
                     let users = try await getUsers.execute()
                     try Task.checkCancellation()
                     

@@ -33,23 +33,23 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
             
             Spacer(minLength: settings.outboundSpacer)
             
-                VStack(alignment: .trailing) {
-                    Spacer()
-                    HStack(spacing: 3) {
-                        
-                        MessageRowStatus(message: message)
-                        
-                        MessageRowTime(date: message.date)
-                        
-                    }.padding(.bottom, 2)
-                }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Spacer()
+            VStack(alignment: .trailing) {
+                Spacer()
+                HStack(spacing: 3) {
                     
-                    Button {
+                    MessageRowStatus(message: message)
+                    
+                    MessageRowTime(date: message.date)
+                    
+                }.padding(.bottom, 2)
+            }
+            
+            VStack(alignment: .leading, spacing: 0) {
+                Button {
+                    if fileTuple?.url != nil {
                         open()
-                    } label: {
+                    }
+                } label: {
                     
                     ZStack {
                         
@@ -62,13 +62,13 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
                                 .cornerRadius(settings.attachmentRadius,
                                               corners: settings.outboundCorners)
                                 .padding(settings.outboundPadding)
-
+                            
                             settings.videoPlayBackground
                                 .frame(width: settings.imageIconSize.width,
                                        height: settings.imageIconSize.height)
                                 .cornerRadius(6)
                                 .padding(.top)
-
+                            
                             settings.play
                                 .resizable()
                                 .scaledToFit()
@@ -87,18 +87,18 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
                                 .padding(settings.outboundPadding)
                             
                             SegmentedCircularBar(settings: settings.progressBar)
-                                .padding([.top, .trailing])
                         }
                     }
                     .task {
                         do { fileTuple = try await message.file(size: settings.imageSize) } catch { prettyLog(error)}
                     }
-                    }.disabled(fileTuple?.url == nil)
-                    
                 }
+                
             }
-            .fixedSize(horizontal: false, vertical: true)
-            .id(message.id)
+        }
+        .padding(.bottom, settings.spacerBetweenRows)
+        .fixedSize(horizontal: false, vertical: true)
+        .id(message.id)
         
     }
     
@@ -111,7 +111,7 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
 import QuickBloxData
 
 struct OutboundVideoMessageRow_Previews: PreviewProvider {
-
+    
     static var previews: some View {
         Group {
             OutboundVideoMessageRow(message: Message(id: UUID().uuidString,
@@ -121,7 +121,7 @@ struct OutboundVideoMessageRow_Previews: PreviewProvider {
                                                      date: Date()),
                                     onTap: { (_,_) in})
             .previewDisplayName("Video with Thumbnail")
-
+            
             OutboundVideoMessageRow(message: Message(id: UUID().uuidString,
                                                      dialogId: "1f2f3ds4d5d6d",
                                                      text: "[Attachment]",
@@ -129,7 +129,7 @@ struct OutboundVideoMessageRow_Previews: PreviewProvider {
                                                      date: Date()),
                                     onTap: { (_,_) in})
             .previewDisplayName("Video without Thumbnail")
-
+            
             OutboundVideoMessageRow(message: Message(id: UUID().uuidString,
                                                      dialogId: "1f2f3ds4d5d6d",
                                                      text: "[Attachment]",
@@ -138,7 +138,7 @@ struct OutboundVideoMessageRow_Previews: PreviewProvider {
                                     onTap: { (_,_) in})
             .previewDisplayName("Video without Thumbnail")
             .preferredColorScheme(.dark)
-
+            
             OutboundVideoMessageRow(message: Message(id: UUID().uuidString,
                                                      dialogId: "1f2f3ds4d5d6d",
                                                      text: "[Attachment]",

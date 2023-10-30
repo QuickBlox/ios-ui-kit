@@ -52,11 +52,12 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
             }
             
             Button {
-                play()
+                if fileTuple?.url != nil {
+                    play()
+                }
             } label: {
                 
-                VStack(alignment: .leading, spacing: 2) {
-                    Spacer()
+                VStack(alignment: .leading, spacing: 0) {
                     HStack(alignment: .center, spacing: 8) {
                         if fileTuple?.url != nil {
                             
@@ -81,15 +82,14 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
                     .frame(height: settings.audioBubbleHeight)
                     .background(settings.outboundBackground)
                     .cornerRadius(settings.bubbleRadius, corners: settings.outboundCorners)
-                    
+                    .padding(settings.outboundPadding)
                 }
-                .padding(settings.outboundAudioPadding)
             }
-            .disabled(fileTuple?.url == nil)
             .task {
                 do { fileTuple = try await message.audioFile } catch { prettyLog(error)}
             }
         }
+        .padding(.bottom, settings.spacerBetweenRows)
         .fixedSize(horizontal: false, vertical: true)
         .id(message.id)
         .contextMenu {

@@ -20,17 +20,21 @@ public struct EventMessageRow<MessageItem: MessageEntity>: View {
     }
     
     public var body: some View {
-        VStack {
+        HStack {
             Spacer()
-            Text(message.text)
-                .multilineTextAlignment(.center)
-                .foregroundColor(settings.infoForeground)
-                .font(settings.infoFont)
-                .padding(.horizontal)
-                .padding(.top, 22)
-                .padding(.bottom, 0)
-                .id(message.id)
-        }.fixedSize(horizontal: false, vertical: true)
+            VStack {
+                Text(message.text)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(settings.infoForeground)
+                    .font(settings.infoFont)
+                    .padding(.horizontal)
+            }
+            Spacer()
+        }
+        .id(message.id)
+        .padding(.bottom, settings.spacerBetweenRows)
+        
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 

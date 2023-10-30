@@ -11,6 +11,16 @@ import XCTest
 @testable import QuickBloxDomain
 @testable import QuickBloxData
 
+//MARK: Get Dialog
+extension LocalDataSourceTest {
+    func testGetDialogNotFound() async throws {
+        await XCTAssertThrowsException(
+            try await storage.get(dialog: LocalDialogDTO.default),
+            equelTo: DataSourceException.notFound()
+        )
+    }
+}
+
 //MARK: Update Dialogs
 extension LocalDataSourceTest {
     func testUpdateDialogName() async throws {

@@ -358,6 +358,7 @@ public struct MessageRowSettings {
     public var inboundSpacer: CGFloat = 16.0
     public var outboundSpacer: CGFloat = 32.0
     public var spacing: CGFloat = 16.0
+    public let spacerBetweenRows: CGFloat = 12.0
     public var messagePadding: EdgeInsets = EdgeInsets(top: 12,
                                                        leading: 16,
                                                        bottom: 12,
@@ -378,7 +379,7 @@ public struct MessageRowSettings {
                                                     bottom: 8,
                                                     trailing: 16)
     
-    public var inboundNamePadding: EdgeInsets = EdgeInsets(top: 18.0,
+    public var inboundNamePadding: EdgeInsets = EdgeInsets(top: 0.0,
                                                            leading: 16.0,
                                                            bottom: 0.0,
                                                            trailing: 16.0)
@@ -386,7 +387,7 @@ public struct MessageRowSettings {
     public func inboundPadding(showName: Bool) -> EdgeInsets {
         return EdgeInsets(top: showName == false ? 0.0 : 18,
                           leading: 0.0,
-                          bottom: 0.0,
+                          bottom: 18.0,
                           trailing: 0.0)
     }
     
@@ -394,14 +395,14 @@ public struct MessageRowSettings {
         return isImage ? CGSize(width: 20.0, height: 20.0) : CGSize(width: 26.0, height: 26.0)
     }
     
-    public var outboundPadding: EdgeInsets = EdgeInsets(top: 18.0,
+    public var outboundPadding: EdgeInsets = EdgeInsets(top: 0.0,
                                                         leading: 0,
                                                         bottom: 0.0,
-                                                        trailing: 16.0)
+                                                        trailing: 8.0)
     public var outboundAudioPadding: EdgeInsets = EdgeInsets(top: 18.0,
                                                              leading: 0,
                                                              bottom: 0.0,
-                                                             trailing: 16.0)
+                                                             trailing: 8.0)
     
     public var infoSpacer = Spacer(minLength: 8.0)
     public var infoSpacing: CGFloat = 2.0

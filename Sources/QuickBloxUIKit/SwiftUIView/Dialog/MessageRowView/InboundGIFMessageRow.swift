@@ -32,15 +32,16 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
             
             MessageRowAvatar(message: message)
             
-            VStack(alignment: .leading, spacing: 2) {
-                Spacer()
+            VStack(alignment: .leading, spacing: 0) {
                 
                 MessageRowName(message: message)
                 
                 HStack(spacing: 8) {
                     
                     Button {
-                        open()
+                        if fileTuple?.url != nil {
+                            open()
+                        }
                     } label: {
                         
                         ZStack {
@@ -51,7 +52,6 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
                                     .frame(width: settings.attachmentSize.width,
                                            height: settings.attachmentSize.height)
                                     .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
-                                    .padding(settings.inboundPadding(showName: settings.isHiddenName))
                                 
                                 settings.videoPlayBackground
                                     .frame(width: settings.imageIconSize.width,
@@ -68,13 +68,11 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
                                     .frame(width: settings.attachmentSize.width,
                                            height: settings.attachmentSize.height)
                                     .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
-                                    .padding(settings.inboundPadding(showName: settings.isHiddenName))
                                 
                                 SegmentedCircularBar(settings: settings.progressBar)
                             }
                         }
                     }
-                    .disabled(fileTuple?.image == nil)
                     .task {
                         do { fileTuple = try await message.file(size: settings.imageSize) } catch { prettyLog(error)}
                     }
@@ -91,6 +89,7 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
             }
             Spacer(minLength: settings.inboundSpacer)
         }
+        .padding(.bottom, settings.spacerBetweenRows)
         .fixedSize(horizontal: false, vertical: true)
         .id(message.id)
     }
@@ -108,24 +107,24 @@ struct InboundGIFMessageRow_Previews: PreviewProvider {
     static var previews: some View {
         Group {
             InboundGIFMessageRow(message: Message(id: UUID().uuidString,
-                                                    dialogId: "1f2f3ds4d5d6d",
-                                                    text: "[Attachment]",
+                                                  dialogId: "1f2f3ds4d5d6d",
+                                                  text: "[Attachment]",
                                                   userId: "2d3d4d5d6d",
                                                   date: Date()),
                                  onTap: { (_,_) in})
             .previewDisplayName("Video with Thumbnail")
             
             InboundGIFMessageRow(message: Message(id: UUID().uuidString,
-                                                    dialogId: "1f2f3ds4d5d6d",
-                                                    text: "[Attachment]",
+                                                  dialogId: "1f2f3ds4d5d6d",
+                                                  text: "[Attachment]",
                                                   userId: "2d3d4d5d6d",
                                                   date: Date()),
                                  onTap: { (_,_) in})
             .previewDisplayName("Video without Thumbnail")
             
             InboundGIFMessageRow(message: Message(id: UUID().uuidString,
-                                                    dialogId: "1f2f3ds4d5d6d",
-                                                    text: "[Attachment]",
+                                                  dialogId: "1f2f3ds4d5d6d",
+                                                  text: "[Attachment]",
                                                   userId: "2d3d4d5d6d",
                                                   date: Date()),
                                  onTap: { (_,_) in})
@@ -133,8 +132,8 @@ struct InboundGIFMessageRow_Previews: PreviewProvider {
             .preferredColorScheme(.dark)
             
             InboundGIFMessageRow(message: Message(id: UUID().uuidString,
-                                                    dialogId: "1f2f3ds4d5d6d",
-                                                    text: "[Attachment]",
+                                                  dialogId: "1f2f3ds4d5d6d",
+                                                  text: "[Attachment]",
                                                   userId: "2d3d4d5d6d",
                                                   date: Date()),
                                  onTap: { (_,_) in})

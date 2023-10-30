@@ -33,15 +33,16 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
             
             MessageRowAvatar(message: message)
             
-            VStack(alignment: .leading, spacing: 2) {
-                Spacer()
+            VStack(alignment: .leading, spacing: 0) {
                 
                 MessageRowName(message: message)
                 
                 HStack(spacing: 8) {
                     
                     Button {
-                        open()
+                        if fileTuple?.url != nil {
+                            open()
+                        }
                     } label: {
                         ZStack {
                             if let image = fileTuple?.image {
@@ -50,25 +51,22 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
                                     .scaledToFill()
                                     .frame(width: settings.attachmentSize.width, height: settings.attachmentSize.height)
                                     .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
-                                    .padding(settings.inboundPadding(showName: settings.isHiddenName))
                             } else {
                                 settings.progressBarBackground()
                                     .frame(width: settings.attachmentSize.width,
                                            height: settings.attachmentSize.height)
                                     .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
-                                    .padding(settings.inboundPadding(showName: settings.isHiddenName))
                                 
                                 SegmentedCircularBar(settings: settings.progressBar)
                             }
                         }
-                    }.disabled(fileTuple?.image == nil)
-                        .task {
-                            do {
-                                fileTuple = try await message.file(size: settings.imageSize)
-                            } catch {
-                                prettyLog(error)
-                            }
+                    }.task {
+                        do {
+                            fileTuple = try await message.file(size: settings.imageSize)
+                        } catch {
+                            prettyLog(error)
                         }
+                    }
                     
                     VStack(alignment: .leading) {
                         Spacer()
@@ -82,6 +80,7 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
             }
             Spacer(minLength: settings.inboundSpacer)
         }
+        .padding(.bottom, settings.spacerBetweenRows)
         .fixedSize(horizontal: false, vertical: true)
         .id(message.id)
     }

@@ -86,5 +86,7 @@ public struct CreateDialogHeader: ViewModifier {
         .navigationBarTitleDisplayMode(settings.displayMode)
         .navigationBarBackButtonHidden(true)
         .navigationBarHidden(settings.isHidden)
+        .toolbarBackground(settings.backgroundColor,for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 }

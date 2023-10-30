@@ -9,6 +9,8 @@
 import SwiftUI
 import QuickBloxDomain
 import UniformTypeIdentifiers
+import PhotosUI
+import CoreTransferable
 
 struct DialogNameHeaderToolbarContent: ToolbarContent {
     
@@ -101,21 +103,34 @@ public struct DialogNameHeader: ViewModifier {
         .navigationBarTitleDisplayMode(settings.displayMode)
         .navigationBarBackButtonHidden(true)
         .navigationBarHidden(settings.isHidden)
+        .toolbarBackground(settings.backgroundColor,for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 }
 
 public struct CustomMediaAlert<ViewModel: PermissionProtocol>: ViewModifier {
     public var settings = QuickBloxUIKit.settings.dialogNameScreen.mediaAlert
     
-    let viewModel: ViewModel
+    @ObservedObject var viewModel: ViewModel
     
     @Binding var isAlertPresented: Bool
     @State var isImagePickerPresented: Bool = false
     @State var isCameraPresented: Bool = false
     @State var isFilePresented: Bool = false
+    @State var selectedItem: PhotosPickerItem? = nil
+    @State private var attachmentAsset: AttachmentAsset? {
+        didSet {
+            if let attachmentAsset {
+                onGetAttachment(attachmentAsset)
+                defaultState()
+            }
+        }
+    }
+    
     var isExistingImage: Bool
     let isHiddenFiles: Bool
-    let mediaTypes: [String]
+    let mediaTypes: [PHPickerFilter]
+    
     let onRemoveImage: () -> Void
     let onGetAttachment: (_ attachmentAsset: AttachmentAsset) -> Void
     
@@ -131,9 +146,8 @@ public struct CustomMediaAlert<ViewModel: PermissionProtocol>: ViewModifier {
                         }
                     }
                     Button(settings.camera, role: .none) {
-                        viewModel.requestPermission(.video) { granted in
+                        viewModel.requestPermission(AVMediaType.video) { granted in
                             if granted {
-                                isImagePickerPresented = true
                                 isCameraPresented = true
                             }
                         }
@@ -151,8 +165,7 @@ public struct CustomMediaAlert<ViewModel: PermissionProtocol>: ViewModifier {
                     }
                 })
             
-                .imagePicker(isImagePickerPresented: $isImagePickerPresented,
-                             isCameraPresented: $isCameraPresented,
+                .imagePicker(isCameraPresented: $isCameraPresented,
                              mediaTypes: mediaTypes,
                              onDismiss: {
                     defaultState()
@@ -161,8 +174,45 @@ public struct CustomMediaAlert<ViewModel: PermissionProtocol>: ViewModifier {
                     defaultState()
                 })
             
+                .photosPicker(isPresented: $isImagePickerPresented, selection: $selectedItem,
+                              matching: .any(of: mediaTypes),
+                              photoLibrary: .shared())
+            
                 .filePicker(isFilePickerPresented: $isFilePresented,
                             onGetAttachment: onGetAttachment)
+            
+                .onChange(of: selectedItem) { _ in
+                            Task {
+                                self.attachmentAsset = nil
+                                
+                                if let data = try? await selectedItem?.loadTransferable(type: Data.self),
+                                   let contentType = selectedItem?.supportedContentTypes.first {
+                                    let url = documentsDirectoryPath().appendingPathComponent("\(UUID().uuidString).\(contentType.preferredFilenameExtension ?? "")")
+                                    guard let ext = FileExtension(rawValue: url.pathExtension.lowercased()) else { return }
+                                    do {
+                                        try data.write(to: url)
+                                        if let avatarImage = UIImage(data: data) {
+                                            self.attachmentAsset = AttachmentAsset(name: url.lastPathComponent,
+                                                                                   image: avatarImage,
+                                                                                   data: data,
+                                                                                   ext: ext,
+                                                                                   url: nil,
+                                                                                   size: url.fileSizeMB)
+                                        } else {
+                                            self.attachmentAsset = AttachmentAsset(name: url.lastPathComponent,
+                                                                                   image: nil,
+                                                                                   data: data,
+                                                                                   ext: ext,
+                                                                                   url: url,
+                                                                                   size: url.fileSizeMB)
+                                        }
+                                    } catch {
+                                        print("Failed")
+                                    }
+                                }
+                                print("Failed")
+                            }
+                        }
         }
     }
     
@@ -178,12 +228,12 @@ extension View {
         isAlertPresented: Binding<Bool>,
         isExistingImage: Bool,
         isHiddenFiles: Bool,
-        mediaTypes: [String],
+        mediaTypes: [PHPickerFilter],
         viewModel: ViewModel,
         onRemoveImage: @escaping () -> Void,
         onGetAttachment: @escaping (_ attachmentAsset: AttachmentAsset) -> Void
     ) -> some View {
-        self.modifier(CustomMediaAlert(viewModel: viewModel,
+        self.modifier(CustomMediaAlert<ViewModel>(viewModel: viewModel,
                                        isAlertPresented: isAlertPresented,
                                        isExistingImage: isExistingImage,
                                        isHiddenFiles: isHiddenFiles,
@@ -192,6 +242,73 @@ extension View {
                                        onGetAttachment: onGetAttachment
                                       ))
     }
+}
+
+private func convert(_ mediaTypes: [PHPickerFilter]) -> [String] {
+    var mediaIdentifiers: [String] = []
+    for type in mediaTypes {
+        switch type {
+        case .videos:
+            mediaIdentifiers.append(UTType.movie.identifier)
+        case .images:
+            mediaIdentifiers.append(UTType.image.identifier)
+        default: continue
+        }
+    }
+    return mediaIdentifiers
+}
+
+public struct ImagePicker: ViewModifier {
+    
+    @Binding var isCameraPresented: Bool
+    @State var attachmentAsset: AttachmentAsset? = nil
+    var mediaTypes: [PHPickerFilter]
+    let onDismiss: () -> Void
+    let onGetAttachment: (_ attachmentAsset: AttachmentAsset) -> Void
+    
+    public func body(content: Content) -> some View {
+        ZStack {
+            content
+                .fullScreenCover(isPresented: $isCameraPresented) {
+                    ZStack {
+                        if isCameraPresented == true {
+                            Color.black.ignoresSafeArea(.all)
+                        }
+                        MediaPickerView(sourceType: UIImagePickerController.SourceType.camera,
+                                        attachmentAsset: $attachmentAsset,
+                                        isPresented: $isCameraPresented,
+                                        mediaTypes:convert(mediaTypes))
+                        .onDisappear {
+                            onDismiss()
+                            if let attachmentAsset {
+                                onGetAttachment(attachmentAsset)
+                            }
+                        }
+                        
+                    }
+                }
+        }
+    }
+}
+
+extension View {
+    func imagePicker(
+        isCameraPresented: Binding<Bool>,
+        mediaTypes: [PHPickerFilter],
+        onDismiss: @escaping () -> Void,
+        onGetAttachment: @escaping (_ attachmentAsset: AttachmentAsset) -> Void
+    ) -> some View {
+        self.modifier(ImagePicker(isCameraPresented: isCameraPresented,
+                                  mediaTypes: mediaTypes,
+                                  onDismiss: onDismiss,
+                                  onGetAttachment: onGetAttachment))
+    }
+}
+
+
+func documentsDirectoryPath() -> URL {
+    let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+    return paths[0]
 }
 
 public struct ErrorAlert: ViewModifier {
@@ -302,8 +419,6 @@ extension View {
     }
 }
 
-
-
 public struct PermissionAlert<ViewModel: PermissionProtocol>: ViewModifier {
     public var settings = QuickBloxUIKit.settings.dialogScreen.permissions
     
@@ -341,7 +456,6 @@ extension View {
                                       isPresented: isPresented))
     }
 }
-
 
 struct CustomAIFailAlert: ViewModifier {
     public var settings = QuickBloxUIKit.settings.dialogInfoScreen.editNameAlert
@@ -398,57 +512,6 @@ extension View {
         self.modifier(CustomAIFailAlert(isPresented: isPresented,
                                         feature: feature,
                                         onDismiss: onDismiss))
-    }
-}
-
-
-public struct ImagePicker: ViewModifier {
-    
-    @Binding var isImagePickerPresented: Bool
-    @Binding var isCameraPresented: Bool
-    @State var attachmentAsset: AttachmentAsset? = nil
-    var mediaTypes: [String]
-    let onDismiss: () -> Void
-    let onGetAttachment: (_ attachmentAsset: AttachmentAsset) -> Void
-    
-    public func body(content: Content) -> some View {
-        ZStack {
-            content
-                .fullScreenCover(isPresented: $isImagePickerPresented) {
-                    ZStack {
-                        if isCameraPresented == true {
-                            Color.black.ignoresSafeArea(.all)
-                        }
-                        MediaPickerView(sourceType: isCameraPresented == false ? .photoLibrary : .camera,
-                                        attachmentAsset: $attachmentAsset,
-                                        isPresented: $isImagePickerPresented,
-                                        mediaTypes: mediaTypes)
-                        .onDisappear {
-                            onDismiss()
-                            if let attachmentAsset {
-                                onGetAttachment(attachmentAsset)
-                            }
-                        }
-                        
-                    }
-                }
-        }
-    }
-}
-
-extension View {
-    func imagePicker(
-        isImagePickerPresented: Binding<Bool>,
-        isCameraPresented: Binding<Bool>,
-        mediaTypes: [String],
-        onDismiss: @escaping () -> Void,
-        onGetAttachment: @escaping (_ attachmentAsset: AttachmentAsset) -> Void
-    ) -> some View {
-        self.modifier(ImagePicker(isImagePickerPresented: isImagePickerPresented,
-                                  isCameraPresented: isCameraPresented,
-                                  mediaTypes: mediaTypes,
-                                  onDismiss: onDismiss,
-                                  onGetAttachment: onGetAttachment))
     }
 }
 

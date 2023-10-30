@@ -35,19 +35,63 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
     }
     
     public var body: some View {
-        
+        if aiFeatures.enable == false {
+            messageView()
+        } else {
+            aiMessageView()
+        }
+    }
+    
+    @ViewBuilder
+    private func messageView() -> some View {
         HStack {
             
             MessageRowAvatar(message: message)
-                .padding(.bottom, aiFeatures.translate.enable == true ? 18 : 0)
             
-            VStack(alignment: .leading, spacing: 2) {
-                Spacer()
+            VStack(alignment: .leading, spacing: 0) {
+
+
+                MessageRowName(message: message)
+
+
+                HStack(spacing: 8) {
+                    VStack(alignment: .trailing) {
+
+                        MessageRowText(isOutbound: false, text: message.text)
+                    }
+
+                    VStack(alignment: .leading) {
+                        Spacer()
+                        HStack {
+
+                            MessageRowTime(date: message.date)
+
+                        }.padding(.bottom, 2)
+                    }
+                }
+            }
+            Spacer(minLength: settings.inboundSpacer)
+        }
+        .padding(.bottom, settings.spacerBetweenRows)
+        
+        .fixedSize(horizontal: false, vertical: true)
+        .id(message.id)
+    }
+    
+    @ViewBuilder
+    private func aiMessageView() -> some View {
+        HStack {
+            
+            MessageRowAvatar(message: message)
+                .padding(.bottom, aiFeatures.translate.enable == true ? aiFeatures.ui.translate.buttonOffset : 0)
+            
+            VStack(alignment: .leading, spacing: 0) {
+                
                 
                 MessageRowName(message: message)
                 
                 HStack(spacing: 8) {
-                    VStack(alignment: .trailing, spacing: 6) {
+                    VStack(alignment: .trailing, spacing: 5) {
                         
                         MessageRowText(isOutbound: false, text: message.translatedText.isEmpty == false && showOriginal == false ? message.translatedText : message.text)
                         
@@ -69,7 +113,7 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                                     .foregroundColor(settings.infoForeground)
                                     .font(settings.translateFont)
                                     .padding(.trailing)
-                            }
+                            }.buttonStyle(.plain)
                         }
                     }
                     .frame(minWidth: aiFeatures.translate.enable == true ? aiFeatures.ui.translate.width : 0)
@@ -82,7 +126,7 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                     
                     if aiAnswerWaiting == true {
                         SegmentedCircularBar(settings: settings.aiProgressBar)
-                            .padding(.bottom, aiFeatures.translate.enable == true ? 18 : 0)
+                            .padding(.bottom, aiFeatures.translate.enable == true ? aiFeatures.ui.translate.buttonOffset : 0)
                     } else if aiFeatures.answerAssist.enable == true, aiFeatures.ui.robot.hidden == false {
                         Menu {
                             if aiFeatures.answerAssist.enable == true {
@@ -90,7 +134,7 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                                     onAIFeature(.answerAssist, message)
                                 } label: {
                                     Label(aiFeatures.ui.answerAssist.title, systemImage: "")
-                                }
+                                }.buttonStyle(.plain)
                             }
                             
                         } label: {
@@ -101,7 +145,8 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                                 .frame(width: aiFeatures.ui.robot.size.width,
                                        height: aiFeatures.ui.robot.size.height)
                             
-                        }.padding(.bottom, aiFeatures.translate.enable == true ? 18 : 0)
+                        }
+                        .padding(.bottom, aiFeatures.translate.enable == true ? aiFeatures.ui.translate.buttonOffset : 0)
                     }
                     
                     VStack(alignment: .leading) {
@@ -110,12 +155,15 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                             
                             MessageRowTime(date: message.date)
                             
-                        }.padding(.bottom, aiFeatures.translate.enable == true ? 20 : 2)
+                        }
+                        .padding(.bottom, aiFeatures.translate.enable == true ? aiFeatures.ui.translate.buttonOffset + 2 : 2)
                     }
                 }
             }
             Spacer(minLength: settings.inboundSpacer)
         }
+        .padding(.bottom, settings.spacerBetweenRows)
+        
         .fixedSize(horizontal: false, vertical: true)
         .id(message.id)
         .contextMenu {

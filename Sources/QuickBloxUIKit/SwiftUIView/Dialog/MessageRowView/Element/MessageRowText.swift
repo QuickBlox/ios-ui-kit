@@ -29,7 +29,6 @@ public struct MessageRowText: View {
             .frame(minWidth: aiFeatures.translate.enable == true ? aiFeatures.ui.translate.width : 0, alignment: .leading)
             .background(isOutbound == true ? settings.outboundBackground : settings.inboundBackground)
             .cornerRadius(settings.bubbleRadius, corners: isOutbound == true ? settings.outboundCorners : settings.inboundCorners)
-            .padding(isOutbound == true ? settings.outboundPadding : settings.inboundPadding(showName: settings.isHiddenName))
             .animation(.easeInOut, value: text)
         } else {
             Text(text)
@@ -40,7 +39,6 @@ public struct MessageRowText: View {
                 .frame(minWidth: aiFeatures.translate.enable == true ? aiFeatures.ui.translate.width : 0, alignment: .leading)
                 .background(isOutbound == true ? settings.outboundBackground : settings.inboundBackground)
                 .cornerRadius(settings.bubbleRadius, corners: isOutbound == true ? settings.outboundCorners : settings.inboundCorners)
-                .padding(isOutbound == true ? settings.outboundPadding : settings.inboundPadding(showName: settings.isHiddenName))
                 .animation(.easeInOut, value: text)
         }
     }

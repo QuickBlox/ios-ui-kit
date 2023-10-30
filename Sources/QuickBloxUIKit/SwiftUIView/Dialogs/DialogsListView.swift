@@ -23,7 +23,6 @@ public struct DialogsListView<DialogsList: DialogsListProtocol, DialogItemView: 
     private var content: (DialogsList.Item) -> DialogItemView
     @State private var searchText = ""
     @State private var submittedSearchTerm = ""
-    @State private var onAppear: Bool = false
     @State private var isDeleteAlertPresented: Bool = false
     @State private var dialogForDeleting: DialogsList.Item? = nil
     
@@ -32,9 +31,6 @@ public struct DialogsListView<DialogsList: DialogsListProtocol, DialogItemView: 
     
     private var items: [DialogsList.Item] {
         var dialogs: [DialogsList.Item] = []
-        if onAppear == true {
-            return dialogs
-        }
         if settings.searchBar.isSearchable == false || submittedSearchTerm.isEmpty {
             dialogs = dialogsList.dialogs
         } else {
@@ -56,6 +52,7 @@ public struct DialogsListView<DialogsList: DialogsListProtocol, DialogItemView: 
 
 extension DialogsListView: View {
     public var body: some View {
+        
         ZStack {
             settings.backgroundColor.ignoresSafeArea()
             switch dialogsList.syncState {
@@ -102,25 +99,12 @@ extension DialogsListView: View {
             .autocorrectionDisabled(true)
             .animation(.easeInOut(duration: 2), value: 1)
         })
-            
-            .onChange(of: dialogsList.selectedItem, perform: { newValue in
-                if newValue == nil {
-                    updateIfNeeded()
-                }
-            })
-            
-            if let dialog = dialogsList.selectedItem, isIphone {
-                NavigationLink (
-                    tag: dialog,
-                    selection: $dialogsList.selectedItem
-                ) {
-                    detailContent(dialog, {
-                        updateIfNeeded()
-                        dialogsList.selectedItem = nil
-                    })
-                } label: {
-                    EmptyView()
-                }
+            .navigationDestination(isPresented: Binding.constant(dialogsList.selectedItem != nil) ) {
+            if let dialog = dialogsList.selectedItem {
+                detailContent(dialog, {
+                    dialogsList.selectedItem = nil
+                })
+            }
         }
     }
     
@@ -128,7 +112,6 @@ extension DialogsListView: View {
     private func dialogsView() -> some View {
         if items.isEmpty,
            dialogsList.syncState == .synced,
-           onAppear == false,
            dialogsList.dialogToBeDeleted == nil {
             EmptyDialogsView()
         } else {
@@ -160,88 +143,11 @@ extension DialogsListView: View {
                 })
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
-            }
-            .listStyle(.plain)
+            }            .listStyle(.plain)
             .deleteDisabled(dialogForDeleting != nil)
         }
     }
-    
-    private func updateIfNeeded() {
-        if dialogsList.needUpdate == true {
-            onAppear = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                onAppear = false
-                dialogsList.needUpdate = false
-            }
-        }
-    }
 }
-
-struct CustomProgressView: View {
-    var body: some View {
-        ZStack {
-            Color.black.frame(width: 100, height: 100)
-                .cornerRadius(12)
-                .opacity(0.6)
-            ProgressView().controlSize(.large).tint(Color.white)
-        }
-    }
-}
-
-struct Separator: View {
-    let settings = QuickBloxUIKit.settings.dialogsScreen.dialogRow
-    
-    var isLastRow: Bool
-    var body: some View {
-        VStack {
-            Spacer()
-            HStack() {
-                Spacer(minLength: isLastRow == false ? settings.separatorInset: 0.0)
-                Rectangle()
-                    .fill(settings.dividerColor.opacity(0.4))
-                    .frame(height: 1.0, alignment: .trailing)
-                    .frame(maxWidth: .infinity)
-            }
-        }
-    }
-}
-
-struct EmptyDialogsView: View {
-    let settings = QuickBloxUIKit.settings.dialogsScreen
-    
-    var body: some View {
-        Spacer()
-        VStack(spacing: 16.0) {
-            settings.messageImage
-                .resizable()
-                .scaledToFit()
-                .foregroundColor(settings.messageImageColor)
-                .frame(width: 60, height: 60)
-            Text(settings.itemsIsEmpty)
-                .font(settings.itemsIsEmptyFont)
-                .foregroundColor(settings.itemsIsEmptyColor)
-            
-        }
-        Spacer()
-    }
-}
-
-struct ListNavigationLink<Destination, Label>: View where Destination: View,  Label: View {
-    @ViewBuilder var destination: () -> Destination
-    @ViewBuilder var label: () -> Label
-    
-    var body: some View {
-        label()
-            .background(
-                NavigationLink(destination: destination, label: {})
-                    .opacity(0)
-            )
-    }
-}
-
-
-
-
 
 //struct DialogsListView_Previews: PreviewProvider {
 //    static var previews: some View {

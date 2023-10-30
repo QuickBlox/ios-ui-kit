@@ -42,6 +42,7 @@ extension DialogEntity {
     var avatar: Image {
         get async throws {
             if QuickBloxUIKit.previewAware {  return placeholder }
+            
             if let uiImage = imageCache.imageFromCache(id) {
                 return Image(uiImage: uiImage)
             }

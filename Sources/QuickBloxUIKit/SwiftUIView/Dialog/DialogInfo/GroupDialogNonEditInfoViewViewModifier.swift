@@ -56,5 +56,7 @@ public struct GroupDialogNonEditInfoHeader: ViewModifier {
         .navigationBarTitleDisplayMode(settings.displayMode)
         .navigationBarBackButtonHidden(true)
         .navigationBarHidden(settings.isHidden)
+        .toolbarBackground(settings.backgroundColor,for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 }

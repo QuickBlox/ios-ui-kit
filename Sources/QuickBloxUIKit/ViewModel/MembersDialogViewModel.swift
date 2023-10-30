@@ -24,7 +24,7 @@ public protocol MembersDialogProtocol: QuickBloxUIKitViewModel {
     func removeUserFromDialog()
 }
 
-open class MembersDialogViewModel: MembersDialogProtocol {
+final class MembersDialogViewModel: MembersDialogProtocol {
     @MainActor
     @Published public var displayed: [User] = []
     @Published public var selectedUser: User? = nil
@@ -80,7 +80,9 @@ open class MembersDialogViewModel: MembersDialogProtocol {
         }
     }
     
-    public func sync() {}
+    public func sync() {
+        getDialog()
+    }
     public func unsync() {}
     
     //MARK: - Users
@@ -89,7 +91,6 @@ open class MembersDialogViewModel: MembersDialogProtocol {
         isProcessing = true
         guard let user = selectedUser else { return }
         dialog.pullIDs = [user.id]
-        
         taskUpdate = Task { [weak self] in
             do {
                 guard let dialog = self?.dialog else { return }

@@ -42,12 +42,9 @@ where Item == Repo.DialogEntityItem {
                 .receive(on: DialogQueue.leave)
                 .sink { [weak self]  event in
                     switch event {
-                    case .leave(let dialogId, byUser: let isCurrentUser):
-                        if isCurrentUser { self?.subject.send(dialogId) }
-                    case .removed(let dialogId, byUser: let isCurrentUser):
-                        if isCurrentUser {
-                            return
-                        }
+                    case .leave(let dialogId):
+                        self?.subject.send(dialogId)
+                    case .removed(let dialogId):
                         self?.subject.send(dialogId)
                     default:
                         break

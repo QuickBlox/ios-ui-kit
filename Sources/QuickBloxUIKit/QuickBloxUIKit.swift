@@ -12,7 +12,7 @@ import QuickBloxData
 import Combine
 import QuickBloxLog
 
-
+@MainActor
 public protocol QuickBloxUIKitViewModel: ObservableObject {
     var cancellables: Set<AnyCancellable> { get set}
     var tasks: Set<Task<Void, Never>> { get set}
@@ -84,7 +84,7 @@ private func syncData() {
 let imageCache = ImageCache.shared
 
 //FIXME: add dialogsView screen
-@ViewBuilder
+@MainActor @ViewBuilder
 public func dialogsView(onExit: (() -> Void)? = nil, onAppear: ((Bool) -> Void)? = nil) -> some View {
     DialogsView(dialogsList: DialogsViewModel(dialogsRepo: RepositoriesFabric.dialogs),
                 content: { dialogsList in

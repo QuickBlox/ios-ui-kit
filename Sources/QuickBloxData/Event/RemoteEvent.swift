@@ -9,36 +9,33 @@
 
 public enum RemoteEvent {
     case create(_ dialogId: String, byUser: Bool, message: RemoteMessageDTO)
-    case update(_ dialogId: String)
-    case leave(_ dialogId: String, byUser: Bool)
-    case removed(_ dialogId: String, byUser: Bool)
+    case update(_ message: RemoteMessageDTO)
+    case leave(_ dialogId: String)
+    case userLeave(_ message: RemoteMessageDTO)
+    case removed(_ dialogId: String)
     case newMessage(_ message: RemoteMessageDTO)
-    case history(_ messages: RemoteMessagesDTO)
     case read( _ messageID: String, dialogID: String)
     case delivered( _ messageID: String, dialogID: String)
     case typing( _ userID: UInt, dialogID: String)
     case stopTyping( _ userID: UInt, dialogID: String)
-    
+}
+
+extension RemoteEvent {
     init(_ message: RemoteMessageDTO) {
-        if message.type == .event {
+        if message.type == .event || message.type == .system {
             switch message.eventType {
             case .create:
                 self = .create(message.dialogId, byUser: message.isOwnedByCurrentUser, message: message)
             case .update:
-                self = .update(message.dialogId)
+                self = .update(message)
             case .leave:
-                if message.saveToHistory == true {
-                    self = .newMessage(message)
-                    self = .update(message.dialogId)
+                if message.isOwnedByCurrentUser {
+                    self = .leave(message.dialogId)
                 } else {
-                    self = .leave(message.dialogId, byUser: message.isOwnedByCurrentUser)
+                    self = .userLeave(message)
                 }
             case .removed:
-                if message.isOwnedByCurrentUser {
-                    self = .update(message.dialogId)
-                } else {
-                    self = .removed(message.dialogId, byUser: message.isOwnedByCurrentUser)
-                }
+                self = .removed(message.dialogId)
             case .message:
                 self = .newMessage(message)
             case .read:

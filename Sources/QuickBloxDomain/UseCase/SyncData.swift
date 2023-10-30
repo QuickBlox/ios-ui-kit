@@ -127,11 +127,16 @@ where Pagination == DialogsRepo.PaginationItem {
                     
                     self?.stateSubject.send(.syncing(stage: .unauthorized))
                 case .authorized:
-                    if UIApplication.shared.applicationState == .background {
-                        return
+                    DispatchQueue.main.async {
+                        if UIApplication.shared.applicationState == .background {
+                            return
+                        }
+                        
+                        self?.eventsQueue.async { [weak self] in
+                            self?.taskDisconnect?.cancel()
+                            self?.connect()
+                        }
                     }
-                    self?.taskDisconnect?.cancel()
-                    self?.connect()
                 case .disconnected(let error):
                     self?.taskUpdate?.cancel()
                     self?.stateSubject.send(.syncing(stage: .disconnected,
@@ -185,7 +190,14 @@ where Pagination == DialogsRepo.PaginationItem {
     private func connect() {
         taskConnect = Task { [weak self] in
             do {
-                try await self?.connectRepo.checkConnection()
+               let state = try await self?.connectRepo.checkConnection()
+                
+                if state == .disconnected() {
+                    try Task.checkCancellation()
+                    try await self?.connectRepo.connect()
+                }
+                
+                
                 if self?.stateSubject.value == .syncing(stage: .disconnected) {
                     try Task.checkCancellation()
                     try await self?.connectRepo.connect()
@@ -261,31 +273,34 @@ where Pagination == DialogsRepo.PaginationItem {
                             if isCurrent {
                                 try await self?.create(dialog: message)
                             } else {
-                                try await self?.sync(dialog: id)
+                                try await self?.sync(dialog: id, newMessage: message)
                             }
                         } catch {
                             prettyLog(error)
                         } }
-                    case .update(dialogWithId: let id):
+                    case .update(let message):
                         Task { [weak self] in do {
-                            try await self?.sync(dialog: id)
+                            try await self?.sync(dialog: message.dialogId, newMessage: message)
                         } catch {
                             prettyLog(error)
                         } }
-                    case .leave(let dialogId, let current):
+                    case .leave(let dialogId):
                         Task { [weak self] in do {
-                            if current {
-                                try await self?.dialogsRepo.delete(dialogFromLocal: dialogId)
-                            } else {
-                                try await self?.sync(dialog: dialogId)
-                            }
+                            try await self?.dialogsRepo.delete(dialogFromLocal: dialogId)
                         } catch {
                             prettyLog(error)
                         } }
-                    case .removed(let dialogId, let current):
-                        if current {
-                            return
-                        }
+                    case .userLeave(let message):
+                        Task { [weak self] in do {
+                            guard let self = self else { return }
+                            var dialog = try await self.dialogsRepo.get(dialogFromLocal: message.dialogId)
+                            dialog.participantsIds.removeAll(where: { $0 == message.userId })
+                            try await self.dialogsRepo.update(dialogInLocal: dialog)
+                            try await self.update(dialog: message)
+                        } catch {
+                            prettyLog(error)
+                        } }
+                    case .removed(let dialogId):
                         Task { [weak self] in do {
                             try await self?.dialogsRepo.delete(dialogFromLocal: dialogId)
                         } catch {
@@ -294,17 +309,6 @@ where Pagination == DialogsRepo.PaginationItem {
                     case .newMessage(let message):
                         Task { [weak self] in do {
                             try await self?.update(dialog: message)
-                        } catch {
-                            if let exception = error as? RepositoryException, exception == .notFound() {
-                                try await self?.sync(dialog: message.dialogId)
-                                try await self?.update(dialog: message)
-                            }
-                            prettyLog(error)
-                        } }
-                    case .history(let dialogId, let messages):
-                        Task { [weak self] in do {
-                            try await self?.update(dialog: dialogId,
-                                                   history: messages)
                         } catch {
                             prettyLog(error)
                         } }
@@ -339,52 +343,45 @@ where Pagination == DialogsRepo.PaginationItem {
     typealias DialogItem = DialogsRepo.DialogEntityItem
     typealias MessageItem = DialogItem.MessageItem
     
-    func update(dialog dialogId: String, history: [MessageItem]) async throws {
-        var dialog = try await dialogsRepo.get(dialogFromLocal: dialogId)
-        if dialog.lastMessage.id.isEmpty {
-            let messages = history.sorted(by: { $0.date > $1.date })
-            if let last = messages.last {
-                dialog.lastMessage.id = last.id
-                dialog.lastMessage.text = last.text
-                dialog.lastMessage.dateSent = last.date
-                dialog.lastMessage.userId = last.userId
-                dialog.updatedAt = last.date
-            }
-        }
-        dialog.messages = history
-        try await dialogsRepo.update(dialogInLocal: dialog)
-    }
-    
     func create(dialog newMessage: MessageItem) async throws {
         var dialog = try await dialogsRepo.get(dialogFromRemote: newMessage.dialogId)
-        try await dialogsRepo.save(dialogToLocal: dialog)
-        if dialog.type == .private { return }
-        if dialog.lastMessage.id != newMessage.id,
-           newMessage.isOwnedByCurrentUser == false {
-            dialog.unreadMessagesCount += 1
+        if dialog.type != .private {
+            dialog = update(dialog, lastMessage: newMessage)
         }
-        dialog.lastMessage.id = newMessage.id
-        dialog.lastMessage.text = newMessage.text
-        dialog.lastMessage.dateSent = newMessage.date
-        dialog.lastMessage.userId = newMessage.userId
-        dialog.updatedAt = newMessage.date
-        dialog.messages = [newMessage]
-        try await dialogsRepo.update(dialogInLocal: dialog)
+        try await dialogsRepo.save(dialogToLocal: dialog)
     }
     
     func update(dialog newMessage: MessageItem) async throws {
-        var dialog = try await dialogsRepo.get(dialogFromLocal: newMessage.dialogId)
-        if dialog.lastMessage.id != newMessage.id,
-           newMessage.isOwnedByCurrentUser == false {
+        guard var dialog = try? await dialogsRepo.get(dialogFromLocal: newMessage.dialogId) else {
+            try await sync(dialog: newMessage.dialogId, newMessage: newMessage)
+            return
+        }
+        
+        dialog = update(dialog, lastMessage: newMessage)
+        
+        try await dialogsRepo.update(dialogInLocal: dialog)
+    }
+    
+    private func update(_ dialog: DialogItem, lastMessage: MessageItem) -> DialogItem {
+        var dialog = dialog
+        
+        if lastMessage.type == .system {
+            return dialog
+        }
+        
+        if dialog.lastMessage.id != lastMessage.id,
+           lastMessage.isOwnedByCurrentUser == false {
             dialog.unreadMessagesCount += 1
         }
-        dialog.lastMessage.id = newMessage.id
-        dialog.lastMessage.text = newMessage.text
-        dialog.lastMessage.dateSent = newMessage.date
-        dialog.lastMessage.userId = newMessage.userId
-        dialog.updatedAt = newMessage.date
-        dialog.messages = [newMessage]
-        try await dialogsRepo.update(dialogInLocal: dialog)
+        
+        dialog.lastMessage.id = lastMessage.id
+        dialog.lastMessage.text = lastMessage.text
+        dialog.lastMessage.dateSent = lastMessage.date
+        dialog.lastMessage.userId = lastMessage.userId
+        dialog.updatedAt = lastMessage.date
+        dialog.messages = [lastMessage]
+        
+        return dialog
     }
     
     func update(byRead messageID: String, dialogID: String) async throws {
@@ -413,14 +410,35 @@ where Pagination == DialogsRepo.PaginationItem {
         try await dialogsRepo.update(dialogInLocal: dialog)
     }
     
-    func save(dialog dialogId: String) async throws {
-        let dialog = try await dialogsRepo.get(dialogFromRemote: dialogId)
-        try await dialogsRepo.save(dialogToLocal: dialog)
-    }
-    
-    func sync(dialog dialogId: String) async throws {
-        let dialog = try await dialogsRepo.get(dialogFromRemote: dialogId)
+    func sync(dialog dialogId: String, newMessage: MessageItem) async throws {
+        var dialog = try await dialogsRepo.get(dialogFromRemote: dialogId)
         try await sync(participants: dialog.participantsIds)
+        
+        if dialog.type != .private {
+            
+        }
+        
+        if dialog.isOwnedByCurrentUser == true {
+            if newMessage.isOwnedByCurrentUser == true {
+                if newMessage.eventType == .create {
+                    dialog = update(dialog, lastMessage: newMessage)
+                }
+            } else {
+                dialog = update(dialog, lastMessage: newMessage)
+            }
+        } else {
+            if newMessage.isOwnedByCurrentUser == true {
+                if newMessage.eventType == .create {
+                    dialog = update(dialog, lastMessage: newMessage)
+                }
+            } else {
+                if newMessage.eventType != .create {
+                    dialog = update(dialog, lastMessage: newMessage)
+                }
+            }
+        }
+
+        
         let saved = try? await dialogsRepo.get(dialogFromLocal: dialogId)
         if saved == nil {
             try await dialogsRepo.save(dialogToLocal: dialog)

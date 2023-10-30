@@ -18,7 +18,6 @@ public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
     @StateObject public var viewModel: ViewModel
     
     @State private var isEditDialogAlertPresented: Bool = false
-    @State private var isEdit: Bool = false
     @State private var isSizeAlertPresented: Bool = false
     @State private var membersPresented: Bool = false
     @State private var searchPresented: Bool = false
@@ -32,100 +31,92 @@ public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
     }
     
     public var body: some View {
-        NavigationView {
-            ZStack {
-                settings.backgroundColor.ignoresSafeArea()
-                VStack {
-                    
-                    InfoDialogAvatar()
-                    
-                    ForEach(settings.groupActionSegments, id:\.self) { action in
-                        InfoSegment(dialog: viewModel.dialog, action: action) { action in
-                            switch action {
-                            case .members: membersPresented.toggle()
-                            case .searchInDialog: searchPresented.toggle()
-                            case .leaveDialog: isDeleteAlertPresented = true
-                            case .notification: break
-                            }
+        ZStack {
+            settings.backgroundColor.ignoresSafeArea()
+            VStack {
+                
+                InfoDialogAvatar()
+                
+                ForEach(settings.groupActionSegments, id:\.self) { action in
+                    InfoSegment(dialog: viewModel.dialog, action: action) { action in
+                        switch action {
+                        case .members: membersPresented.toggle()
+                        case .searchInDialog: searchPresented.toggle()
+                        case .leaveDialog: isDeleteAlertPresented = true
+                        case .notification: break
                         }
                     }
-                    
-                    SegmentDivider()
                 }
                 
-                .deleteDialogAlert(isPresented: $isDeleteAlertPresented,
-                                   name: viewModel.dialog.name,
-                                   onCancel: {
-                    isDeleteAlertPresented = false
-                }, onTap: {
-                    viewModel.deleteDialog()
-                })
-                
-                .editDialogAlert(isPresented: $isEditDialogAlertPresented, viewModel: viewModel,
-                                 dialogName: $viewModel.dialogName,
-                                 isValidDialogName: $viewModel.isValidDialogName,
-                                 isExistingImage: viewModel.isExistingImage,
-                                 isHiddenFiles: settings.editDialogAlert.isHiddenFiles,
-                                 isEdit: $isEdit,
-                                 onRemoveImage: {
-                    viewModel.removeExistingImage()
-                }, onGetAttachment: { attachmentAsset in
-                    let sizeMB = attachmentAsset.size
-                    if sizeMB.truncate(to: 2) > settings.maximumMB {
-                        if attachmentAsset.image != nil {
-                            self.attachmentAsset = attachmentAsset
-                        }
-                        isSizeAlertPresented = true
-                    } else {
-                        viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
+                SegmentDivider()
+            }
+            
+            .deleteDialogAlert(isPresented: $isDeleteAlertPresented,
+                               name: viewModel.dialog.name,
+                               onCancel: {
+                isDeleteAlertPresented = false
+            }, onTap: {
+                viewModel.deleteDialog()
+            })
+            
+            .editDialogAlert(isPresented: $isEditDialogAlertPresented, viewModel: viewModel,
+                             dialogName: $viewModel.dialogName,
+                             isValidDialogName: $viewModel.isValidDialogName,
+                             isExistingImage: viewModel.isExistingImage,
+                             isHiddenFiles: settings.editDialogAlert.isHiddenFiles,
+                             onRemoveImage: {
+                viewModel.removeExistingImage()
+            }, onGetAttachment: { attachmentAsset in
+                let sizeMB = attachmentAsset.size
+                if sizeMB.truncate(to: 2) > settings.maximumMB {
+                    if attachmentAsset.image != nil {
+                        self.attachmentAsset = attachmentAsset
                     }
-                }, onGetName: { name in
-                    viewModel.handleOnSelect(newName: name)
-                })
-                .onAppear {
-                    viewModel.sync()
+                    isSizeAlertPresented = true
+                } else {
+                    viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
                 }
-                
-                .onChange(of: viewModel.error, perform: { error in
-                    if error.isEmpty { return }
-                    errorPresented.toggle()
-                })
-                
-                .largeImageSizeAlert(isPresented: $isSizeAlertPresented,
-                                      onUseAttachment: {
-                      if let attachmentAsset {
-                          viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
-                          self.attachmentAsset = nil
-                      }
-                  }, onCancel: {
-                      self.attachmentAsset = nil
-                  })
-                
-                .errorAlert($viewModel.error, isPresented: $errorPresented)
-                .permissionAlert(isPresented: $viewModel.permissionNotGranted.notGranted,
-                                 viewModel: viewModel)
-                
-                .modifier(DialogInfoHeader(onDismiss: {
-                    dismiss()
-                }, onTapEdit: {
-                    isEditDialogAlertPresented = true
-                }, disabled: isEdit))
-                
-                .disabled(viewModel.isProcessing == true)
-                .if(viewModel.isProcessing == true) { view in
-                    view.overlay() {
-                        CustomProgressView()
-                    }
+            }, onGetName: { name in
+                viewModel.handleOnSelect(newName: name)
+            })
+            
+            .onChange(of: viewModel.error, perform: { error in
+                if error.isEmpty { return }
+                errorPresented.toggle()
+            })
+            
+            .largeImageSizeAlert(isPresented: $isSizeAlertPresented,
+                                 onUseAttachment: {
+                if let attachmentAsset {
+                    viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
+                    self.attachmentAsset = nil
                 }
-                
-                .environmentObject(viewModel)
-                
+            }, onCancel: {
+                self.attachmentAsset = nil
+            })
+            
+            .errorAlert($viewModel.error, isPresented: $errorPresented)
+            .permissionAlert(isPresented: $viewModel.permissionNotGranted.notGranted,
+                             viewModel: viewModel)
+            
+            .modifier(DialogInfoHeader(onDismiss: {
+                dismiss()
+            }, onTapEdit: {
+                isEditDialogAlertPresented = true
+            }))
+            
+            .disabled(viewModel.isProcessing == true)
+            .if(viewModel.isProcessing == true) { view in
+                view.overlay() {
+                    CustomProgressView()
+                }
+            }
+            
+            .environmentObject(viewModel)
+            
+            .navigationDestination(isPresented: $membersPresented) {
                 if membersPresented == true {
-                    NavigationLink(isActive: $membersPresented) {
-                        Fabric.screen.members(to: viewModel.dialog)
-                    } label: {
-                        EmptyView()
-                    }
+                    Fabric.screen.members(to: viewModel.dialog)
                 }
             }
         }

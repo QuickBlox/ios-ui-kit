@@ -42,11 +42,12 @@ public struct OutboundImageMessageRow<MessageItem: MessageEntity>: View {
                     
                 }.padding(.bottom, 2)
             }
-            VStack(alignment: .leading, spacing: 2) {
-                Spacer()
+            VStack(alignment: .leading, spacing: 0) {
                 
                 Button {
-                    open()
+                    if fileTuple?.url != nil {
+                        open()
+                    }
                 } label: {
                     
                     ZStack {
@@ -66,15 +67,14 @@ public struct OutboundImageMessageRow<MessageItem: MessageEntity>: View {
                                 .padding(settings.outboundPadding)
                             
                             SegmentedCircularBar(settings: settings.progressBar)
-                                .padding([.top, .trailing])
                         }
                     }
                 }
-            }.disabled(fileTuple?.image == nil)
-                .task {
-                    do { fileTuple = try await message.file(size: settings.imageSize) } catch { prettyLog(error)}
-                }
+            }.task {
+                do { fileTuple = try await message.file(size: settings.imageSize) } catch { prettyLog(error)}
+            }
         }
+        .padding(.bottom, settings.spacerBetweenRows)
         .fixedSize(horizontal: false, vertical: true)
         .id(message.id)
     }

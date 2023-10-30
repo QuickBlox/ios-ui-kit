@@ -33,15 +33,16 @@ public struct InboundVideoMessageRow<MessageItem: MessageEntity>: View {
             
             MessageRowAvatar(message: message)
             
-            VStack(alignment: .leading, spacing: 2) {
-                Spacer()
+            VStack(alignment: .leading, spacing: 0) {
                 
                 MessageRowName(message: message)
                 
                 HStack(spacing: 8) {
                     
                     Button {
-                        open()
+                        if fileTuple?.url != nil {
+                            open()
+                        }
                     } label: {
                         
                         ZStack(alignment: .center) {
@@ -52,7 +53,6 @@ public struct InboundVideoMessageRow<MessageItem: MessageEntity>: View {
                                     .frame(width: settings.attachmentSize.width,
                                            height: settings.attachmentSize.height)
                                     .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
-                                    .padding(settings.inboundPadding(showName: settings.isHiddenName))
                                 
                                 settings.videoPlayBackground
                                     .frame(width: settings.imageIconSize.width,
@@ -72,14 +72,11 @@ public struct InboundVideoMessageRow<MessageItem: MessageEntity>: View {
                                     .frame(width: settings.attachmentSize.width,
                                            height: settings.attachmentSize.height)
                                     .cornerRadius(settings.attachmentRadius, corners: settings.inboundCorners)
-                                    .padding(settings.inboundPadding(showName: settings.isHiddenName))
                                 
                                 SegmentedCircularBar(settings: settings.progressBar)
                             }
                         }
-                    }
-                    .disabled(fileTuple?.url == nil)
-                    .task {
+                    }.task {
                         do {
                             fileTuple = try await message.file(size: settings.imageSize)
                         } catch {
@@ -99,6 +96,7 @@ public struct InboundVideoMessageRow<MessageItem: MessageEntity>: View {
             }
             Spacer(minLength: settings.inboundSpacer)
         }
+        .padding(.bottom, settings.spacerBetweenRows)
         .fixedSize(horizontal: false, vertical: true)
         .id(message.id)
         

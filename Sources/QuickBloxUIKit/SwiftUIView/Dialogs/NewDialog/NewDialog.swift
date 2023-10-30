@@ -32,6 +32,7 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
         self.type = type
     }
     
+    
     public var body: some View {
         container()
     }
@@ -56,7 +57,7 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
             .mediaAlert(isAlertPresented: $isAlertPresented,
                         isExistingImage: viewModel.isExistingImage,
                         isHiddenFiles: settings.isHiddenFiles,
-                        mediaTypes: [UTType.image.identifier],
+                        mediaTypes: [.images],
                         viewModel: viewModel,
                         onRemoveImage: {
                 viewModel.removeExistingImage()
@@ -73,7 +74,7 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
             })
             
             .largeImageSizeAlert(isPresented: $isSizeAlertPresented,
-                                onUseAttachment: {
+                                 onUseAttachment: {
                 if let attachmentAsset {
                     viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
                     self.attachmentAsset = nil
@@ -104,23 +105,22 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
                 }
             }
             
-            if let modelDialog = viewModel.modelDialog {
-                NavigationLink (
-                    tag: modelDialog,
-                    selection: $viewModel.modelDialog
-                ) {
-                    CreateDialogView(viewModel: CreateDialogViewModel(users: [], modeldDialog: Dialog(type: modelDialog.type,
-                                                                                       name: modelDialog.name,
-                                                                                       photo: modelDialog.photo)),
-                                 content: {
-                        viewModel in
-                        
-                        UserListView(viewModel: viewModel,
-                                     content: { item, isSelected, onTap in
-                            UserRow(item, isSelected: isSelected, onTap: onTap)
-                        })})
-                } label: {
-                    EmptyView()
+            .if(viewModel.modelDialog != nil) { view in
+                view.navigationDestination(isPresented: Binding.constant(viewModel.modelDialog != nil)) {
+                    if let modelDialog = viewModel.modelDialog {
+                        CreateDialogView(viewModel: CreateDialogViewModel(users: [],
+                                                                          modeldDialog: Dialog(type: modelDialog.type,
+                                                                                                          name: modelDialog.name,
+                                                                                                          photo: modelDialog.photo)),
+                                         content: {
+                            viewModel in
+                            
+                            UserListView(viewModel: viewModel,
+                                         content: { item, isSelected, onTap in
+                                UserRow(item, isSelected: isSelected, onTap: onTap)
+                            })})
+                    }
+                    
                 }
             }
         }

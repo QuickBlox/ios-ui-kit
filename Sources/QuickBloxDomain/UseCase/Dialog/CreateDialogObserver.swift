@@ -55,8 +55,11 @@ where Item == Repo.DialogEntityItem {
                     self?.ids.remove(dialog.id)
                     self?.subject.send(dialog)
                 }
-            guard let sub = sub, let strSelf = self else { return }
-            strSelf.cancellables.insert(sub)
+            
+            DialogQueue.create.async { [weak self] in
+                guard let sub = sub, let strSelf = self else { return }
+                strSelf.cancellables.insert(sub)
+            }
         }
     }
     
@@ -73,8 +76,10 @@ where Item == Repo.DialogEntityItem {
                         break
                     }
                 }
-            guard let sub = sub, let strSelf = self else { return }
-            strSelf.cancellables.insert(sub)
+            DialogQueue.create.async { [weak self] in
+                guard let sub = sub, let strSelf = self else { return }
+                strSelf.cancellables.insert(sub)
+            }
         }
     }
 }
