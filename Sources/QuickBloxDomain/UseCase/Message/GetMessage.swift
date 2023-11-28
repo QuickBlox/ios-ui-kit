@@ -16,13 +16,13 @@ where Message == Repo.MessageEntityItem, Pagination == Repo.PaginationItem {
     private let id: String
     private let dialogId: String
     private let repo: Repo
-    
+
     public init(id: String, dialogId: String, repo: Repo) {
         self.id = id
         self.dialogId = dialogId
         self.repo = repo
     }
-    
+
     public func execute() async throws -> Message {
         do {
             let messages = try await repo.get(messagesFromLocal: dialogId)

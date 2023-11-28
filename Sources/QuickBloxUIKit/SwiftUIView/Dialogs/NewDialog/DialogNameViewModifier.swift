@@ -515,6 +515,91 @@ extension View {
     }
 }
 
+struct ForwardSuccessAlert: ViewModifier {
+    public var settings = QuickBloxUIKit.settings.dialogInfoScreen.forwardAlert
+    
+    @Binding var isPresented: Bool
+    let name: String
+    
+    init(isPresented: Binding<Bool>, name: String) {
+        _isPresented = isPresented
+        self.name = name
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+            isPresented.wrappedValue = false
+        }
+    }
+    
+    func body(content: Content) -> some View {
+        ZStack(alignment: .center) {
+            content.disabled(isPresented)
+            ZStack {
+                settings.background
+                    .frame(width: settings.size.width, height: settings.size.height)
+                    .cornerRadius(settings.cornerRadius)
+                
+                VStack(spacing: 12) {
+                    settings.checkMark
+                        .resizable()
+                        .renderingMode(.template)
+                        .foregroundColor(settings.checkMarkColor)
+                        .scaledToFit()
+                        .frame(width: settings.checkMarkSize.width,
+                               height: settings.checkMarkSize.height)
+                        .padding(.top, 18)
+                    VStack(alignment: .center, spacing: 0) {
+                        Text(settings.title)
+                            .font(settings.titleFont)
+                            .foregroundColor(settings.titleForeground)
+                        Text(name)
+                            .font(settings.titleFont)
+                            .foregroundColor(settings.titleForeground)
+                    }
+                }.padding([.bottom, .horizontal], 16)
+            }
+        }
+    }
+}
+
+extension View {
+    func forwardSuccessAlert(
+        isPresented: Binding<Bool>,
+        name: String
+    ) -> some View {
+        self.modifier(ForwardSuccessAlert(isPresented: isPresented, name: name))
+    }
+}
+
+struct ForwardFailureAlert: ViewModifier {
+    public var settings = QuickBloxUIKit.settings.dialogInfoScreen.forwardAlert
+    
+    @Binding var isPresented: Bool
+    
+    func body(content: Content) -> some View {
+        ZStack(alignment: .center) {
+            content.blur(radius: isPresented ? settings.blurRadius : 0.0)
+                .disabled(isPresented)
+                .alert("", isPresented: $isPresented) {
+                    Button(settings.cancel, action: {
+                        isPresented = false
+                    })
+                } message: {
+                    Text(settings.titleFailure)
+                }
+        }
+    }
+}
+
+extension View {
+    func forwardFailureAlert(
+        isPresented: Binding<Bool>
+    ) -> some View {
+        self.modifier(ForwardFailureAlert(isPresented: isPresented))
+    }
+}
+
+
+
+
 public struct FilePickerViewModifier : ViewModifier {
     @Binding var isFilePickerPresented: Bool
     let onGetAttachment: (_ attachmentAsset: AttachmentAsset) -> Void

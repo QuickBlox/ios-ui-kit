@@ -15,11 +15,11 @@ public struct Checkbox: View {
     public var font: Font? = nil
     public var foregroundColor: Color? = nil
     public var backgroundColor: Color? = nil
-    public var onTap: () -> Void
+    public var onTap: (() -> Void)?
     
     public var body: some View {
         Button {
-            onTap()
+            onTap?()
         } label: {
             if isSelected {
                 settings.selected
@@ -34,7 +34,8 @@ public struct Checkbox: View {
                     .strokeBorder(settings.strokeBorder, lineWidth: settings.lineWidth)
                     .frame(width: settings.heightSelected, height: settings.heightSelected)
             }
-        }.frame(width: settings.heightButton, height: settings.heightButton)
+        }
+        .frame(width: settings.heightButton, height: settings.heightButton)
     }
 }
 

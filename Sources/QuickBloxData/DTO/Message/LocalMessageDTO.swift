@@ -10,7 +10,7 @@ import QuickBloxDomain
 import Foundation
 
 /// This is a DTO model for interactions with the message model in local storage.
-public struct LocalMessageDTO: Equatable, Identifiable, Hashable {
+public struct LocalMessageDTO: Identifiable, Hashable {
     public var id = UUID().uuidString
     var dialogId = ""
     var text = ""
@@ -24,6 +24,16 @@ public struct LocalMessageDTO: Equatable, Identifiable, Hashable {
     var isDelivered = false
     var eventType: MessageEventType = .message
     var type: MessageType = .chat
+    var actionType: MessageAction = .none
+    var originSenderName: String?
+    var originalMessages: [LocalMessageDTO] = []
+    var relatedId: String = ""
+}
+
+extension LocalMessageDTO: Equatable {
+    public static func == (lhs: LocalMessageDTO, rhs: LocalMessageDTO) -> Bool {
+        return lhs.id == rhs.id && lhs.dialogId == rhs.dialogId
+    }
 }
 
 extension LocalMessageDTO: Dated {

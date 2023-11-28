@@ -6,7 +6,6 @@
 //  Copyright © 2023 QuickBlox. All rights reserved.
 //
 
-
 import Quickblox
 import QuickBloxDomain
 
@@ -24,6 +23,17 @@ extension QBChatMessage {
         return .message
     }
     
+    var actionType: MessageAction {
+        if let action = self.customParameters[Key.messageAction] as? String {
+            switch action {
+            case ActionValue.forward: return .forward
+            case ActionValue.reply: return .reply
+            default: return .none
+            }
+        }
+        return .none
+    }
+    
     struct Value {
         static let create = "1"
         static let update = "2"
@@ -31,10 +41,19 @@ extension QBChatMessage {
         static let removed = "4"
     }
     
+    struct ActionValue {
+        static let forward = "forward"
+        static let reply = "reply"
+    }
+    
     struct Key {
         static let type = "notification_type"
         static let save = "save_to_history"
         static let dialogId = "dialog_id"
+        
+        static let messageAction = "qb_message_action"
+        static let originSenderName = "origin_sender_name"
+        static let originalMessages = "qb_original_messages"
     }
 }
 

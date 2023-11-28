@@ -17,7 +17,7 @@ public struct RemoteDialogDTO: Equatable {
     var participantsIds: [String] = []
     var toDeleteIds: [String] = []
     var toAddIds: [String] = []
-    var photo = "null"
+    var photo = ""
     var ownerId = ""
     var isOwnedByCurrentUser = false
     

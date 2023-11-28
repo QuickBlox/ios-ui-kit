@@ -178,6 +178,51 @@ public struct PublicDialogRowView: DialogRowView  {
     }
 }
 
+public struct SelectDialogRowView: View {
+    @State public var avatar: Image =
+    QuickBloxUIKit.settings.dialogsScreen.dialogRow.avatar.privateAvatar
+    
+    public var settings = QuickBloxUIKit.settings.dialogsScreen.dialogRow
+    
+    public var dialog: any DialogEntity
+    
+    public var badgeView: DialogRowBadge?
+    public var nameView: DialogRowName?
+    public var avatarView: AvatarView?
+    
+    private var isSelected = false
+    public var onTap: (_ itemId: String) -> Void
+    
+    public init(_ dialog: any DialogEntity,
+                isSelected: Bool,
+                onTap: @escaping (_ itemId: String) -> Void) {
+        self.dialog = dialog
+        self.isSelected = isSelected
+        self.onTap = onTap
+    }
+    
+    public var body: some View {
+        HStack(spacing: settings.spacing) {
+            avatarView ?? AvatarView(image: avatar,
+                                     height: settings.selectAvatarSize.height,
+                                     isHidden: settings.isHiddenAvatar )
+            
+            UserRowName(text: dialog.name)
+            Spacer()
+            
+            Checkbox(isSelected: isSelected) {
+                onTap(dialog.id)
+            }
+        }
+        .frame(height: settings.selectHeight)
+        .padding(settings.selectPadding)
+        .background(settings.backgroundColor)
+        .task {
+            do { avatar = try await dialog.avatar } catch { prettyLog(error) }
+        }
+    }
+}
+
 //TODO: Developer must have an ability to set his own implementations for each type of dialog, also he can disable  specific dialog type. https://quickblox.atlassian.net/wiki/spaces/CLNT/pages/3676045315/UIKit+v0.1.0+SRS#Dialog-cell
 
 public struct DialogsRowBuilder<DialogItem: DialogEntity> {

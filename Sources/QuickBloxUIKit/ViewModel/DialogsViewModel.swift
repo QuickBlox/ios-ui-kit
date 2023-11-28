@@ -36,6 +36,7 @@ final class DialogsViewModel: DialogsListProtocol {
     
     @Published public var selectedItem: Dialog? = nil
     @Published public var dialogToBeDeleted: Dialog? = nil
+    @MainActor
     @Published public var dialogs: [Dialog] = []
     @Published public var syncState: SyncState = .syncing(stage: SyncState.Stage.disconnected)
     public let dialogsRepo: DialogsRepository
@@ -45,7 +46,9 @@ final class DialogsViewModel: DialogsListProtocol {
     private var dialogsUpdates: DialogsUpdates<DialogsRepository>?
     private var updateDialogs: Task<Void, Never>?
     private var deleteDialog: Task<Void, Never>?
-
+    
+    private var onAppear = false
+    
     required public init(dialogsRepo: DialogsRepository) {
         self.dialogsRepo = dialogsRepo
         
@@ -55,7 +58,7 @@ final class DialogsViewModel: DialogsListProtocol {
         createDialogObserve.execute()
             .receive(on: RunLoop.main)
             .sink { [weak self] dialog in
-                if self?.selectedItem == nil, dialog.isOwnedByCurrentUser == true {
+                if self?.selectedItem == nil {
                     self?.selectedItem = dialog
                 }
             }
@@ -68,6 +71,11 @@ final class DialogsViewModel: DialogsListProtocol {
                     self?.selectedItem = nil
                 }
                 self?.dialogToBeDeleted = nil
+                
+                if self?.onAppear == true { return }
+                
+                guard let dialog = self?.dialogs.first(where: { $0.id == dialogId }) else { return }
+                self?.refresh(eventType: .create, with: dialog)
             }
             .store(in: &cancellables)
         
@@ -77,10 +85,10 @@ final class DialogsViewModel: DialogsListProtocol {
             await strSelf.dialogsUpdates?.execute()
                 .receive(on: RunLoop.main)
                 .sink { [weak self] updated in
-                    if self?.deleteDialog != nil {
-                        return
-                    }
                     self?.dialogs = updated
+                    
+                    if self?.onAppear == true { return }
+                    self?.refresh(eventType: .update, with: nil)
                 }
                 .store(in: &strSelf.cancellables)
             strSelf.updateDialogs = nil
@@ -99,6 +107,10 @@ final class DialogsViewModel: DialogsListProtocol {
     public var tasks = Set<Task<Void, Never>>()
     
     public func sync() {
+        onAppear = true
+    }
+    public func unsync() {
+        onAppear = false
     }
 }
 
@@ -110,30 +122,32 @@ extension DialogsViewModel {
         
         let leaveDialogCase = LeaveDialog(dialog: dialogToBeDeleted,
                                           repo: RepositoriesFabric.dialogs)
-        updateDialogs = Task { [weak self] in
+        deleteDialog = Task { [weak self] in
             do {
                 try await leaveDialogCase.execute()
-                self?.updateDialogs = nil
-                await MainActor.run { [weak self] in
-                    guard let strSelf = self else { return }
-                    if let index = strSelf.dialogs.firstIndex(where: {$0.id == dialogId}) {
-                        strSelf.dialogs.remove(at: index)
-                    }
-                    
-                    strSelf.dialogToBeDeleted = nil
-                }
+                
             } catch {
                 prettyLog(error)
-                if error is RepositoryException {
-                    self?.updateDialogs = nil
-                    await MainActor.run { [weak self] in
-                        guard let strSelf = self else { return }
-                        if let index = strSelf.dialogs.firstIndex(where: {$0.id == dialogId}) {
-                            strSelf.dialogs.remove(at: index)
-                        }
-                        strSelf.dialogToBeDeleted = nil
-                    }
-                }
+            }
+            self?.deleteDialog = nil
+            await MainActor.run { [weak self] in
+                self?.dialogToBeDeleted = nil
+            }
+        }
+    }
+    
+    private func refresh(eventType: MessageEventType, with dialog: Dialog?) {
+        if eventType == .leave, let dialog,
+                  let index = dialogs.firstIndex(where: {$0.id == dialog.id}) {
+            dialogs.remove(at: index)
+        }
+        
+        let updatedDialogs = dialogs
+        
+        DispatchQueue.main.async {
+            self.dialogs = []
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.dialogs = updatedDialogs
             }
         }
     }

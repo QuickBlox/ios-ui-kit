@@ -10,11 +10,12 @@ import SwiftUI
 import QuickBloxDomain
 import AVFoundation
 import QBAIRephrase
+import QuickBloxLog
 
 struct InputView: View  {
     let textFieldSettings = QuickBloxUIKit.settings.dialogScreen.textField
     let typingSettings = QuickBloxUIKit.settings.dialogScreen.typing
-    let aiFeatures = QuickBloxUIKit.feature.ai
+    let features = QuickBloxUIKit.feature
     
     @EnvironmentObject var viewModel: DialogViewModel
     
@@ -40,7 +41,7 @@ struct InputView: View  {
     var body: some View {
         
         VStack {
-            if aiFeatures.rephrase.enable == true,
+            if features.ai.rephrase.enable == true,
                isFocused == true,
                text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -57,6 +58,16 @@ struct InputView: View  {
                         }
                     }
                 }
+            }
+            
+            if features.reply.enable == true,
+               let message = viewModel.selectedMessages.first,
+               viewModel.messagesActionState == .reply {
+                MessageActionBanner(
+                    message: message, messageAction: .reply, onCancelReply: {
+                        if viewModel.isProcessing { return }
+                        viewModel.cancelMessageAction()
+                    }, forMessage: false, count: viewModel.selectedMessages.count)
             }
             
             HStack(spacing: 0) {
@@ -199,6 +210,9 @@ struct InputView: View  {
         .disabled(viewModel.isProcessing == true)
         .fixedSize(horizontal: false, vertical: true)
         .background(textFieldSettings.backgroundColor)
+        .if(viewModel.messagesActionState == .reply) { view in
+            view.overlay(Divider(), alignment: .top)
+        }
     }
 }
 

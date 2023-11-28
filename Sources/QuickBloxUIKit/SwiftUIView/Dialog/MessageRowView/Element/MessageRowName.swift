@@ -12,6 +12,7 @@ import QuickBloxLog
 
 public struct MessageRowName<MessageItem: MessageEntity>: View {
     var settings = QuickBloxUIKit.settings.dialogScreen.messageRow
+    
     var message: MessageItem
     @State public var userName: String?
     
@@ -20,13 +21,23 @@ public struct MessageRowName<MessageItem: MessageEntity>: View {
     }
     public var body: some View {
         if settings.isHiddenName == false {
-            Text(userName ?? String(message.userId))
-                .foregroundColor(settings.name.foregroundColor)
-                .font(settings.name.font)
-                .padding(settings.inboundNamePadding)
-                .task {
-                    do { userName = try await message.userName } catch { prettyLog(error) }
+            if message.actionType != .none, let originSenderName = message.originSenderName {
+                MessageActionInfo(messageAction: message.actionType, originSenderName: originSenderName, forMessage: true)
+                    .padding(settings.inboundNamePadding)
+            } else {
+                if message.isOwnedByCurrentUser == false,
+                   message.actionType == .none ||
+                    message.actionType == .forward ||
+                    message.actionType == .reply && message.relatedId.isEmpty == false {
+                    Text(userName ?? String(message.userId))
+                        .foregroundColor(settings.name.foregroundColor)
+                        .font(settings.name.font)
+                        .padding(settings.inboundNamePadding)
+                        .task {
+                            do { userName = try await message.userName } catch { prettyLog(error) }
+                        }
                 }
+            }
         } else {
             EmptyView()
         }
@@ -43,7 +54,9 @@ struct MessageRowName_Previews: PreviewProvider {
                                             text: "Test text Message",
                                             userId: "testid",
                                             date: Date(),
-                                            isDelivered: true))
+                                            isDelivered: true,
+                                            actionType: .forward,
+                                            originSenderName: "Bob"))
             .previewDisplayName("Time")
             
             MessageRowName(message: Message(id: UUID().uuidString,

@@ -91,11 +91,9 @@ extension LocalDataSource {
             }
         }
         
-        if dto.photo.isEmpty == false {
-            if dialog.photo != dto.photo {
-                isUpdated = true
-                dialog.photo = dto.photo
-            }
+        if dialog.photo != dto.photo {
+            isUpdated = true
+            dialog.photo = dto.photo
         }
         
         dialog.updatedAt = dto.updatedAt
@@ -109,11 +107,7 @@ extension LocalDataSource {
         if dto.messages.isEmpty == false {
             for new in dto.messages {
                 isUpdated = true
-                if let index = dialog.messages.firstIndex(where: { $0.id == new.id }) {
-                    dialog.messages[index] = new
-                } else {
-                    dialog.messages.insertElement(new, withSorting: .orderedAscending)
-                }
+                dialog.messages.insertElement(new, withSorting: .orderedAscending)
             }
         }
         

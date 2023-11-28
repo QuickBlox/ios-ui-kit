@@ -128,7 +128,7 @@ final class NewDialogViewModel: NewDialogProtocol {
                 }
             }
         } else {
-            modelDialog = Dialog(type: .group, name: dialogName, photo:"null")
+            modelDialog = Dialog(type: .group, name: dialogName, photo:"")
         }
     }
     

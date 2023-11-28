@@ -48,7 +48,6 @@ final class DialogInfoViewModel: DialogInfoProtocol {
     @Published public var avatar: Image? = nil
 
     public var isExistingImage: Bool {
-        if dialog.photo == "null" { return false }
         return dialog.photo.isEmpty == false
     }
     
@@ -176,7 +175,7 @@ final class DialogInfoViewModel: DialogInfoProtocol {
     public func removeExistingImage() {
         attachmentAsset = nil
         self.isProcessing = true
-        dialog.photo = "null"
+        dialog.photo = ""
         dialog.removeAvatar()
         updateDialog(dialog)
     }

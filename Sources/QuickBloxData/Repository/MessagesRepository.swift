@@ -46,6 +46,10 @@ extension LocalMessageDTO {
             fileInfo?.path = new.path
             fileInfo?.uid = new.uid
         }
+        actionType = value.actionType
+        originSenderName = value.originSenderName
+        originalMessages = value.originalMessages.compactMap { LocalMessageDTO($0) }
+        relatedId = value.relatedId
     }
 }
 
@@ -73,6 +77,12 @@ private extension RemoteMessageDTO {
                     uid: file.uid
                 ))
         }
+        actionType = value.actionType
+        if let originSenderName = value.originSenderName {
+            self.originSenderName = originSenderName
+        }
+        originalMessages = value.originalMessages.compactMap { RemoteMessageDTO($0) }
+        relatedId = value.relatedId
     }
 }
 
@@ -109,6 +119,12 @@ extension Message {
             fileInfo?.path.remote = filesInfo.path
             fileInfo?.uid = filesInfo.uid
         }
+        actionType = value.actionType
+        if value.originSenderName.isEmpty == false {
+            self.originSenderName = value.originSenderName
+        }
+        originalMessages = value.originalMessages.compactMap { Message($0) }
+        relatedId = value.relatedId
     }
     
     init(_ value: LocalMessageDTO) {
@@ -131,6 +147,12 @@ extension Message {
             fileInfo?.path = info.path
             fileInfo?.uid = info.uid
         }
+        actionType = value.actionType
+        if let originSenderName = value.originSenderName {
+            self.originSenderName = originSenderName
+        }
+        originalMessages = value.originalMessages.compactMap { Message($0) }
+        relatedId = value.relatedId
     }
 }
 

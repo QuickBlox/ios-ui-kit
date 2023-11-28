@@ -13,6 +13,7 @@ import QuickBloxLog
 
 public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
     var settings = QuickBloxUIKit.settings.dialogScreen.messageRow
+    var features = QuickBloxUIKit.feature
     
     var message: MessageItem
     
@@ -24,87 +25,159 @@ public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
     
     @State public var fileTuple: (type: String, data: Data?, url: URL?, time: TimeInterval)? = nil
     
+    private var messagesActionState: MessageAction
+    private var isSelected = false
+    
+    private let onSelect: (_ item: MessageItem, _ actionType: MessageAction) -> Void
+    
     public init(message: MessageItem,
+                messagesActionState: MessageAction,
+                isSelected: Bool,
                 onTap: @escaping  (_ action: MessageAttachmentAction, _ data: Data?, _ url: URL?) -> Void,
-                playingMessageId: String, isPlaying: Bool, currentTime: TimeInterval) {
+                playingMessage: MessageIdsInfo, isPlaying: Bool, currentTime: TimeInterval,
+                onSelect: @escaping (_ item: MessageItem, _ actionType: MessageAction) -> Void) {
         self.message = message
+        self.messagesActionState = messagesActionState
+        self.isSelected = isSelected
         self.onTap = onTap
-        if playingMessageId == message.id {
+        if playingMessage.messageId == message.id, playingMessage.relatedId == message.relatedId {
             self.isPlaying = isPlaying
         }
         self.currentTime = currentTime
+        self.onSelect = onSelect
     }
     
     public var body: some View {
-        HStack {
+        ZStack {
             
-            MessageRowAvatar(message: message)
-            
-            VStack(alignment: .leading, spacing: 0) {
+            HStack {
                 
-                MessageRowName(message: message)
+                if features.forward.enable == true,
+                   messagesActionState == .forward {
+                    Checkbox(isSelected: isSelected)
+                }
                 
-                VStack(alignment: .leading) {
-                    HStack(alignment: .center, spacing: 8) {
-                        
-                        Button {
-                            if fileTuple?.url != nil {
-                                play()
-                            }
-                        } label: {
+                MessageRowAvatar(message: message)
+                
+                VStack(alignment: .leading, spacing: 0) {
+                    
+                    MessageRowName(message: message)
+                    
+                    VStack(alignment: .leading) {
+                        HStack(alignment: .center, spacing: 8) {
                             
-                            HStack(alignment: .center, spacing: 8) {
-                                if fileTuple?.url != nil {
-                                    
-                                    MessageRowPlay(isOutbound: false, isPlaying: isPlaying)
-                                    
-                                } else {
-                                    ProgressView().padding(.leading, -6)
-                                }
-                                
-                                VStack(alignment: .leading, spacing: settings.infoSpacing) {
-                                    settings.waveImage
-                                        .resizable()
-                                        .frame(width: settings.audioImageSize.width, height: settings.audioImageSize.height)
-                                    
-                                    Text(isPlaying == true ? currentTime.audioString() : (fileTuple?.time.audioString() ?? "00:00"))
-                                        .foregroundColor(settings.time.foregroundColor)
-                                        .font(settings.time.font)
+                            if features.forward.enable == true,
+                               messagesActionState == .forward {
+                                messageContent()
+                            } else {
+                                Button {
+                                    if fileTuple?.url != nil {
+                                        play()
+                                    }
+                                } label: {
+                                    messageContent()
+                                }.buttonStyle(.plain)
+                            }
+                            
+                            if message.actionType == .none ||
+                                message.actionType == .forward ||
+                                message.actionType == .reply && message.relatedId.isEmpty == true {
+                                VStack(alignment: .leading) {
+                                    Spacer()
+                                    HStack {
+                                        
+                                        MessageRowTime(date: message.date)
+                                        
+                                    }.padding(.bottom, 2)
                                 }
                             }
-                            .padding(settings.audioPadding)
-                            .frame(height: settings.audioBubbleHeight)
-                            .background(settings.inboundBackground)
-                            .cornerRadius(settings.bubbleRadius, corners: settings.inboundCorners)
-                        }
-                        .task {
-                            do { fileTuple = try await message.audioFile } catch { prettyLog(error)}
-                        }
-                        
-                        VStack(alignment: .leading) {
-                            Spacer()
-                            HStack {
-                                
-                                MessageRowTime(date: message.date)
-                                
-                            }.padding(.bottom, 2)
                         }
                     }
+                }.padding(.leading, message.actionType == .reply && message.relatedId.isEmpty == false ? settings.relatedInboundSpacer : 0)
+                
+                Spacer(minLength: settings.inboundSpacer)
+                
+            }
+            .padding(.bottom, actionSpacerBetweenRows())
+            .fixedSize(horizontal: false, vertical: true)
+            .id(message.id)
+            .if(fileTuple?.url != nil, transform: { view in
+                view.customContextMenu (
+                    preview: messageContent(forPreview: true)
+                        .cornerRadius(settings.attachmentRadius, corners: settings.outboundForwardCorners),
+                    preferredContentSize: settings.inboundAudioPreviewSize
+                ) {
+                    CustomContextMenuAction(title: settings.reply.title,
+                                         systemImage: settings.reply.systemImage ?? "",
+                                         attributes: features.reply.enable == true
+                                         ? nil : .hidden) {
+                        onSelect(message, .reply)
+                    }
+                    CustomContextMenuAction(title: settings.forward.title,
+                                         image: settings.forward.image ?? "",
+                                         attributes: features.forward.enable == true
+                                         ? nil : .hidden) {
+                        onSelect(message, .forward)
+                    }
+                    CustomContextMenuAction(title: settings.save.title,
+                                         systemImage: settings.save.systemImage ?? ""
+                                         , attributes: nil) {
+                        save()
+                    }
+                }
+            })
+                
+            if features.forward.enable == true,
+                messagesActionState == .forward {
+                Button {
+                    onSelect(message, .forward)
+                } label: {
+                    EmptyView()
+                }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
+                .frame(maxHeight: .infinity)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func messageContent(forPreview: Bool = false) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            
+            if forPreview == true {
+                MessageRowPlay(isOutbound: false, isPlaying: isPlaying)
+            } else {
+                
+                if fileTuple?.url != nil {
+                    
+                    MessageRowPlay(isOutbound: false, isPlaying: isPlaying)
+                    
+                } else {
+                    ProgressView().padding(.leading, -6)
                 }
             }
-            Spacer(minLength: settings.inboundSpacer)
             
-        }
-        .padding(.bottom, settings.spacerBetweenRows)
-        .fixedSize(horizontal: false, vertical: true)
-        .id(message.id)
-        .contextMenu {
-            Button {
-                save()
-            } label: {
-                Label("Save", systemImage: "folder")
+            VStack(alignment: .leading, spacing: settings.infoSpacing) {
+                settings.waveImage
+                    .resizable()
+                    .frame(width: settings.audioImageSize.width, height: settings.audioImageSize.height)
+                
+                Text(isPlaying == true ? currentTime.audioString() : (fileTuple?.time.audioString() ?? "00:00"))
+                    .foregroundColor(settings.time.foregroundColor)
+                    .font(settings.time.font)
             }
         }
+        .padding(settings.audioPadding)
+        .frame(height: settings.audioBubbleHeight)
+        .background(settings.inboundBackground)
+        .cornerRadius(settings.bubbleRadius, corners: message.actionType == .reply && message.relatedId.isEmpty == false ?
+                      settings.outboundForwardCorners : settings.inboundCorners)
+        .if(forPreview == false, transform: { view in
+            view.task {
+                do { fileTuple = try await message.audioFile } catch { prettyLog(error)}
+            }
+        })
     }
     
     private func play() {
@@ -120,6 +193,21 @@ public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
         guard let url = fileTuple?.url, let data = fileTuple?.data else { return }
         onTap(.save, data, url)
     }
+    
+    private func isShowElement() -> Bool {
+        return message.actionType == .none ||
+        message.actionType == .forward ||
+        message.actionType == .reply && message.relatedId.isEmpty
+    }
+    
+    private func actionSpacerBetweenRows() -> CGFloat {
+        if message.actionType == .reply && message.relatedId.isEmpty == false {
+            return settings.replyAudioSpacing
+        } else if message.actionType == .forward && message.relatedId.isEmpty == false {
+            return settings.forwardAudioSpacing
+        }
+        return settings.spacerBetweenRows
+    }
 }
 
 import QuickBloxData
@@ -132,8 +220,14 @@ struct InboundAudioMessageRow_Previews: PreviewProvider {
                                                     dialogId: "1f2f3ds4d5d6d",
                                                     text: "[Attachment]",
                                                     userId: "2d3d4d5d6d",
-                                                    date: Date()),
-                                   onTap: { (_,_,_) in}, playingMessageId: "message.id", isPlaying: true, currentTime: 50)
+                                                    date: Date(), originSenderName: "Bob"),
+                                   messagesActionState: .none,
+                                   isSelected: false,
+                                   onTap: {(_,_,_) in},
+                                   playingMessage: MessageIdsInfo(messageId: "", relatedId: ""),
+                                   isPlaying: true,
+                                   currentTime: 50,
+                                   onSelect: { (_,_) in})
             .previewDisplayName("Out Message")
             
             
@@ -141,8 +235,14 @@ struct InboundAudioMessageRow_Previews: PreviewProvider {
                                                     dialogId: "1f2f3ds4d5d6d",
                                                     text: "[Attachment]",
                                                     userId: "2d3d4d5d6d",
-                                                    date: Date()),
-                                   onTap: { (_,_,_) in}, playingMessageId: "message.id", isPlaying: false, currentTime: 50)
+                                                    date: Date(), originSenderName: "Bob"),
+                                   messagesActionState: .none,
+                                   isSelected: false,
+                                   onTap: {(_,_,_) in},
+                                   playingMessage: MessageIdsInfo(messageId: "", relatedId: ""),
+                                   isPlaying: true,
+                                   currentTime: 50,
+                                   onSelect: { (_,_) in})
             .previewDisplayName("Out Dark Message")
             .preferredColorScheme(.dark)
         }

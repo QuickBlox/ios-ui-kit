@@ -12,6 +12,8 @@ import QuickBloxLog
 
 public struct MessageRowAvatar<MessageItem: MessageEntity>: View {
     var settings = QuickBloxUIKit.settings.dialogScreen.messageRow
+    var features = QuickBloxUIKit.feature
+    
     var message: MessageItem
     
     @State public var avatar: Image =
@@ -21,7 +23,10 @@ public struct MessageRowAvatar<MessageItem: MessageEntity>: View {
         self.message = message
     }
     public var body: some View {
-        if settings.isHiddenAvatar == false {
+        if settings.isHiddenAvatar == false,
+           message.actionType == .none ||
+            message.actionType == .forward ||
+            message.actionType == .reply && message.relatedId.isEmpty == true {
             VStack {
                 if settings.isHiddenName == false {
                     Spacer()
@@ -36,7 +41,8 @@ public struct MessageRowAvatar<MessageItem: MessageEntity>: View {
                                               settings.avatar.height)
                         do { avatar = try await message.avatar(size: size) } catch { prettyLog(error) }
                     }
-            }.padding(.leading, 8)
+            }
+            .padding(.leading, 8)
         }
     }
 }

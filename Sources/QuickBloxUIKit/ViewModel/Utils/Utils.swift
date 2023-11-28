@@ -51,7 +51,7 @@ extension DialogEntity {
             var path: String
             switch type {
             case .group, .public:
-                if photo.isEmpty || photo == "null" {
+                if photo.isEmpty {
                     return placeholder
                 }
                 path = photo
@@ -154,60 +154,47 @@ extension DialogEntity {
     }
 }
 
-private extension FileExtension {
-    var name: String {
-        switch type {
-        case .image: return "Image.\(self)"
-        case .video: return "Video.\(self)"
-        case .audio: return "Audio.\(self)"
-        case .file: return "File.\(self)"
-        }
-    }
-}
-
 extension DialogEntity {
     public var displayedMessages: [MessageItem]  {
-        let stringUtils = QuickBloxUIKit.settings.dialogScreen.stringUtils
-        
         var dividers: Set<Date> = []
         var displayed: [MessageItem] = []
         for message in messages {
             let divideDate = Calendar.current.startOfDay(for: message.date)
             if dividers.contains(divideDate) {
-                if displayed.contains(where: { $0.id == message.id }) == false {
-                    if message.isNotification == true {
-                        var update = message
-                        update.text = stringUtils.notificationText(message.text)
-                        displayed.append(update)
-                    } else {
-                        displayed.append(message)
-                    }
+                if displayed.contains(where: { $0.id == message.id && $0.relatedId == message.relatedId }) == false {
+                    displayed.append(prepareMessage(message))
                 }
                 continue
             }
             dividers.insert(divideDate)
-
+            
             let divideText = divideText(divideDate)
             let dividerMessage = MessageItem(id: divideText,
                                              dialogId: id,
                                              text: divideText,
                                              date: divideDate,
                                              type: .divider)
-
+            
             if displayed.contains(where: { $0.id == dividerMessage.id }) == false {
                 displayed.append(dividerMessage)
             }
-            if displayed.contains(where: { $0.id == message.id }) == false {
-                if message.isNotification == true {
-                    var update = message
-                    update.text = stringUtils.notificationText(message.text)
-                    displayed.append(update)
-                } else {
-                    displayed.append(message)
-                }
+            if displayed.contains(where: { $0.id == message.id && $0.relatedId == message.relatedId }) == false {
+                displayed.append(prepareMessage(message))
             }
         }
         return displayed
+    }
+    
+    private func prepareMessage(_ message: MessageItem) -> MessageItem {
+        let stringUtils = QuickBloxUIKit.settings.dialogScreen.stringUtils
+        
+        if message.isNotification == true {
+            var update = message
+            update.text = stringUtils.notificationText(message.text)
+            return update
+        } else {
+            return message
+        }
     }
     
     private func divideText(_ divideDate: Date) -> String {

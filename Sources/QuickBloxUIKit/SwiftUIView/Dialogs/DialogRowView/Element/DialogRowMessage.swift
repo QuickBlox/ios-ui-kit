@@ -12,19 +12,15 @@ import QuickBloxData
 import QuickBloxLog
 
 public struct DialogRowMessage {
-    
     let settings = QuickBloxUIKit.settings.dialogsScreen.dialogRow.lastMessage
+    let features = QuickBloxUIKit.feature
     
     public var dialog: any DialogEntity
     public var font: Font? = nil
     public var foregroundColor: Color? = nil
     public var isHidden: Bool
     
-    @State public var fileTuple: (name: String, image: Image?, placeholder: Image)? = nil {
-        didSet {
-            prettyLog(fileTuple)
-        }
-    }
+    @State public var fileTuple: (name: String, image: Image?, placeholder: Image)? = nil
 }
 
 extension DialogRowMessage: View {
@@ -34,7 +30,7 @@ extension DialogRowMessage: View {
         } else {
             contentView()
                 .task {
-                    do { fileTuple = try await dialog.attachment(size: settings.size) } catch { prettyLog(error)}
+                    do { fileTuple = try await dialog.attachment(size: settings.size)} catch { prettyLog(error)}
                 }
         }
     }
@@ -42,9 +38,9 @@ extension DialogRowMessage: View {
     @ViewBuilder
     func contentView() -> some View {
         
-        if let fileTuple {
+        if dialog.lastMessage.text.contains("[Attachment]") {
             HStack(alignment: .center) {
-                if let image = fileTuple.image {
+                if let image = fileTuple?.image {
                     image
                         .resizable()
                         .scaledToFill()
@@ -57,7 +53,7 @@ extension DialogRowMessage: View {
                                    height: settings.size.height)
                             .cornerRadius(settings.imageCornerRadius)
                         
-                        fileTuple.placeholder
+                        attachmentPlaceholder(dialog.lastMessage.text)
                             .resizable()
                             .renderingMode(.template)
                             .foregroundColor(settings.placeholderForeground)
@@ -67,16 +63,38 @@ extension DialogRowMessage: View {
                     }
                 }
                 
-                Text(fileTuple.name)
+                Text(fileTuple?.name ?? "file")
                     .foregroundColor(foregroundColor ?? settings.foregroundColor)
                     .font(font ?? settings.font)
             }
         } else {
             HStack() {
-                Text(dialog.lastMessage.text)
+                Text(dialog.lastMessage.text != features.forward.forwardedMessageKey ? dialog.lastMessage.text : features.forward.forwardedMessage)
                     .foregroundColor(foregroundColor ?? settings.foregroundColor)
                     .font(font ?? settings.font)
             }.frame(height: settings.size.height, alignment: .top)
+        }
+    }
+    
+    private func attachmentPlaceholder(_ info: String) -> Image {
+        let strArray: [String] = info.components(separatedBy: "|")
+        guard let mimeType = strArray.last else { return settings.filePlaceholder }
+        let type = FileExtension(mimeType: mimeType).type
+        return type.attachmentPlaceholder
+    }
+}
+
+
+
+extension FileType {
+    var attachmentPlaceholder: Image {
+        let settings = QuickBloxUIKit.settings.dialogsScreen.dialogRow.lastMessage
+        
+        switch self {
+        case .audio: return settings.audioPlaceholder
+        case .video: return settings.videoPlaceholder
+        case .image: return settings.imagePlaceholder
+        case .file: return settings.filePlaceholder
         }
     }
 }

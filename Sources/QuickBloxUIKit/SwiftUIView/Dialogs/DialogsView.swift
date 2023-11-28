@@ -78,10 +78,13 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
             onAppear(false)
         }))
         .navigationBarHidden(isDialogTypePresented)
+        .onAppear {
+            dialogsList.sync()
+        }
         .onDisappear {
             dialogsList.unsync()
         }
-        .disabled(dialogsList.dialogToBeDeleted != nil)
+//        .disabled(dialogsList.dialogToBeDeleted != nil)
         .if(dialogsList.dialogToBeDeleted != nil) { view in
             view.overlay() {
                 CustomProgressView()

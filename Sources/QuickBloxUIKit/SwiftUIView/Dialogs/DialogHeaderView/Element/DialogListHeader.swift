@@ -156,12 +156,15 @@ extension View {
 }
 
 struct CustomProgressView: View {
+    let progressBar = QuickBloxUIKit.settings.dialogsScreen.progressBar
+    
     var body: some View {
         ZStack {
             Color.black.frame(width: 100, height: 100)
                 .cornerRadius(12)
                 .opacity(0.6)
-            ProgressView().controlSize(.large).tint(Color.white)
+            
+            SegmentedCircularBar(settings: progressBar)
         }
     }
 }

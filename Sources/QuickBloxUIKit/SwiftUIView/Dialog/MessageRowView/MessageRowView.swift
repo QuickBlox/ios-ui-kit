@@ -10,10 +10,6 @@ import SwiftUI
 import QuickBloxData
 import QuickBloxDomain
 
-public enum MessageAction {
-    case edit, delete, forvard
-}
-
 public enum MessageAttachmentAction {
     case play, stop, open, save
 }
@@ -29,12 +25,16 @@ public enum MessageRowType {
 public struct MessageRowView<MessageItem: MessageEntity>: View {
     
     var message: MessageItem
+    var isSelected: Bool
+    var messagesActionState: MessageAction
+    var fileTuple: (type: String, image: Image?, url: URL?)?
     @Binding var isPlaying: Bool
     @Binding var currentTime: TimeInterval
-    var playingMessageId: String
+    var playingMessage: MessageIdsInfo
     let onTap: (_ action: MessageAttachmentAction, _ url: URL?) -> Void
     let onPlay: (_ action: MessageAttachmentAction, _ data: Data?, _ url: URL?) -> Void
     let onAIFeature: (_ type: AIFeatureType, _ message: MessageItem) -> Void
+    let onSelect: (_ item: MessageItem, _ actionType: MessageAction) -> Void
     @Binding var aiAnswerWaiting: AIAnswerInfo
     
 
@@ -44,18 +44,38 @@ public struct MessageRowView<MessageItem: MessageEntity>: View {
         switch message.rowType {
         case .dateDivider: DateDividerMessageRowView(message: message)
         case .event: EventMessageRow(message: message)
-        case .inboundAudio: InboundAudioMessageRow(message: message, onTap: onPlay, playingMessageId: playingMessageId, isPlaying: isPlaying, currentTime: currentTime)
-        case .inboundChat: InboundChatMessageRow(message: message, onAIFeature: onAIFeature, aiAnswerWaiting: aiAnswerWaiting)
-        case .inboundImage: InboundImageMessageRow(message: message, onTap: onTap)
-        case .inboundVideo: InboundVideoMessageRow(message: message, onTap: onTap)
-        case .inboundPDF: InboundFileMessageRow(message: message, onTap: onTap)
-        case .inboundGIF: InboundGIFMessageRow(message: message, onTap: onTap)
-        case .outboundAudio: OutboundAudioMessageRow(message: message, onTap: onPlay, playingMessageId: playingMessageId, isPlaying: isPlaying, currentTime: currentTime)
-        case .outboundChat: OutboundChatMessageRow(message: message)
-        case .outboundImage: OutboundImageMessageRow(message: message, onTap: onTap)
-        case .outboundVideo: OutboundVideoMessageRow(message: message, onTap: onTap)
-        case .outboundPDF: OutboundFileMessageRow(message: message, onTap: onTap)
-        case .outboundGIF: OutboundGIFMessageRow(message: message, onTap: onTap)
+        case .inboundAudio: InboundAudioMessageRow(message: message, messagesActionState: messagesActionState, isSelected: isSelected, onTap: onPlay, playingMessage: playingMessage, isPlaying: isPlaying, currentTime: currentTime, onSelect: onSelect)
+        case .inboundChat: InboundChatMessageRow(message: message, messagesActionState: messagesActionState, isSelected: isSelected,onAIFeature: onAIFeature, aiAnswerWaiting: aiAnswerWaiting, onSelect: onSelect)
+        case .inboundImage: InboundImageMessageRow(message: message, fileTuple: fileTuple, messagesActionState: messagesActionState, isSelected: isSelected, onTap: onTap, onSelect: onSelect)
+        case .inboundVideo: InboundVideoMessageRow(message: message, fileTuple: fileTuple, messagesActionState: messagesActionState, isSelected: isSelected, onTap: onTap, onSelect: onSelect)
+        case .inboundPDF: InboundFileMessageRow(message: message, messagesActionState: messagesActionState, isSelected: isSelected, onTap: onTap, onSelect: onSelect)
+        case .inboundGIF: InboundGIFMessageRow(message: message, fileTuple: fileTuple, messagesActionState: messagesActionState, isSelected: isSelected, onTap: onTap, onSelect: onSelect)
+        case .outboundAudio: OutboundAudioMessageRow(message: message, messagesActionState: messagesActionState, relatedTime: nil, relatedStatus: nil, isSelected: isSelected,onTap: onPlay, playingMessage: playingMessage, isPlaying: isPlaying, currentTime: currentTime, onSelect: onSelect)
+        case .outboundChat: OutboundChatMessageRow(message: message, messagesActionState: messagesActionState, relatedTime: nil, relatedStatus: nil, isSelected: isSelected, onSelect: onSelect)
+        case .outboundImage: OutboundImageMessageRow(message: message, fileTuple: fileTuple, messagesActionState: messagesActionState, relatedTime: nil, relatedStatus: nil, isSelected: isSelected, onTap: onTap, onSelect: onSelect)
+        case .outboundVideo: OutboundVideoMessageRow(message: message, fileTuple: fileTuple, messagesActionState: messagesActionState, relatedTime: nil, relatedStatus: nil, isSelected: isSelected, onTap: onTap, onSelect: onSelect)
+        case .outboundPDF: OutboundFileMessageRow(message: message, messagesActionState: messagesActionState, relatedTime: nil, relatedStatus: nil, isSelected: isSelected, onTap: onTap, onSelect: onSelect)
+        case .outboundGIF: OutboundGIFMessageRow(message: message, fileTuple: fileTuple, messagesActionState: messagesActionState, relatedTime: nil, relatedStatus: nil, isSelected: isSelected, onTap: onTap, onSelect: onSelect)
+        }
+    }
+}
+
+extension MessageStatus {
+    var image: Image {
+        let settings = QuickBloxUIKit.settings.dialogScreen.messageRow
+        switch self {
+        case .read: return settings.readImage
+        case .delivered: return settings.deliveredImage
+        case .send: return settings.sendImage
+        }
+    }
+    
+    var color: Color {
+        let settings = QuickBloxUIKit.settings.dialogScreen.messageRow
+        switch self {
+        case .read: return settings.readForeground
+        case .delivered: return settings.deliveredForeground
+        case .send: return settings.sendForeground
         }
     }
 }
@@ -128,6 +148,20 @@ extension MessageEntity {
                 return .inboundChat
             }
         }
+    }
+    
+    var attachmentPlaceholder: Image? {
+        let settings = QuickBloxUIKit.settings.dialogsScreen.dialogRow.lastMessage
+         if isImageMessage {
+            return settings.imagePlaceholder
+        } else if isVideoMessage {
+            return settings.videoPlaceholder
+        } else if isAudioMessage {
+            return settings.audioPlaceholder
+        } else if isFileMessage {
+            return settings.filePlaceholder
+        }
+        return nil
     }
 }
 

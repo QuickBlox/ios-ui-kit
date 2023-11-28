@@ -10,37 +10,43 @@ import SwiftUI
 import QuickBloxDomain
 
 public struct MessageRowText: View {
+    @Environment(\.openURL) var openURL
+    
     var settings = QuickBloxUIKit.settings.dialogScreen.messageRow
-    var aiFeatures = QuickBloxUIKit.feature.ai
+    var features = QuickBloxUIKit.feature
     
     let isOutbound: Bool
     var text: String = ""
     
     public var body: some View {
         if text.containtsLink == true {
-            Text(text.makeAttributedString(isOutbound == true ? settings.outboundForeground : settings.inboundForeground,
-                                           linkColor: isOutbound == true ? settings.outboundLinkForeground : settings.inboundLinkForeground,
-                                           linkFont: settings.linkFont,
-                                           underline: settings.linkUnderline))
-            .lineLimit(nil)
-            .multilineTextAlignment(.leading)
-            .font(isOutbound == true ? settings.outboundFont : settings.inboundFont)
-            .padding(settings.messagePadding)
-            .frame(minWidth: aiFeatures.translate.enable == true ? aiFeatures.ui.translate.width : 0, alignment: .leading)
-            .background(isOutbound == true ? settings.outboundBackground : settings.inboundBackground)
-            .cornerRadius(settings.bubbleRadius, corners: isOutbound == true ? settings.outboundCorners : settings.inboundCorners)
-            .animation(.easeInOut, value: text)
+            
+            Button {
+                if let url = text.link {
+                    openURL(url)
+                }
+            } label: {
+                Text(text.makeAttributedString(isOutbound == true ? settings.outboundForeground : settings.inboundForeground,
+                                               linkColor: isOutbound == true ? settings.outboundLinkForeground : settings.inboundLinkForeground,
+                                               linkFont: settings.linkFont,
+                                               underline: settings.linkUnderline))
+                .lineLimit(nil)
+                .multilineTextAlignment(.leading)
+                .font(isOutbound == true ? settings.outboundFont : settings.inboundFont)
+                .padding(settings.messagePadding)
+                .frame(minWidth: features.ai.translate.enable == true ? features.ai.ui.translate.width : 0, alignment: .leading)
+                .background(isOutbound == true ? settings.outboundBackground : settings.inboundBackground)
+                .animation(.easeInOut, value: text)
+            }
         } else {
-            Text(text)
+            Text(text == features.forward.forwardedMessageKey ? features.forward.forwardedMessage : text)
                 .lineLimit(nil)
                 .font(isOutbound == true ? settings.outboundFont : settings.inboundFont)
                 .foregroundColor(isOutbound == true ? settings.outboundForeground : settings.inboundForeground)
                 .padding(settings.messagePadding)
-                .frame(minWidth: aiFeatures.translate.enable == true ? aiFeatures.ui.translate.width : 0, alignment: .leading)
+                .frame(minWidth: features.ai.translate.enable == true ? features.ai.ui.translate.width : 0, alignment: .leading)
                 .background(isOutbound == true ? settings.outboundBackground : settings.inboundBackground)
-                .cornerRadius(settings.bubbleRadius, corners: isOutbound == true ? settings.outboundCorners : settings.inboundCorners)
-                .animation(.easeInOut, value: text)
-        }
+                .animation(.easeInOut, value: text)        }
     }
 }
 

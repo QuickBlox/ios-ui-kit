@@ -32,9 +32,13 @@ public struct RemoteMessageDTO: Equatable {
     var eventType: MessageEventType = .message
     var type: MessageType = .chat
     var saveToHistory: Bool = true
+    var actionType: MessageAction = .none
+    var originSenderName: String = ""
+    var originalMessages: [RemoteMessageDTO] = []
+    var relatedId = ""
 }
 
-public struct RemoteFileInfoDTO: Equatable {
+public struct RemoteFileInfoDTO: Equatable, Codable {
     var id = ""
     var name = ""
     var type = ""

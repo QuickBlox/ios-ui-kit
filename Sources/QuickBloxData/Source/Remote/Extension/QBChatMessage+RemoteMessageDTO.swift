@@ -57,6 +57,29 @@ extension QBChatMessage {
             return attachment
         }
         
+        switch value.actionType {
+        case .forward:
+            customParameters[QBChatMessage.Key.messageAction]
+            = QBChatMessage.ActionValue.forward
+            customParameters[QBChatMessage.Key.originSenderName]
+            = value.originSenderName
+            if value.originalMessages.isEmpty == false {
+                customParameters[QBChatMessage.Key.originalMessages]
+                = originalMessages(value.originalMessages)
+            }
+        case .reply:
+            customParameters[QBChatMessage.Key.messageAction]
+            = QBChatMessage.ActionValue.reply
+            customParameters[QBChatMessage.Key.originSenderName]
+            = value.originSenderName
+            if value.originalMessages.isEmpty == false {
+                customParameters[QBChatMessage.Key.originalMessages]
+                = originalMessages(value.originalMessages)
+            }
+        default:
+            break
+        }
+        
         delayed = value.delayed
         markable = value.markable
         
@@ -64,5 +87,24 @@ extension QBChatMessage {
         : value.readIds.compactMap { NSNumber(value: UInt($0) ?? 0) }
         deliveredIDs = toSend == true ? [NSNumber(value: QBSession.current.currentUserID)]
         : value.deliveredIds.compactMap { NSNumber(value: UInt($0) ?? 0) }
+    }
+    
+    private func originalMessages(_ messages: [RemoteMessageDTO]) -> String {
+        let payload = messages.compactMap{ RemoteOriginalMessageDTO($0) }
+        
+        let jsonEncoder = JSONEncoder()
+        jsonEncoder.outputFormatting = .withoutEscapingSlashes
+        jsonEncoder.dateEncodingStrategy = .iso8601
+        
+        do {
+            let encodeOriginalMessages = try jsonEncoder.encode(payload)
+            guard let endcodeString = String(data: encodeOriginalMessages, encoding: .utf8) else {
+                return ""
+            }
+            return endcodeString
+        } catch {
+            print(error.localizedDescription)
+            return ""
+        }
     }
 }

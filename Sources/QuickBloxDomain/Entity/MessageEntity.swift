@@ -25,9 +25,16 @@ public enum MessageType: Codable {
     case system
 }
 
+public enum MessageAction: Codable {
+    case none
+    case forward
+    case reply
+}
+
 /// Describes a set of data and functions that represent a message entity.
 public protocol MessageEntity: Entity {
     associatedtype FileInfoItem: FileInfoEntity
+    associatedtype OriginalMessageItem: MessageEntity
     
     var id: String { get set }
     /// This property hold the actual text that is being exchanged between the user and the system during the conversation.
@@ -47,6 +54,10 @@ public protocol MessageEntity: Entity {
     var isRead: Bool { get set }
     var eventType: MessageEventType { get set }
     var type: MessageType { get set }
+    var actionType: MessageAction { get set }
+    var originSenderName: String? { get set }
+    var originalMessages: [OriginalMessageItem] { get set }
+    var relatedId: String { get set }
     
     init(id: String, dialogId: String, type: MessageType)
 }
@@ -65,7 +76,12 @@ extension MessageEntity {
                 isRead: Bool = false,
                 eventType: MessageEventType = .message,
                 type: MessageType = .chat,
-                fileInfo: FileInfoItem? = nil) {
+                fileInfo: FileInfoItem? = nil,
+                actionType: MessageAction = .none,
+                originSenderName: String? = nil,
+                originalMessages: [OriginalMessageItem] = [],
+                relatedId: String  = ""
+    ) {
         self.init(id: id, dialogId: dialogId, type: type)
         self.text = text
         self.translatedText = translatedText
@@ -78,5 +94,9 @@ extension MessageEntity {
         self.isRead = isRead
         self.eventType = eventType
         self.fileInfo = fileInfo
+        self.actionType = actionType
+        self.originSenderName = originSenderName
+        self.originalMessages = originalMessages
+        self.relatedId = relatedId
     }
 }
