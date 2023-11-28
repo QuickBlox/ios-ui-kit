@@ -138,6 +138,12 @@ public protocol ThemeImageProtocol {
     var speakerwave: Image { get set }
     var message: Image { get set }
     var robot: Image { get set }
+    var reply: Image { get set }
+    var replyFilled: Image { get set }
+    var forward: Image { get set }
+    var forwardIcon: Image { get set }
+    var forwardFilled: Image { get set }
+    var save: Image { get set }
 }
 
 public class ThemeImage: ThemeImageProtocol {
@@ -181,6 +187,12 @@ public class ThemeImage: ThemeImageProtocol {
     public var speakerwave: Image = Image(systemName: "speaker.wave.1.fill")
     public var message: Image = Image(systemName: "message")
     public var robot: Image = Image("Robot", bundle: .module)
+    public var reply: Image = Image(systemName: "arrowshape.turn.up.backward")
+    public var replyFilled: Image = Image(systemName: "arrowshape.turn.up.left.fill")
+    public var forward: Image = Image(systemName: "arrowshape.turn.up.left.2")
+    public var forwardIcon: Image = Image("forwardIcon", bundle: .module)
+    public var forwardFilled: Image = Image("forwardFilled", bundle: .module)
+    public var save: Image = Image(systemName: "folder")
     
     public init() {}
 }
@@ -301,6 +313,14 @@ public protocol ThemeStringProtocol {
     var connected: String { get set }
     var unauthorized: String { get set }
     var authorized: String { get set }
+    
+    var reply: String { get set }
+    var forward: String { get set }
+    var save: String { get set }
+    var forwardedFrom: String { get set }
+    var repliedTo: String { get set }
+    var forwardSuccess: String { get set }
+    var forwardFailure: String { get set }
 }
 
 public class ThemeString: ThemeStringProtocol {
@@ -404,6 +424,14 @@ public class ThemeString: ThemeStringProtocol {
     public var connected: String = String(localized: "utils.string.connected", bundle: .module)
     public var unauthorized: String = String(localized: "utils.string.unauthorized", bundle: .module)
     public var authorized: String = String(localized: "utils.string.authorized", bundle: .module)
+    
+    public var reply: String = String(localized: "features.action.reply", bundle: .module)
+    public var forward: String = String(localized: "features.action.forward", bundle: .module)
+    public var save: String = String(localized: "features.action.save", bundle: .module)
+    public var forwardedFrom: String = String(localized: "features.action.forwardedfrom", bundle: .module)
+    public var repliedTo: String = String(localized: "features.action.repliedTo", bundle: .module)
+    public var forwardSuccess: String = String(localized: "features.action.forwardSuccess", bundle: .module)
+    public var forwardFailure: String = String(localized: "features.action.forwardFailure", bundle: .module)
     
     public init() {}
 }

@@ -16,7 +16,7 @@ public enum DialogType: Codable {
     case unknown
 }
 
-public protocol LastMessageEntity: Entity {
+public protocol LastMessageEntity: Entity, Equatable {
     var id: String { get set }
     var text: String { get set }
     var dateSent: Date? { get set }

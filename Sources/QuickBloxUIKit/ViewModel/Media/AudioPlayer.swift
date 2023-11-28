@@ -61,18 +61,27 @@ open class AudioPlayer: NSObject, ObservableObject, AVAudioPlayerDelegate {
         }
         
         let asset = AVAsset(url: audioURL)
-        asset.loadValuesAsynchronously(forKeys: ["duration"], completionHandler: {
-            debugPrint(asset.duration)
-            self.duration = asset.duration
-        })
         
-        let playerItem = AVPlayerItem(asset: asset)
-        audioPlayer = AVPlayer(playerItem:playerItem)
-        audioPlayer.rate = 1.0;
-        addObservers()
-        audioPlayer.play()
-        currentTime = 0.0
-        isPlaying = true
+        Task { [weak self] in
+            guard let self = self else { return }
+            do {
+                let duration = try await asset.load(.duration)
+                
+                await MainActor.run { [weak self, duration, asset] in
+                    guard let self = self else { return }
+                    self.duration = duration
+                    let playerItem = AVPlayerItem(asset: asset)
+                    self.audioPlayer = AVPlayer(playerItem:playerItem)
+                    self.audioPlayer.rate = 1.0;
+                    self.addObservers()
+                    self.audioPlayer.play()
+                    self.currentTime = 0.0
+                    self.isPlaying = true
+                }
+            } catch {
+                print("Playing failed error = \(error)")
+            }
+        }
     }
     
     public func stop() {

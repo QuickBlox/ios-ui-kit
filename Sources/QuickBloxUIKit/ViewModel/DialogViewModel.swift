@@ -33,6 +33,7 @@ public struct AttachmentAsset {
 
 public struct AIAnswerInfo {
     var id: String = ""
+    var relatedId: String = ""
     var waiting: Bool = false
 }
 
@@ -46,6 +47,11 @@ public struct PermissionInfo {
     var notGranted: Bool = false
 }
 
+public struct MessageIdsInfo: Hashable {
+    var messageId: String
+    var relatedId: String
+}
+
 public protocol PermissionProtocol: ObservableObject {
     var permissionNotGranted: PermissionInfo { get set }
     
@@ -53,7 +59,7 @@ public protocol PermissionProtocol: ObservableObject {
     func requestPermission(_ mediaType: AVMediaType, completion: @escaping (_ granted: Bool) -> Void)
 }
 
-public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel, PermissionProtocol  {
+public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel, PermissionProtocol {
     associatedtype DialogItem: DialogEntity
     
     var syncState: SyncState { get set }
@@ -69,17 +75,22 @@ public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel, PermissionProt
     var waitingAnswer: AIAnswerInfo { get set }
     var isProcessing: Bool { get set }
     var tones: [QBAIRephrase.AITone] { get set }
+    var selectedMessages: [DialogItem.MessageItem] { get set }
+    var messagesActionState: MessageAction { get set }
+    var filesInfo: [MessageIdsInfo: (type: String, image: Image?, url: URL?)] { get set }
     
-    func stopPlayng()
     func startRecording()
     func stopRecording()
     func deleteRecording()
     func sendMessage(_ text: String)
     func handleOnSelect(attachment: AttachmentAsset)
     func handleOnAppear(_ message: DialogItem.MessageItem)
-    func playAudio(_ url: URL, action: MessageAttachmentAction)
+    func playAudio(_ url: URL, action: MessageAttachmentAction, for message: MessageIdsInfo)
+    func stopPlayng()
     func sendStopTyping()
     func sendTyping()
+    func handleOnSelect(_ item: DialogItem.MessageItem, actionType: MessageAction)
+    func cancelMessageAction()
     func applyAIAnswerAssist(_ message: DialogItem.MessageItem)
     func applyAITranslate(_ message: DialogItem.MessageItem)
     func applyAIRephrase(_ tone: QBAIRephrase.AITone, text: String, needToUpdate: Bool)
@@ -103,10 +114,12 @@ open class DialogViewModel: DialogViewModelProtocol {
     @Published public var audioPlayer = AudioPlayer()
     @Published public var deleteDialog: Bool = false
     @Published public var typing: String = ""
+    @Published public var messagesActionState: MessageAction = .none
     @Published public var aiAnswer: String = ""
     @Published public var permissionNotGranted: PermissionInfo = PermissionInfo(mediaType: .audio)
     @Published public var isProcessing: Bool = false
     @Published public var syncState: SyncState = .synced
+    @Published public var selectedMessages: [DialogItem.MessageItem] = []
     @Published public var error = ""
     @Published public var aiAnswerFailed: AIAnswerFailedInfo = AIAnswerFailedInfo() {
         didSet {
@@ -125,14 +138,14 @@ open class DialogViewModel: DialogViewModelProtocol {
     }()
     
     private var isExistingImage: Bool {
-        if dialog.photo == "null" { return false }
         return dialog.photo.isEmpty == false
     }
     
-    var audioRecorder: AudioRecorder = AudioRecorder()
+    private var audioRecorder: AudioRecorder = AudioRecorder()
     
     public var withAnimation: Bool = false
     
+    @Published public var filesInfo: [MessageIdsInfo: (type: String, image: Image?, url: URL?)]  = [:]
     @Published public var isLoading = CurrentValueSubject<Bool, Never>(false)
     
     private let dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs
@@ -211,6 +224,7 @@ open class DialogViewModel: DialogViewModelProtocol {
     }
     
     public func sync() {
+        isProcessing = true
         if syncDialog == nil {
             syncDialog = SyncDialog(dialogId: dialog.id,
                                     dialogsRepo: dialogsRepo,
@@ -221,7 +235,10 @@ open class DialogViewModel: DialogViewModelProtocol {
             .receive(on: RunLoop.main)
             .debounce(for: .seconds(1.0), scheduler: DispatchQueue.main)
             .sink { [weak self] dialog in
-                if dialog.messages.count == 0 { return }
+                if dialog.type != .private, dialog.messages.count == 0 {
+                    self?.isProcessing = false
+                    return
+                }
                 self?.isProcessing = true
                 self?.dialog = dialog
                 if let draftAttachmentMessage = self?.draftAttachmentMessage {
@@ -285,11 +302,21 @@ open class DialogViewModel: DialogViewModelProtocol {
         isProcessing = true
         sendStopTyping()
         
+        var originalMessage: DialogItem.MessageItem? = nil
+        var actionState: MessageAction = .none
+        if let selectedMessage = selectedMessages.first, messagesActionState == .reply {
+            originalMessage = selectedMessage
+            actionState = .reply
+            messagesActionState = .none
+        }
+        
         draftAttachmentMessage = Message(dialogId: dialog.id,
                                          text: "[Attachment]",
                                          isOwnedByCurrentUser: true,
                                          type: .chat,
-                                         fileInfo: FileInfo(id: UUID().uuidString, ext: ext, name: "Draft/Attachment"))
+                                         fileInfo: FileInfo(id: UUID().uuidString,
+                                                            ext: ext,
+                                                            name: "Draft/Attachment"))
         
         if let draftAttachmentMessage {
             dialog.messages.append(draftAttachmentMessage)
@@ -303,19 +330,46 @@ open class DialogViewModel: DialogViewModelProtocol {
                                             repo: RepositoriesFabric.files)
                 let file = try await uploadFile.execute()
                 
-                let message = Message(dialogId: dialog.id,
-                                      text: attachmentMessageText(file.info),
-                                      isOwnedByCurrentUser: true,
-                                      type: .chat,
-                                      fileInfo: file.info)
-                
-                let sendMessage = SendMessage(message: message,
-                                              messageRepo: RepositoriesFabric.messages)
-                try await sendMessage.execute()
-                draftAttachmentMessage = nil
-                await MainActor.run { [weak self] in
-                    guard let self = self else { return }
-                    self.isProcessing = false
+                if actionState == .reply,
+                   let originalMessage {
+                    let originSenderName = try await originalMessage.userName
+                    
+                    self.messagesActionState = .none
+                    
+                    let message = Message(dialogId: dialog.id,
+                                          text: attachmentMessageText(file.info),
+                                          isOwnedByCurrentUser: true,
+                                          type: .chat,
+                                          fileInfo: file.info,
+                                          actionType: .reply,
+                                          originSenderName: originSenderName,
+                                          originalMessages: selectedMessages)
+                    
+                    let sendMessage = SendMessage(message: message,
+                                                  messageRepo: RepositoriesFabric.messages)
+                    try await sendMessage.execute()
+                    cancelMessageAction()
+                    draftAttachmentMessage = nil
+                    await MainActor.run { [weak self] in
+                        guard let self = self else { return }
+                        self.isProcessing = false
+                    }
+                } else {
+                    let message = Message(dialogId: dialog.id,
+                                          text: attachmentMessageText(file.info),
+                                          isOwnedByCurrentUser: true,
+                                          type: .chat,
+                                          fileInfo: file.info,
+                                          actionType: .none)
+                    
+                    let sendMessage = SendMessage(message: message,
+                                                  messageRepo: RepositoriesFabric.messages)
+                    try await sendMessage.execute()
+                    draftAttachmentMessage = nil
+                    await MainActor.run { [weak self] in
+                        guard let self = self else { return }
+                        self.isProcessing = false
+                    }
                 }
             } catch {
                 prettyLog(error)
@@ -341,12 +395,67 @@ open class DialogViewModel: DialogViewModelProtocol {
         sendStopTyping()
         
         if let voiceMessage = audioRecorder.audioRecording {
-            let name = "\(voiceMessage.createdAt)"
-            
-            Task { [weak self] in
+            sendVoiceMessage(voiceMessage)
+        } else if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
+            sendTextMessage(text.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+    }
+    
+    private func sendTextMessage(_ text: String) {
+        Task { [weak self] in
+            do {
                 guard let dialogId = self?.dialog.id, let self = self else { return }
                 
-                let data = try Data(contentsOf: voiceMessage.audioURL)
+                if messagesActionState == .reply,
+                   let originalMessage = self.selectedMessages.first {
+                    let originSenderName = try await originalMessage.userName
+                    
+                    let message = Message(dialogId: dialogId,
+                                          text: text,
+                                          isOwnedByCurrentUser: true,
+                                          type: .chat,
+                                          actionType: .reply,
+                                          originSenderName: originSenderName,
+                                          originalMessages: selectedMessages)
+                    
+                    let sendMessage = SendMessage(message: message,
+                                                  messageRepo: RepositoriesFabric.messages)
+                    try await sendMessage.execute()
+                    self.audioRecorder.delete()
+                    cancelMessageAction()
+                    draftAttachmentMessage = nil
+                    await MainActor.run { [weak self] in
+                        guard let self = self else { return }
+                        self.isProcessing = false
+                    }
+                } else {
+                    let message = Message(dialogId: dialogId,
+                                          text: text,
+                                          type: .chat)
+                    
+                    let sendMessage = SendMessage(message: message,
+                                                  messageRepo: RepositoriesFabric.messages)
+                    try await sendMessage.execute()
+                    self.audioRecorder.delete()
+                    cancelMessageAction()
+                    draftAttachmentMessage = nil
+                    await MainActor.run { [weak self] in
+                        guard let self = self else { return }
+                        self.isProcessing = false
+                    }
+                }
+            } catch { prettyLog(error) }
+        }
+    }
+    
+    private func sendVoiceMessage(_ voice: AudioRecording) {
+        let name = "\(voice.createdAt)"
+        
+        Task { [weak self] in
+            do {
+                guard let dialogId = self?.dialog.id, let self = self else { return }
+                
+                let data = try Data(contentsOf: voice.audioURL)
                 //TODO: get extention (.m4a) from the audioRecorder
                 let uploadFile = UploadFile(data: data,
                                             ext: .m4a,
@@ -354,36 +463,69 @@ open class DialogViewModel: DialogViewModelProtocol {
                                             repo: RepositoriesFabric.files)
                 let file = try await uploadFile.execute()
                 
-                let message = Message(dialogId: dialogId,
-                                      text: self.attachmentMessageText(file.info),
-                                      type: .chat,
-                                      fileInfo: file.info)
-                let sendMessage = SendMessage(message: message,
-                                              messageRepo: RepositoriesFabric.messages)
-                try await sendMessage.execute()
-                self.audioRecorder.delete()
-            }
-        } else if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
-            let message = Message(dialogId: dialog.id,
-                                  text: text.trimmingCharacters(in: .whitespacesAndNewlines),
-                                  type: .chat)
-            
-            let sendMessage = SendMessage(message: message,
-                                          messageRepo: RepositoriesFabric.messages)
-            
-            Task {
-                do {
+                if messagesActionState == .reply,
+                   let originalMessage = self.selectedMessages.first {
+                    let originSenderName = try await originalMessage.userName
+                    
+                    let message = Message(dialogId: dialog.id,
+                                          text: self.attachmentMessageText(file.info),
+                                          isOwnedByCurrentUser: true,
+                                          type: .chat,
+                                          fileInfo: file.info,
+                                          actionType: .reply,
+                                          originSenderName: originSenderName,
+                                          originalMessages: selectedMessages)
+                    
+                    let sendMessage = SendMessage(message: message,
+                                                  messageRepo: RepositoriesFabric.messages)
                     try await sendMessage.execute()
-                } catch { prettyLog(error) }
-            }
+                    self.audioRecorder.delete()
+                    cancelMessageAction()
+                    draftAttachmentMessage = nil
+                    await MainActor.run { [weak self] in
+                        guard let self = self else { return }
+                        self.isProcessing = false
+                    }
+                } else {
+                    let message = Message(dialogId: dialogId,
+                                          text: self.attachmentMessageText(file.info),
+                                          type: .chat,
+                                          fileInfo: file.info)
+                    
+                    let sendMessage = SendMessage(message: message,
+                                                  messageRepo: RepositoriesFabric.messages)
+                    try await sendMessage.execute()
+                    self.audioRecorder.delete()
+                    self.cancelMessageAction()
+                    await MainActor.run { [weak self] in
+                        guard let self = self else { return }
+                        self.isProcessing = false
+                    }
+                }
+            } catch { prettyLog(error) }
         }
     }
     
     public func handleOnAppear(_ message: QuickBloxData.Message) {
+        if (message.isImageMessage || message.isVideoMessage) && filesInfo[MessageIdsInfo(messageId: message.id, relatedId: message.relatedId)] == nil {
+            let imageSize = QuickBloxUIKit.settings.dialogScreen.messageRow.imageSize
+            Task {
+                do {
+                    let fileTuple = try await message.file(size: imageSize)
+                    if let fileTuple {
+                        self.filesInfo[MessageIdsInfo(messageId: message.id, relatedId: message.relatedId)] = fileTuple
+                    }
+                } catch { prettyLog(error)}
+            }
+        }
+        
         if message.isOwnedByCurrentUser {
             return
         }
         if message.isRead {
+            return
+        }
+        if message.relatedId.isEmpty == false {
             return
         }
         if message.userId.isEmpty == true {
@@ -410,10 +552,32 @@ open class DialogViewModel: DialogViewModelProtocol {
         }
     }
     
+    public func handleOnSelect(_ item: DialogItem.MessageItem, actionType: MessageAction) {
+        messagesActionState = actionType
+        didSelect(single: true, item: item)
+    }
+    
+    private func didSelect(single: Bool, item: DialogItem.MessageItem) {
+        if selectedMessages.contains(where: { $0.id == item.id && $0.relatedId == item.relatedId}) == true,
+           single == false {
+            selectedMessages.removeAll(where: { $0.id == item.id && $0.relatedId == item.relatedId })
+        } else {
+            if single {
+                selectedMessages = []
+            }
+            selectedMessages.append(item)
+        }
+    }
+    
+    public func cancelMessageAction() {
+        messagesActionState = .none
+        selectedMessages = []
+    }
+    
     //MARK: - AI Features
     public func applyAIAnswerAssist(_ message: DialogItem.MessageItem) {
         
-        waitingAnswer = AIAnswerInfo(id: message.id, waiting: true)
+        waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: true)
         aiAnswer = ""
         
         let messages = filterTextHistory(from: message.date)
@@ -444,7 +608,7 @@ open class DialogViewModel: DialogViewModelProtocol {
         }
         
         guard let settings = settings else {
-            waitingAnswer = AIAnswerInfo(id: message.id, waiting: false)
+            waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: false)
             self.aiAnswer = message.text
             return
         }
@@ -466,45 +630,45 @@ open class DialogViewModel: DialogViewModelProtocol {
                 }            }
             await MainActor.run { [weak self] in
                 guard let self = self else { return }
-                self.waitingAnswer = AIAnswerInfo(id: message.id, waiting: false)
+                self.waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: false)
             }
         }
     }
     
     public func applyAITranslate(_ message: DialogItem.MessageItem) {
-        waitingAnswer = AIAnswerInfo(id: message.id, waiting: true)
+        waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: true)
         
         let messages = filterTextHistory(from: message.date)
         
-        let translate = QuickBloxUIKit.feature.ai.translate
+        let translateSettings = QuickBloxUIKit.feature.ai.translate
         
         var settings: QBAITranslate.AISettings?
         
-        if translate.serverPath.isEmpty == false {
+        if translateSettings.serverPath.isEmpty == false {
             
             settings = QBAITranslate.AISettings(token: "",
-                                                serverPath: translate.serverPath,
-                                                language: translate.language,
-                                                apiVersion: translate.apiVersion,
-                                                organization: translate.organization,
-                                                model: translate.model,
-                                                temperature: translate.temperature,
-                                                maxRequestTokens: translate.maxRequestTokens,
-                                                maxResponseTokens: translate.maxResponseTokens)
-        } else if translate.apiKey.isEmpty == false {
+                                                serverPath: translateSettings.serverPath,
+                                                language: translateSettings.language,
+                                                apiVersion: translateSettings.apiVersion,
+                                                organization: translateSettings.organization,
+                                                model: translateSettings.model,
+                                                temperature: translateSettings.temperature,
+                                                maxRequestTokens: translateSettings.maxRequestTokens,
+                                                maxResponseTokens: translateSettings.maxResponseTokens)
+        } else if translateSettings.apiKey.isEmpty == false {
             
-            settings = QBAITranslate.AISettings(apiKey: translate.apiKey,
-                                                language: translate.language,
-                                                apiVersion: translate.apiVersion,
-                                                organization: translate.organization,
-                                                model: translate.model,
-                                                temperature: translate.temperature,
-                                                maxRequestTokens: translate.maxRequestTokens,
-                                                maxResponseTokens: translate.maxResponseTokens)
+            settings = QBAITranslate.AISettings(apiKey: translateSettings.apiKey,
+                                                language: translateSettings.language,
+                                                apiVersion: translateSettings.apiVersion,
+                                                organization: translateSettings.organization,
+                                                model: translateSettings.model,
+                                                temperature: translateSettings.temperature,
+                                                maxRequestTokens: translateSettings.maxRequestTokens,
+                                                maxResponseTokens: translateSettings.maxResponseTokens)
         }
         
         guard let settings = settings else {
-            waitingAnswer = AIAnswerInfo(id: message.id, waiting: false)
+            waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: false)
             self.aiAnswer = message.text
             return
         }
@@ -518,17 +682,30 @@ open class DialogViewModel: DialogViewModelProtocol {
                     await MainActor.run { [weak self] in
                         guard let self = self else { return }
                         self.aiAnswerFailed = AIAnswerFailedInfo(feature: .translate, failed: true)
-                        self.waitingAnswer = AIAnswerInfo(id: message.id, waiting: false)
+                        self.waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: false)
                     }
                     return
                 }
                 var translatedMessage = message
                 translatedMessage.translatedText = translatedText
-                guard let self = self,
-                      let index = self.dialog.messages.firstIndex(where: { $0.id == message.id }) else {
-                    return
+                guard let self = self else { return }
+                
+                if message.relatedId.isEmpty == false {
+                    guard let index = self.dialog.messages.firstIndex(where: { $0.id == message.relatedId }),
+                          let originalMessageIndex = self.dialog.messages[index].originalMessages.firstIndex(where: { $0.id == message.id && $0.relatedId == message.relatedId }) else {
+                        self.aiAnswerFailed = AIAnswerFailedInfo(feature: .translate, failed: true)
+                        self.waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: false)
+                        return
+                    }
+                    self.dialog.messages[index].originalMessages[originalMessageIndex] = translatedMessage
+                } else {
+                    guard let index = self.dialog.messages.firstIndex(where: { $0.id == message.id && $0.relatedId == message.relatedId }) else {
+                        self.aiAnswerFailed = AIAnswerFailedInfo(feature: .translate, failed: true)
+                        self.waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: false)
+                        return
+                    }
+                    self.dialog.messages[index] = translatedMessage
                 }
-                self.dialog.messages[index] = translatedMessage
             } catch {
                 prettyLog(error)
                 await MainActor.run { [weak self] in
@@ -538,7 +715,7 @@ open class DialogViewModel: DialogViewModelProtocol {
             }
             await MainActor.run { [weak self] in
                 guard let self = self else { return }
-                self.waitingAnswer = AIAnswerInfo(id: message.id, waiting: false)
+                self.waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: false)
             }
         }
     }
@@ -547,7 +724,7 @@ open class DialogViewModel: DialogViewModelProtocol {
         
         let messages = filterTextHistory(from: Date())
         
-        waitingAnswer = AIAnswerInfo(id: "", waiting: true)
+        waitingAnswer = AIAnswerInfo(id: "", relatedId: "", waiting: true)
         aiAnswer = ""
         
         if needToUpdate == true || rephrasedContent[.original] == nil {
@@ -556,13 +733,13 @@ open class DialogViewModel: DialogViewModelProtocol {
         }
         
         if let rephrased = rephrasedContent[tone] {
-            waitingAnswer = AIAnswerInfo(id: "", waiting: false)
+            waitingAnswer = AIAnswerInfo(id: "", relatedId: "", waiting: false)
             self.aiAnswer = rephrased
             return
         }
         
         if tone == .original {
-            waitingAnswer = AIAnswerInfo(id: "", waiting: false)
+            waitingAnswer = AIAnswerInfo(id: "", relatedId: "", waiting: false)
             return
         }
         
@@ -593,7 +770,7 @@ open class DialogViewModel: DialogViewModelProtocol {
         }
         
         guard let settings = settings else {
-            waitingAnswer = AIAnswerInfo(id: "", waiting: false)
+            waitingAnswer = AIAnswerInfo(id: "", relatedId: "", waiting: false)
             self.aiAnswer = text
             return
         }
@@ -608,7 +785,7 @@ open class DialogViewModel: DialogViewModelProtocol {
                     
                     if rephrased == "Rephrase failed." {
                         self.aiAnswerFailed = AIAnswerFailedInfo(feature: .rephrase, failed: true)
-                        self.waitingAnswer = AIAnswerInfo(id: "", waiting: false)
+                        self.waitingAnswer = AIAnswerInfo(id: "", relatedId: "", waiting: false)
                         return
                     }
                     self.updateRephrasedContent(tone, rephrased: rephrased)
@@ -623,7 +800,7 @@ open class DialogViewModel: DialogViewModelProtocol {
             }
             await MainActor.run { [weak self] in
                 guard let self = self else { return }
-                self.waitingAnswer = AIAnswerInfo(id: "", waiting: false)
+                self.waitingAnswer = AIAnswerInfo(id: "", relatedId: "", waiting: false)
             }
         }
     }
@@ -665,8 +842,8 @@ open class DialogViewModel: DialogViewModelProtocol {
                     
                     completion(granted)
                 }
-                
             }
+            
         default:
             completion(false)
         }
@@ -691,7 +868,7 @@ public extension DialogViewModel {
         audioRecorder.delete()
     }
     
-    func playAudio(_ url: URL, action: MessageAttachmentAction) {
+    func playAudio(_ url: URL, action: MessageAttachmentAction, for message: MessageIdsInfo) {
         action == .play ? audioPlayer.play(audioURL: url) : audioPlayer.stop()
     }
     
@@ -751,7 +928,7 @@ extension MessageEntity {
     }
 }
 
-private extension FileExtension {
+extension FileExtension {
     var name: String {
         let timeStamp = Date().timeStamp
         switch type {

@@ -71,6 +71,7 @@ where Item == Repo.DialogEntityItem {
                     switch event {
                     case .create(let id, let isCurrent, _):
                         prettyLog(label: "create dialog with id \(id) by current User \(isCurrent) event", id)
+                        if isCurrent == false { return }
                         self?.ids.insert(id)
                     default:
                         break

@@ -415,29 +415,8 @@ where Pagination == DialogsRepo.PaginationItem {
         try await sync(participants: dialog.participantsIds)
         
         if dialog.type != .private {
-            
+            dialog = update(dialog, lastMessage: newMessage)
         }
-        
-        if dialog.isOwnedByCurrentUser == true {
-            if newMessage.isOwnedByCurrentUser == true {
-                if newMessage.eventType == .create {
-                    dialog = update(dialog, lastMessage: newMessage)
-                }
-            } else {
-                dialog = update(dialog, lastMessage: newMessage)
-            }
-        } else {
-            if newMessage.isOwnedByCurrentUser == true {
-                if newMessage.eventType == .create {
-                    dialog = update(dialog, lastMessage: newMessage)
-                }
-            } else {
-                if newMessage.eventType != .create {
-                    dialog = update(dialog, lastMessage: newMessage)
-                }
-            }
-        }
-
         
         let saved = try? await dialogsRepo.get(dialogFromLocal: dialogId)
         if saved == nil {

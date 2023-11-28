@@ -29,6 +29,7 @@ public class DialogInfoScreenSettings {
     public var privateActionSegments: [DialogInfoAction] = [.searchInDialog, .leaveDialog]
     public var editNameAlert: NameEditAlert
     public var editDialogAlert: DialogMediaEditAlert
+    public var forwardAlert: ForwardAlert
     public var backgroundColor: Color
     public var dividerColor: Color
     public var segmentHeight: CGFloat = 56.0
@@ -49,6 +50,7 @@ public class DialogInfoScreenSettings {
         self.leave = LeaveSegment(theme)
         self.editNameAlert = NameEditAlert(theme)
         self.editDialogAlert = DialogMediaEditAlert(theme)
+        self.forwardAlert = ForwardAlert(theme)
         self.dividerColor = theme.color.divider
     }
     
@@ -67,6 +69,35 @@ public class DialogInfoScreenSettings {
             self.font = theme.font.headline
             self.color = theme.color.mainText
         }
+    }
+}
+
+public struct ForwardAlert {
+    public var checkMark: Image
+    public var checkMarkColor: Color
+    public var checkMarkSize: CGSize = CGSize(width: 25, height: 17)
+    public var title: String
+    public var titleForeground: Color
+    public var titleFont: Font
+    public var titleFailure: String
+    public var cornerRadius: CGFloat = 12.0
+    public var size: CGSize = CGSize(width: 235.0, height: 100.0)
+    public var background: Color
+    public var cancel: String
+    public var blurRadius: CGFloat = 12.0
+    
+    public init(_ theme: ThemeProtocol) {
+        self.checkMark = theme.image.send
+        self.checkMarkColor = theme.color.success
+        self.titleForeground = theme.color.system
+        self.titleFont = theme.font.footnote
+        self.background = Color(uiColor: UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark ? UIColor(theme.color.mainBackground)
+            : UIColor(theme.color.secondaryElements)
+        })
+        self.title = theme.string.forwardSuccess
+        self.titleFailure  = theme.string.forwardFailure
+        self.cancel = theme.string.cancel
     }
 }
 

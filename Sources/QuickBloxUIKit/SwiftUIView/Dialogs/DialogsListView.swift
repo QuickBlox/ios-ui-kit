@@ -18,7 +18,7 @@ public struct DialogsListView<DialogsList: DialogsListProtocol, DialogItemView: 
     let settings = QuickBloxUIKit.settings.dialogsScreen
     let connectStatus = QuickBloxUIKit.settings.dialogsScreen.connectStatus
     
-    @StateObject public var dialogsList: DialogsList
+    @ObservedObject public var dialogsList: DialogsList
     
     private var content: (DialogsList.Item) -> DialogItemView
     @State private var searchText = ""
@@ -30,21 +30,19 @@ public struct DialogsListView<DialogsList: DialogsListProtocol, DialogItemView: 
                                 _ onDismiss: @escaping () -> Void) -> DetailView
     
     private var items: [DialogsList.Item] {
-        var dialogs: [DialogsList.Item] = []
         if settings.searchBar.isSearchable == false || submittedSearchTerm.isEmpty {
-            dialogs = dialogsList.dialogs
+            return dialogsList.dialogs
         } else {
-            dialogs = dialogsList.dialogs.filter { $0.name.lowercased()
+            return dialogsList.dialogs.filter { $0.name.lowercased()
                 .contains(submittedSearchTerm.lowercased()) }
         }
-        return dialogs
     }
     
     public init(dialogsList: DialogsList,
                 @ViewBuilder detailContent: @escaping (_ dialog: DialogsList.Item,
                                                        _ onDismiss: @escaping () -> Void) -> DetailView,
                 @ViewBuilder content: @escaping (DialogsList.Item) -> DialogItemView) {
-        _dialogsList = StateObject(wrappedValue: dialogsList)
+        self.dialogsList = dialogsList
         self.content = content
         self.detailContent = detailContent
     }
@@ -97,7 +95,6 @@ extension DialogsListView: View {
                 }
             }
             .autocorrectionDisabled(true)
-            .animation(.easeInOut(duration: 2), value: 1)
         })
             .navigationDestination(isPresented: Binding.constant(dialogsList.selectedItem != nil) ) {
             if let dialog = dialogsList.selectedItem {
@@ -120,30 +117,27 @@ extension DialogsListView: View {
                     Button {
                         dialogsList.selectedItem = item
                     } label: {
-                        
-                        ZStack {
-                            content(item)
-                                .if(item.type != .public && dialogsList.dialogToBeDeleted == nil, transform: { view in
-                                    view.swipeActions(edge: .trailing) {
-                                        Button(role: .destructive, action: {
-                                            dialogForDeleting = item
-                                            
-                                            isDeleteAlertPresented = true
-                                        } ) {
-                                            settings.dialogRow.leaveImage
-                                        }
+                        content(item)
+                            .if(item.type != .public && dialogsList.dialogToBeDeleted == nil, transform: { view in
+                                view.swipeActions(edge: .trailing) {
+                                    Button(role: .destructive, action: {
+                                        dialogForDeleting = item
+                                        
+                                        isDeleteAlertPresented = true
+                                    } ) {
+                                        settings.dialogRow.leaveImage
                                     }
-                                })
-                                    Separator(isLastRow: items.last?.id == item.id)
-                        }
+                                }
+                            })
+                    }
+                    .alignmentGuide(.listRowSeparatorLeading) { viewDimensions in
+                        return items.last?.id == item.id ? viewDimensions[.leading]
+                        : viewDimensions[.listRowSeparatorLeading]
                     }
                 }
-                .if(dialogsList.dialogToBeDeleted == nil, transform: { view in
-                    view.onDelete { _ in }
-                })
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
-            }            .listStyle(.plain)
+                .listRowInsets(EdgeInsets())
+            }
+            .listStyle(.plain)
             .deleteDisabled(dialogForDeleting != nil)
         }
     }
@@ -163,6 +157,3 @@ extension DialogsListView: View {
 //        }
 //    }
 //}
-
-
-

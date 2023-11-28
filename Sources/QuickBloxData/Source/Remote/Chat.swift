@@ -203,7 +203,6 @@ actor ChatStream: NSObject, QBChatDelegate {
         guard let id = dialog.id else { return }
         let new = Chat(dialog)
         chats[id] = new
-        await new.subscribe()
         await subscribeEvents(new)
     }
     
@@ -240,6 +239,11 @@ actor ChatStream: NSObject, QBChatDelegate {
                 }
             }
         }
+    }
+    
+    func subscribe(chat id: String) async {
+        guard let chat = chats[id] else { return }
+        await chat.subscribe()
     }
     
     func subscribeToTyping(chat id: String) async {

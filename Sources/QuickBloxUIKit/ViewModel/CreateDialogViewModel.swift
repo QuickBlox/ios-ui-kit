@@ -124,7 +124,7 @@ final class CreateDialogViewModel: CreateDialogProtocol {
         isProcessing = true
         modeldDialog.participantsIds = selected.map { $0.id }
         if modeldDialog.photo.isEmpty {
-            modeldDialog.photo = "null"
+            modeldDialog.photo = ""
         }
         createTask = Task { [weak self] in
             do {

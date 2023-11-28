@@ -15,6 +15,11 @@ public class Feature {
     /// An instance of the AI module for AI-related settings and operations.
     public var ai: AIFeature = AIFeature()
     
+    /// An instance of the ForwardFeature settings and operations.
+    public var forward: ForwardFeature = ForwardFeature()
+    
+    /// An instance of the ReplyFeature settings and operations.
+    public var reply: ReplyFeature = ReplyFeature()
 }
 
 public class AIFeature {

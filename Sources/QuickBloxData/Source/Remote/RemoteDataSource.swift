@@ -187,12 +187,14 @@ extension RemoteDataSource {
             dialog.photo = dto.photo
         }
         let created = try await api.dialogs.create(new: dialog)
-        await stream.update(with: created)
         
         guard let dialogId = created.id else {
             let info = "Dialog with id: \(dto.id)"
             throw RemoteDataSourceException.incorrectData(info)
         }
+        
+        await stream.update(with: created)
+        await self.stream.subscribe(chat: dialogId)
         
         var message = RemoteMessageDTO.eventMessage(create(dialogText: dto.name),
                                                     dialogId: dialogId,
@@ -264,9 +266,8 @@ extension RemoteDataSource {
                 .newLine
         }
 
-        let photo = dto.photo == "null" ? "null" : dto.photo
-        if dialog.photo != photo {
-            dialog.photo = photo
+        if dialog.avatarPath != dto.photo {
+            dialog.photo = dto.photo.isEmpty == true ? "null" : dto.photo
             
             text = text
                 .add("The avatar was changed")
@@ -324,21 +325,20 @@ extension RemoteDataSource {
         let updated = try await api.dialogs.update(dialog)
 
         await stream.update(with: updated)
+        await self.stream.subscribe(chat: dialogId)
         
         let message = RemoteMessageDTO.eventMessage(text.value,
                                                     dialogId: dialogId,
                                                     type: .chat,
                                                     eventType: .update)
-        await stream.send(QBChatMessage(message, toSend: true))
-       
+        let qbMessage = QBChatMessage(message, toSend: true)
+        await stream.send(qbMessage)
+        await stream.process(qbMessage)
         
         var system = RemoteMessageDTO.eventMessage(text.value,
                                                    dialogId: dialogId,
                                                    type: .event,
                                                    eventType: .update)
-        
-        system.recipientId = String(user.id)
-        await stream.process(QBChatMessage(system, toSend: true))
         
         var ids: Set<String> = []
         if pushIds.isEmpty == false {
@@ -362,6 +362,9 @@ extension RemoteDataSource {
         do {
             let dialog = try await api.dialogs.get(with: dto.id)
             await stream.update(with: dialog)
+            if let dialogId = dialog.id {
+                await stream.subscribe(chat: dialogId)
+            }
             
             return RemoteDialogDTO(dialog)
         } catch let nsError as NSError {
@@ -383,7 +386,13 @@ extension RemoteDataSource {
                 }
                 
                 for dialog in result.dialogs {
-                    group.addTask { await self.stream.update(with: dialog) }
+                    group.addTask {
+                        await self.stream.update(with: dialog)
+                        Task {
+                            guard let dialogId = dialog.id else { return }
+                            await self.stream.subscribe(chat: dialogId)
+                        }
+                    }
                 }
             }
             let dialogs = result.dialogs.map { RemoteDialogDTO($0) }
@@ -419,6 +428,10 @@ extension RemoteDataSource {
                 
                 for dialog in result.dialogs {
                     group.addTask { await self.stream.update(with: dialog) }
+                    Task {
+                        guard let dialogId = dialog.id else { return }
+                        await self.stream.subscribe(chat: dialogId)
+                    }
                     allDialogs.append(RemoteDialogDTO(dialog))
                 }
             }
@@ -488,6 +501,7 @@ extension RemoteDataSource {
             let messagesDTO = RemoteMessagesDTO(dialogId: dto.dialogId,
                                                 messages: messages,
                                                 pagination: result.pagination)
+            
             return messagesDTO
         } catch let nsError as NSError {
             throw try nsError.remoteException

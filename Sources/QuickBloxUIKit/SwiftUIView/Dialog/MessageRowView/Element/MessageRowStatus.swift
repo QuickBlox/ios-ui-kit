@@ -9,22 +9,22 @@
 import SwiftUI
 import QuickBloxDomain
 
-public struct MessageRowStatus<MessageItem: MessageEntity>: View {
+public struct MessageRowStatus: View {
     var settings = QuickBloxUIKit.settings.dialogScreen.messageRow
-    var message: MessageItem
+    var status: MessageStatus
     
-    public init(message: MessageItem) {
-        self.message = message
+    public init(status: MessageStatus) {
+        self.status = status
     }
     
     public  var body: some View {
         if settings.isHiddenStatus == false {
-                message.statusImage
-                    .resizable()
-                    .renderingMode(.template)
-                    .foregroundColor(message.statusForeground)
-                    .scaledToFit()
-                    .frame(width: 10, height: 5)
+            status.image
+                .resizable()
+                .renderingMode(.template)
+                .foregroundColor(status.color)
+                .scaledToFit()
+                .frame(width: 10, height: 5)
         } else {
             EmptyView()
         }
@@ -36,54 +36,24 @@ import QuickBloxData
 struct MessageRowStatus_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            MessageRowStatus(message: Message(id: UUID().uuidString,
-                                              dialogId: "1f2f3ds4d5d6d",
-                                              text: "Test text Message",
-                                              userId: "testid",
-                                              date: Date(),
-                                              isDelivered: true))
+            MessageRowStatus(status: .delivered)
             .previewDisplayName("Delivered")
-            
-            MessageRowStatus(message: Message(id: UUID().uuidString,
-                                              dialogId: "1f2f3ds4d5d6d",
-                                              text: "Test text Message",
-                                              userId: "testid",
-                                              date: Date(),
-                                              isDelivered: true))
+
+            MessageRowStatus(status: .delivered)
             .previewDisplayName("Delivered Dark")
             .preferredColorScheme(.dark)
-            
-            MessageRowStatus(message: Message(id: UUID().uuidString,
-                                              dialogId: "1f2f3ds4d5d6d",
-                                              text: "Test text Message",
-                                              userId: "testid",
-                                              date: Date(),
-                                              isDelivered: false))
+
+            MessageRowStatus(status: .send)
             .previewDisplayName("Send")
-            
-            MessageRowStatus(message: Message(id: UUID().uuidString,
-                                              dialogId: "1f2f3ds4d5d6d",
-                                              text: "Test text Message",
-                                              userId: "testid",
-                                              date: Date(),
-                                              isDelivered: false))
+
+            MessageRowStatus(status: .send)
             .previewDisplayName("Send Dark")
             .preferredColorScheme(.dark)
-            
-            MessageRowStatus(message: Message(id: UUID().uuidString,
-                                              dialogId: "1f2f3ds4d5d6d",
-                                              text: "Test text Message",
-                                              userId: "testid",
-                                              date: Date(),
-                                              isRead: true))
+
+            MessageRowStatus(status: .read)
             .previewDisplayName("Read Dark")
-            
-            MessageRowStatus(message: Message(id: UUID().uuidString,
-                                              dialogId: "1f2f3ds4d5d6d",
-                                              text: "Test text Message",
-                                              userId: "testid",
-                                              date: Date(),
-                                              isRead: true))
+
+            MessageRowStatus(status: .read)
             .previewDisplayName("Read Dark")
             .preferredColorScheme(.dark)
         }

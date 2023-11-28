@@ -13,6 +13,7 @@ import Foundation
 ///
 /// This is an active model that conforms to the ``MessageEntity`` protocol.
 public struct Message: MessageEntity {
+    
     public var id: String
     
     /// The unique ID of the conversation that the message belongs to.
@@ -34,6 +35,10 @@ public struct Message: MessageEntity {
     public var readIds: [String] = []
     public var eventType: MessageEventType = .message
     public var type: MessageType = .chat
+    public var actionType: MessageAction = .none
+    public var originSenderName: String?
+    public var originalMessages: [Message] = []
+    public var relatedId: String = ""
     
     public init(id: String = UUID().uuidString,
                 dialogId: String,
@@ -58,10 +63,13 @@ public extension Message {
                   isDelivered: value.isDelivered,
                   isRead: value.isRead,
                   eventType: value.eventType,
-                  type: value.type)
+                  type: value.type,
+                  actionType: value.actionType,
+                  originSenderName: value.originSenderName,
+                  relatedId: value.relatedId)
         if let fileInfo = value.fileInfo {
             self.fileInfo = FileInfo(fileInfo)
         }
-        
+        self.originalMessages = value.originalMessages.compactMap { Message($0) }
     }
 }

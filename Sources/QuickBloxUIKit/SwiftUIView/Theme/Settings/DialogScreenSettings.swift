@@ -159,16 +159,22 @@ public struct DialogHeaderSettings: HeaderSettingsProtocol {
     public var leftButton: ButtonSettingsProtocol
     public var title: HeaderTitleSettingsProtocol
     public var rightButton: ButtonSettingsProtocol
+    public var cancelButton: ButtonSettingsProtocol
     public var displayMode: NavigationBarItem.TitleDisplayMode = .automatic
     public var backgroundColor: Color
     public var opacity: CGFloat = 0.4
     public var isHidden: Bool = false
+    
+    public func selectedMessages(_ count: Int) -> String {
+        return count > 1 ? "messages selected" : "message selected"
+    }
     
     public init(_ theme: ThemeProtocol) {
         self.backgroundColor = theme.color.mainBackground
         self.leftButton = BackButton(theme)
         self.title = DialogTitle(theme)
         self.rightButton = InfoButton(theme)
+        self.cancelButton = CancelButton(theme)
     }
     
     public struct InfoButton: ButtonSettingsProtocol {
@@ -186,6 +192,26 @@ public struct DialogHeaderSettings: HeaderSettingsProtocol {
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.info
+            self.color = theme.color.mainElements
+        }
+    }
+    
+    public struct CancelButton: ButtonSettingsProtocol {
+        public var imageSize: CGSize?
+        public var frame: CGSize?
+        
+        public var title: String? = nil
+        public var image: Image
+        public var color: Color
+        public var scale: Double = 0.56
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 16.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
+        
+        public init(_ theme: ThemeProtocol) {
+            self.title = theme.string.cancel
+            self.image = theme.image.close
             self.color = theme.color.mainElements
         }
     }
@@ -301,6 +327,7 @@ public struct MessageRowSettings {
     public var outboundBackground: Color
     public var inboundCorners: UIRectCorner = [.topLeft, .topRight, .bottomRight]
     public var outboundCorners: UIRectCorner = [.bottomLeft, .topLeft , .topRight]
+    public var outboundForwardCorners: UIRectCorner = [.bottomLeft, .topLeft , .topRight, .bottomRight]
     public var inboundGroupCorners: UIRectCorner = [.topRight, .bottomRight]
     public var outboundGroupCorners: UIRectCorner = [.bottomLeft, .topLeft]
     public var outboundFont: Font
@@ -346,6 +373,9 @@ public struct MessageRowSettings {
     public var imageIconSize: CGSize = CGSize(width: 44.0, height: 44.0)
     public var fileSize: CGSize = CGSize(width: 32.0, height: 32.0)
     public var fileIconSize: CGSize = CGSize(width: 15.0, height: 15.0)
+    public var outboundAudioPreviewSize: CGSize = CGSize(width: 242, height: 44)
+    public var inboundAudioPreviewSize: CGSize = CGSize(width: 218, height: 44)
+    public var filePreviewSize: CGSize = CGSize(width: 112, height: 48)
     public var audioBubbleHeight: CGFloat = 44.0
     public var fileBubbleHeight: CGFloat = 48.0
     public var imageIcon: Image
@@ -358,6 +388,11 @@ public struct MessageRowSettings {
     public var inboundSpacer: CGFloat = 16.0
     public var outboundSpacer: CGFloat = 32.0
     public var spacing: CGFloat = 16.0
+    public var replyAudioSpacing: CGFloat = 0
+    public var replySpacing: CGFloat = 2
+    public var relatedInboundSpacer: CGFloat = 60
+    public var forwardAudioSpacing: CGFloat = 4
+    public var forwardSpacing: CGFloat = 6
     public let spacerBetweenRows: CGFloat = 12.0
     public var messagePadding: EdgeInsets = EdgeInsets(top: 12,
                                                        leading: 16,
@@ -416,6 +451,15 @@ public struct MessageRowSettings {
             endPoint: .bottomTrailing
         )
     }
+    
+    public var save: SaveActionSettings
+    public var forward: ForwardActionSettings
+    public var reply: ReplyActionSettings
+    
+    public var inboundPreviewSize: CGSize = CGSize(width: 275, height: 560)
+    public var inboundPreviewRatio: CGFloat = 1.7
+    public var outboundPreviewSize: CGSize = CGSize(width: 350, height: 650)
+    public var outboundPreviewRatio: CGFloat = 1.8
     
     public init(_ theme: ThemeProtocol) {
         self.avatar = MessageAvatarSettings(theme)
@@ -476,6 +520,10 @@ public struct MessageRowSettings {
             traitCollection.userInterfaceStyle == .dark ? UIColor(theme.color.mainText)
             : UIColor(hexRGB: "#3978FC") ?? UIColor.blue
         })
+        
+        self.save = SaveActionSettings(theme)
+        self.forward = ForwardActionSettings(theme)
+        self.reply = ReplyActionSettings(theme)
     }
     
     public struct AIProgressBarSettings: ProgressBarSettingsProtocol {
@@ -516,6 +564,43 @@ public struct MessageRowSettings {
         
         public init(_ theme: ThemeProtocol) {
             self.placeholder = theme.image.avatarUser
+        }
+    }
+    
+    public struct ForwardActionSettings {
+        public var title: String
+        public var image: String?
+        public var systemImage: String?
+        public var attributes: UIMenuElement.Attributes = []
+        
+        public init(_ theme: ThemeProtocol) {
+            self.title = theme.string.forward
+            self.systemImage = "arrowshape.turn.up.left.2"
+            self.image = "forwardIcon"
+        }
+    }
+    
+    public struct ReplyActionSettings {
+        public var title: String
+        public var image: String?
+        public var systemImage: String?
+        public var attributes: UIMenuElement.Attributes = []
+        
+        public init(_ theme: ThemeProtocol) {
+            self.title = theme.string.reply
+            self.systemImage = "arrowshape.turn.up.backward"
+        }
+    }
+    
+    public struct SaveActionSettings {
+        public var title: String
+        public var image: String?
+        public var systemImage: String?
+        public var attributes: UIMenuElement.Attributes = []
+        
+        public init(_ theme: ThemeProtocol) {
+            self.title = theme.string.save
+            self.systemImage = "folder"
         }
     }
     
@@ -588,6 +673,7 @@ public struct MessageTextFieldSettings {
                                                 bottom: 7,
                                                 trailing: 16)
     public var debounceSeconds: Double = 1.5
+    public var messageActionBanner: MessageActionBannerSettings
     
     public init(_ theme: ThemeProtocol) {
         self.placeholderText = theme.string.typeMessage
@@ -602,6 +688,7 @@ public struct MessageTextFieldSettings {
         self.timer = RecordTimer(theme)
         self.barColor = theme.color.mainBackground
         self.progressBar = TextFieldProgressBarSettings(theme)
+        self.messageActionBanner = MessageActionBannerSettings(theme)
     }
     
     public struct TextFieldProgressBarSettings: ProgressBarSettingsProtocol {
@@ -620,6 +707,46 @@ public struct MessageTextFieldSettings {
         }
     }
     
+    public struct MessageActionBannerSettings {
+        public var height: CGFloat = 64.0
+        public var foregroundColor: Color
+        public var font: Font
+        public var forwardedImage: Image
+        public var replyImage: Image
+        public var forwardedImageSize: CGSize = CGSize(width: 22, height: 22)
+        public var replyImageSize: CGSize = CGSize(width: 15, height: 14)
+        public var imageColor: Color
+        public var forwardedfrom: String
+        public var repliedTo: String
+        public var bodyForeground: Color
+        public var bodyFont: Font
+        public var attachmentForeground: Color
+        public var attachmentFont: Font
+        public var attachmentSize: CGSize = CGSize(width: 44, height: 44)
+        public var imageCornerRadius: CGFloat = 8.0
+        public var placeholderBackground: Color
+        public var placeholderForeground: Color
+        public var placeholderSize: CGSize = CGSize(width: 20, height: 20)
+        public var replyCancelButton: ReplyCancelButton
+        
+        public init(_ theme: ThemeProtocol) {
+            self.foregroundColor = theme.color.secondaryText
+            self.font = theme.font.caption
+            self.forwardedImage = theme.image.forwardFilled
+            self.replyImage = theme.image.replyFilled
+            self.imageColor = theme.color.secondaryText
+            self.forwardedfrom = theme.string.forwardedFrom
+            self.repliedTo = theme.string.repliedTo
+            self.bodyForeground = theme.color.mainText
+            self.bodyFont = theme.font.callout
+            self.attachmentForeground = theme.color.caption
+            self.attachmentFont = theme.font.caption2
+            self.placeholderBackground = theme.color.inputBackground
+            self.placeholderForeground = theme.color.caption
+            self.replyCancelButton = ReplyCancelButton(theme)
+        }
+    }
+    
     public struct RecordTimer {
         public var foregroundColor: Color
         public var font: Font
@@ -631,6 +758,27 @@ public struct MessageTextFieldSettings {
             self.font = theme.font.callout
             self.image = theme.image.record
             self.imageColor = theme.color.error
+        }
+    }
+    
+    public struct ReplyCancelButton: ButtonSettingsProtocol {
+        public var imageSize: CGSize? = CGSize(width: 16, height: 20)
+        public var frame: CGSize?
+        
+        public var title: String? = nil
+        public var image: Image
+        public var color: Color
+        public var scale: Double = 1.0
+        public var padding: EdgeInsets = EdgeInsets(top: 0.0,
+                                                    leading: 0.0,
+                                                    bottom: 0.0,
+                                                    trailing: 0.0)
+        public var width: CGFloat = 32.0
+        public var height: CGFloat = 36.0
+        
+        public init(_ theme: ThemeProtocol) {
+            self.image = theme.image.close
+            self.color = theme.color.secondaryElements
         }
     }
     

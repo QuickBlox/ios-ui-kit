@@ -32,7 +32,7 @@ public struct EventMessageRow<MessageItem: MessageEntity>: View {
             Spacer()
         }
         .id(message.id)
-        .padding(.bottom, settings.spacerBetweenRows)
+        .padding(.bottom, message.actionType == .reply && message.relatedId.isEmpty == false ? 2 : settings.spacerBetweenRows)
         
         .fixedSize(horizontal: false, vertical: true)
     }

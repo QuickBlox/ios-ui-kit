@@ -26,6 +26,7 @@ public class DialogsScreenSettings {
     public var blurRadius: CGFloat = 12.0
     public var messageImage: Image
     public var messageImageColor: Color
+    public var progressBar: ProgressBarSettings
     
     public init(_ theme: ThemeProtocol) {
         self.header = DialogsHeaderSettings(theme)
@@ -38,6 +39,23 @@ public class DialogsScreenSettings {
         self.itemsIsEmptyColor = theme.color.caption
         self.messageImage = theme.image.message
         self.messageImageColor = theme.color.caption
+        self.progressBar = ProgressBarSettings(theme)
+    }
+}
+
+public struct ProgressBarSettings: ProgressBarSettingsProtocol {
+    public var segments: Int = 8
+    public var segmentColor: Color
+    public var segmentDuration: Double = 0.16
+    public var progressSegmentColor: Color
+    public var lineWidth: CGFloat = 2.0
+    public var rotationEffect: Angle = Angle(degrees: -90)
+    public var emptySpaceAngle: Angle = Angle(degrees: 10)
+    public var size: CGSize = CGSize(width: 60.0, height: 60.0)
+    
+    public init(_ theme: ThemeProtocol) {
+        self.segmentColor = theme.color.system
+        self.progressSegmentColor = theme.color.mainElements
     }
 }
 
@@ -232,6 +250,12 @@ public struct DialogRowSettings {
     public var separatorInset: CGFloat = 88.0
     public var avatarSize: CGSize = CGSize(width: 56.0, height: 56.0)
     public var height: CGFloat = DialogsScreenSettingsConstant.height
+    public var selectHeight: CGFloat = 56
+    public var selectAvatarSize: CGSize = CGSize(width: 40.0, height: 40.0)
+    public var selectPadding: EdgeInsets = EdgeInsets(top: 0,
+                                                leading: DialogsScreenSettingsConstant.spacing,
+                                                bottom: 0,
+                                                trailing: DialogsScreenSettingsConstant.spacing)
     public var contentHeight: CGFloat = DialogsScreenSettingsConstant.height - DialogsScreenSettingsConstant.verticalPadding * 2
     public var spacing: CGFloat = DialogsScreenSettingsConstant.spacing
     public var padding: EdgeInsets = EdgeInsets(top: DialogsScreenSettingsConstant.verticalPadding,
@@ -240,7 +264,6 @@ public struct DialogRowSettings {
                                                 trailing: DialogsScreenSettingsConstant.spacing)
     public var infoSpacer = Spacer(minLength: 8.0)
     public var infoSpacing: CGFloat = 2.0
-    
     
     public init(_ theme: ThemeProtocol) {
         self.avatar = DialogAvatarSettings(theme)

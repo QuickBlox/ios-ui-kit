@@ -63,7 +63,16 @@ extension RemoteDialogDTO {
             }
             
         }
-        photo = value.photo ?? "null"
+        photo = value.avatarPath
         unreadMessagesCount = Int(value.unreadMessagesCount)
+    }
+}
+
+extension QBChatDialog {
+    var avatarPath: String {
+        guard let photo = photo else {
+            return ""
+        }
+        return (photo == "null" || photo.isEmpty) ? "" : photo
     }
 }
