@@ -91,7 +91,7 @@ struct InputView: View  {
                             textFieldSettings.leftButton.image.foregroundColor(textFieldSettings.leftButton.color)
                         }
                     }.frame(width: textFieldSettings.leftButton.width, height: 40)
-                        .padding(.bottom, 8)
+                        .padding(.bottom, 5)
                 }
                 
                 TextFieldView(isDisabled: isRecordState,
@@ -203,9 +203,9 @@ struct InputView: View  {
                     }
                     .frame(width: textFieldSettings.rightButton.frame?.width,
                            height: textFieldSettings.rightButton.frame?.height)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 5)
                 }
-            }
+            }.overlay(Divider(), alignment: .top)
         }
         .disabled(viewModel.isProcessing == true)
         .fixedSize(horizontal: false, vertical: true)
@@ -262,7 +262,6 @@ struct TextFieldView: View {
             .padding(settings.padding)
             .background(settings.placeholderBackgroundColor)
             .cornerRadius(settings.radius)
-            .padding(.vertical, 8)
             .textFieldStyle(.plain)
             .disabled(isDisabled)
             .onChange(of: text) { text in

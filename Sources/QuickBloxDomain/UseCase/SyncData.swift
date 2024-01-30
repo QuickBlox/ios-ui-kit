@@ -196,12 +196,6 @@ where Pagination == DialogsRepo.PaginationItem {
                     try Task.checkCancellation()
                     try await self?.connectRepo.connect()
                 }
-                
-                
-                if self?.stateSubject.value == .syncing(stage: .disconnected) {
-                    try Task.checkCancellation()
-                    try await self?.connectRepo.connect()
-                }
             } catch { prettyLog(error) }
             
             self?.taskConnect = nil

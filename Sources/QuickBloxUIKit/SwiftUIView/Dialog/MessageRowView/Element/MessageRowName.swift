@@ -11,7 +11,8 @@ import QuickBloxDomain
 import QuickBloxLog
 
 public struct MessageRowName<MessageItem: MessageEntity>: View {
-    var settings = QuickBloxUIKit.settings.dialogScreen.messageRow
+    let settings = QuickBloxUIKit.settings.dialogScreen.messageRow
+    let regex = QuickBloxUIKit.feature.regex
     
     var message: MessageItem
     @State public var userName: String?
@@ -34,7 +35,10 @@ public struct MessageRowName<MessageItem: MessageEntity>: View {
                         .font(settings.name.font)
                         .padding(settings.inboundNamePadding)
                         .task {
-                            do { userName = try await message.userName } catch { prettyLog(error) }
+                            do { 
+                                let userName = try await message.userName
+                                self.userName = regex.userName.isEmpty ? userName : (userName.isValid(regexes: [regex.userName]) == true ? userName : settings.name.unknown)
+                            } catch { prettyLog(error) }
                         }
                 }
             }

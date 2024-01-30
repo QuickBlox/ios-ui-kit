@@ -8,12 +8,6 @@
 
 import SwiftUI
 
-private struct DialogsScreenSettingsConstant {
-    static let height: CGFloat = 76.0
-    static let spacing: CGFloat = 16.0
-    static let verticalPadding: CGFloat = 10.0
-}
-
 public class DialogsScreenSettings {
     public var header: DialogsHeaderSettings
     public var searchBar: DialogsSearchBarSettings
@@ -21,12 +15,15 @@ public class DialogsScreenSettings {
     public var connectStatus: ConnectStatusStringConstant
     public var backgroundColor: Color
     public var itemsIsEmpty: String
+    public var selectDialog: String
     public var itemsIsEmptyFont: Font
     public var itemsIsEmptyColor: Color
     public var blurRadius: CGFloat = 12.0
     public var messageImage: Image
     public var messageImageColor: Color
     public var progressBar: ProgressBarSettings
+    public var useToolbar: Bool = true
+    public var tabIndex: TabIndexSettings
     
     public init(_ theme: ThemeProtocol) {
         self.header = DialogsHeaderSettings(theme)
@@ -35,11 +32,22 @@ public class DialogsScreenSettings {
         self.connectStatus = ConnectStatusStringConstant(theme)
         self.backgroundColor = theme.color.mainBackground
         self.itemsIsEmpty = theme.string.dialogsEmpty
+        self.selectDialog = theme.string.selectDialog
         self.itemsIsEmptyFont = theme.font.title3
         self.itemsIsEmptyColor = theme.color.caption
         self.messageImage = theme.image.message
         self.messageImageColor = theme.color.caption
         self.progressBar = ProgressBarSettings(theme)
+        self.tabIndex = TabIndexSettings(theme)
+    }
+}
+
+public struct TabIndexSettings {
+    public var backgroundColor: Color
+    public var externalIndexes: [TabIndex] = [.settings]
+    
+    public init(_ theme: ThemeProtocol) {
+        self.backgroundColor = theme.color.mainBackground
     }
 }
 
@@ -179,7 +187,7 @@ public struct DeleteDialogAlertSettings {
     public var remove: String
     public var message: String = ""
     public func alertTitle(_ name: String) -> String {
-        return theme.string.removeUser
+        return theme.string.removeItem
         + name
         + theme.string.questionMark
     }
@@ -249,19 +257,19 @@ public struct DialogRowSettings {
     public var isHiddenTime: Bool = false
     public var separatorInset: CGFloat = 88.0
     public var avatarSize: CGSize = CGSize(width: 56.0, height: 56.0)
-    public var height: CGFloat = DialogsScreenSettingsConstant.height
+    public var height: CGFloat = 76
     public var selectHeight: CGFloat = 56
     public var selectAvatarSize: CGSize = CGSize(width: 40.0, height: 40.0)
     public var selectPadding: EdgeInsets = EdgeInsets(top: 0,
-                                                leading: DialogsScreenSettingsConstant.spacing,
+                                                leading: 16,
                                                 bottom: 0,
-                                                trailing: DialogsScreenSettingsConstant.spacing)
-    public var contentHeight: CGFloat = DialogsScreenSettingsConstant.height - DialogsScreenSettingsConstant.verticalPadding * 2
-    public var spacing: CGFloat = DialogsScreenSettingsConstant.spacing
-    public var padding: EdgeInsets = EdgeInsets(top: DialogsScreenSettingsConstant.verticalPadding,
-                                                leading: DialogsScreenSettingsConstant.spacing,
-                                                bottom: DialogsScreenSettingsConstant.verticalPadding,
-                                                trailing: DialogsScreenSettingsConstant.spacing)
+                                                trailing: 16)
+    public var contentHeight: CGFloat = 56
+    public var spacing: CGFloat = 16
+    public var padding: EdgeInsets = EdgeInsets(top: 10,
+                                                leading: 16,
+                                                bottom: 10,
+                                                trailing: 16)
     public var infoSpacer = Spacer(minLength: 8.0)
     public var infoSpacing: CGFloat = 2.0
     

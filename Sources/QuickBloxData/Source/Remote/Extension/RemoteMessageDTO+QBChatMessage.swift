@@ -35,7 +35,17 @@ extension RemoteMessageDTO {
         if let attachments = value.attachments {
             self.filesInfo = attachments.compactMap {
                 do {
-                    return try RemoteFileInfoDTO($0)
+                    var fileInfo = try RemoteFileInfoDTO($0)
+                    if text.contains("MediaContentEntity|") {
+                        var separated: [String] = text.components(separatedBy: "|")
+                        separated.removeLast()
+                        if let uid = separated.last {
+                            fileInfo.id = uid
+                            fileInfo.uid = uid
+                            fileInfo.path = ""
+                        }
+                    }
+                    return fileInfo
                 } catch {
                     prettyLog(error)
                     return nil
@@ -57,13 +67,9 @@ extension RemoteMessageDTO {
         
         if let originalMessages = value.customParameters[QBChatMessage.Key.originalMessages] as? String {
             self.originalMessages = originaldMessages(originalMessages, messageId: id,
-                                                      dateSent: dateSent,
+                                                      date: dateSent,
                                                       actionType: actionType,
                                                       originSenderName: originSenderName)
-        }
-        
-        if self.originalMessages.isEmpty == true {
-            actionType = .none
         }
         
         let current = String(QBSession.current.currentUserID)
@@ -87,30 +93,73 @@ extension RemoteMessageDTO {
     
     private func originaldMessages(_ jsonString: String,
                                    messageId: String,
-                                   dateSent: Date,
+                                   date: Date,
                                    actionType: MessageAction,
                                    originSenderName: String) -> [RemoteMessageDTO] {
-        guard let data = jsonString.data(using: .utf8) else { return [] }
-        let jsonDecoder = JSONDecoder()
-        jsonDecoder.dateDecodingStrategy = .iso8601
-        do {
-            let decodedOriginalMessages = try jsonDecoder.decode([RemoteOriginalMessageDTO].self, from: data)
-            var originalMessages: [RemoteMessageDTO] = []
-            for (i, decodedOriginalMessage) in decodedOriginalMessages.enumerated() {
-                var originalMessage = RemoteMessageDTO(decodedOriginalMessage)
-                originalMessage.actionType = actionType
-                originalMessage.relatedId = messageId
-                originalMessage.dateSent = dateSent
-                if i == 0 {
-                    originalMessage.originSenderName = originSenderName
+        guard let decodedOriginalMessages = jsonString.toJSON() as? [[String: AnyObject]] else { return  [] }
+        var originalMessages: [RemoteMessageDTO] = []
+        for (i, object) in decodedOriginalMessages.enumerated() {
+            let id  = object[RemoteOriginalMessageDTO.CodingKeys.id.stringValue] as? String ?? ""
+            let dialogId  = object[RemoteOriginalMessageDTO.CodingKeys.dialogId.stringValue] as? String ?? ""
+            let text  = object[RemoteOriginalMessageDTO.CodingKeys.text.stringValue] as? String ?? ""
+            let senderId = object[RemoteOriginalMessageDTO.CodingKeys.senderId.stringValue] as? UInt ?? 0
+            let dateSent = object[RemoteOriginalMessageDTO.CodingKeys.dateSent.stringValue] as? Int64 ?? 0
+            var attachments: [RemoteOriginalFileInfoDTO] = []
+            if let decodedAttachments = object[RemoteOriginalMessageDTO.CodingKeys.attachments.stringValue] as? [[String: AnyObject]] {
+                for decodedAttachment in decodedAttachments {
+                    var fileInfoDTO = RemoteOriginalFileInfoDTO()
+                    if let id = decodedAttachment["id"] as? String {
+                        fileInfoDTO.id = id
+                    } else {
+                        if let urlPath = decodedAttachment["url"] as? String,
+                           let url = URL(string: urlPath) {
+                            fileInfoDTO.id = url.lastPathComponent
+                        }
+                        if let uid = decodedAttachment["uid"] as? String {
+                            fileInfoDTO.id = uid
+                        }
+                        if let contentType = decodedAttachment["content-type"] as? String {
+                            fileInfoDTO.type = contentType
+                        }
+                    }
+                    if let name = decodedAttachment["name"] as? String {
+                        fileInfoDTO.name = name
+                    }
+                    if let type = decodedAttachment["type"] as? String {
+                        fileInfoDTO.type = type
+                        if type == "audio/mp4" { // fix voice message from Safari
+                            fileInfoDTO.type = "audio/mp3"
+                            fileInfoDTO.name = fileInfoDTO.name.replacingOccurrences(of: "mp4", with: "mp3")
+                        }
+                    }
+                    if let url = decodedAttachment["url"] as? String {
+                        fileInfoDTO.url = url
+                    }
+                    if let uid = decodedAttachment["uid"] as? String {
+                        fileInfoDTO.uid = uid
+                    }
+                    
+                    attachments.append(fileInfoDTO)
                 }
-                originalMessages.append(originalMessage)
             }
-            return originalMessages
-        } catch {
-            print("Error: \(error.localizedDescription)")
-            return []
+            
+            let decodedOriginalMessage = RemoteOriginalMessageDTO(id: id,
+                                                                  dialogId: dialogId,
+                                                                  text: text,
+                                                                  senderId: senderId,
+                                                                  dateSent: dateSent,
+                                                                  attachments: attachments)
+            var originalMessage = RemoteMessageDTO(decodedOriginalMessage)
+            originalMessage.actionType = actionType
+            originalMessage.relatedId = messageId
+            originalMessage.dateSent = date
+            if i == 0 {
+                originalMessage.originSenderName = originSenderName
+            }
+            
+            originalMessages.append(originalMessage)
         }
+        return originalMessages
     }
     
     static func eventMessage(_ text: String,
@@ -168,8 +217,6 @@ extension RemoteMessageDTO {
         senderId = value.senderId != 0 ? String(value.senderId) : ""
         recipientId = value.recipientId != 0 ? String(value.recipientId) : ""
         dateSent = value.dateSent.dateTimeIntervalSince1970
-        createdAt = value.createdAt
-        updatedAt = value.updatedAt
         
         if value.attachments.isEmpty == false {
             self.filesInfo = value.attachments.compactMap{ RemoteFileInfoDTO($0) }
@@ -201,3 +248,9 @@ private extension Int64 {
         return Date(timeIntervalSince1970: timestampInSeconds)
     }
 }
+
+extension  String {
+func toJSON() -> Any? {
+    guard let data = self.data(using: .utf8, allowLossyConversion: false) else { return nil }
+    return try? JSONSerialization.jsonObject(with: data, options: .mutableContainers)
+}}

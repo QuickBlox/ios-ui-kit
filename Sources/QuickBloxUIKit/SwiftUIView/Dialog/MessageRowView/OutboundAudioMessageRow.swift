@@ -32,8 +32,6 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
     
     private let onSelect: (_ item: MessageItem, _ actionType: MessageAction) -> Void
     
-//    @State private var contentSize: CGSize?
-    
     public init(message: MessageItem,
                 messagesActionState: MessageAction,
                 relatedTime: Date?,
@@ -121,20 +119,20 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
                     preferredContentSize: settings.outboundAudioPreviewSize
                 ) {
                     CustomContextMenuAction(title: settings.reply.title,
-                                         systemImage: settings.reply.systemImage ?? "",
+                                         systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
                                          attributes: features.reply.enable == true
                                          ? nil : .hidden) {
                         onSelect(message, .reply)
                     }
                     CustomContextMenuAction(title: settings.forward.title,
-                                         image: settings.forward.image ?? "",
+                                         systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
                                          attributes: features.forward.enable == true
                                          ? nil : .hidden) {
                         onSelect(message, .forward)
                     }
                     CustomContextMenuAction(title: settings.save.title,
-                                         systemImage: settings.save.systemImage ?? "",
-                                         attributes: nil) {
+                                         systemImage: settings.save.systemImage ?? "", tintColor: settings.save.color, flipped: nil,
+                                            attributes: nil) {
                         save()
                     }
                 }

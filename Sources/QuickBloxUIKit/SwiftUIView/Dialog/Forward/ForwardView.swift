@@ -39,33 +39,35 @@ public struct ForwardView<ViewModel: ForwardViewModelProtocol>: View {
     
     @ViewBuilder
     private func container() -> some View {
-        ZStack {
-            VStack(spacing: 0) {
-                SelectDialogsListView<ViewModel, ViewModel.DialogItem>(viewModel: viewModel)
-                
-                ForwardInputView()
-                    .background(settings.backgroundColor)
-                    .overlay(Divider(), alignment: .top)
+        NavigationStack {
+            ZStack {
+                VStack(spacing: 0) {
+                    SelectDialogsListView<ViewModel, ViewModel.DialogItem>(viewModel: viewModel)
+                    
+                    ForwardInputView()
+                        .background(settings.backgroundColor)
+                        .overlay(Divider(), alignment: .top)
+                }
             }
-        }
-        .modifier(ForwardHeader(onDismiss: {
-            dismiss()
-        }))
-        
-        .onChange(of: viewModel.forwardInfo.result, perform: { forwarResult in
-            if forwarResult == .success {
-                onForwardSuccess()
+            .modifier(ForwardHeader(onDismiss: {
                 dismiss()
-            } else {
-                isForwardFailedPresented = true
-            }
-        })
-        
-        .if(isForwardFailedPresented == true, transform: { view in
-            view.forwardFailureAlert(isPresented: $isForwardFailedPresented)
-        })
+            }))
+            
+            .onChange(of: viewModel.forwardInfo.result, perform: { forwarResult in
+                if forwarResult == .success {
+                    onForwardSuccess()
+                    dismiss()
+                } else {
+                    isForwardFailedPresented = true
+                }
+            })
+            
+            .if(isForwardFailedPresented == true, transform: { view in
+                view.forwardFailureAlert(isPresented: $isForwardFailedPresented)
+            })
             
             .environmentObject(viewModel)
+        }.accentColor(settings.header.leftButton.color)
     }
 }
 

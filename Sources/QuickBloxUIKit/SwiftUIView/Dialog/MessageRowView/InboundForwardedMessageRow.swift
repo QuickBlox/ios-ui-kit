@@ -174,7 +174,7 @@ public struct InboundForwardedMessageRow<MessageItem: MessageEntity>: View {
                                     preferredContentSize: size
                                 ) {
                                     CustomContextMenuAction(title: settings.reply.title,
-                                                         systemImage: settings.reply.systemImage ?? "",
+                                                         systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
                                                          attributes: features.reply.enable == true
                                                          ? nil : .hidden) {
                                         if let message = message as? Message {
@@ -182,7 +182,7 @@ public struct InboundForwardedMessageRow<MessageItem: MessageEntity>: View {
                                         }
                                     }
                                     CustomContextMenuAction(title: settings.forward.title,
-                                                         image: settings.forward.image ?? "",
+                                                         systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
                                                          attributes: features.forward.enable == true
                                                          ? nil : .hidden) {
                                         if let message = message as? Message {
@@ -240,7 +240,7 @@ public struct InboundForwardedMessageRow<MessageItem: MessageEntity>: View {
                                         .cornerRadius(settings.attachmentRadius, corners: settings.outboundForwardCorners),
                                     preferredContentSize: size
                                 ) {
-                                    CustomContextMenuAction(title: features.ai.ui.answerAssist.title,
+                                    CustomContextMenuAction(title: features.ai.ui.answerAssist.title, tintColor: features.ai.ui.answerAssist.color, flipped: nil,
                                                          attributes: features.ai.ui.robot.hidden == true && features.ai.answerAssist.enable == true
                                                          ? nil : .hidden) {
                                         if let message = message as? DialogViewModel.DialogItem.MessageItem {
@@ -248,7 +248,7 @@ public struct InboundForwardedMessageRow<MessageItem: MessageEntity>: View {
                                         }
                                     }
                                     CustomContextMenuAction(title: settings.reply.title,
-                                                         systemImage: settings.reply.systemImage ?? "",
+                                                         systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
                                                          attributes: features.reply.enable == true
                                                          ? nil : .hidden) {
                                         if let message = message as? Message {
@@ -256,7 +256,7 @@ public struct InboundForwardedMessageRow<MessageItem: MessageEntity>: View {
                                         }
                                     }
                                     CustomContextMenuAction(title: settings.forward.title,
-                                                         image: settings.forward.image ?? "",
+                                                         systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
                                                          attributes: features.forward.enable == true
                                                          ? nil : .hidden) {
                                         if let message = message as? Message {

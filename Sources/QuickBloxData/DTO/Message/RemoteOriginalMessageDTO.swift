@@ -29,10 +29,10 @@ public struct RemoteOriginalMessageDTO: Codable {
                 senderId: UInt = 0,
                 dateSent: Int64,
                 attachments: [RemoteOriginalFileInfoDTO] = [],
-                createdAt: Date,
-                updatedAt: Date,
-                deliveredIds: [UInt],
-                readIds: [UInt]) {
+                createdAt: Date = Date(),
+                updatedAt: Date = Date(),
+                deliveredIds: [UInt] = [],
+                readIds: [UInt] = []) {
         self.id = id
         self.dialogId = dialogId
         self.text = text
@@ -62,11 +62,11 @@ public struct RemoteOriginalMessageDTO: Codable {
 }
 
 public struct RemoteOriginalFileInfoDTO: Codable {
-    var id: String
-    var name: String
-    var type: String
-    var url: String
-    var uid: String
+    var id: String = ""
+    var name: String = ""
+    var type: String = ""
+    var url: String = ""
+    var uid: String = ""
 }
 
 extension RemoteOriginalFileInfoDTO {
@@ -98,10 +98,6 @@ extension RemoteOriginalMessageDTO {
 }
 
 private extension Date {
-    var timeStampString: String {
-        return String(Int64(self.timeIntervalSince1970 * 1000))
-    }
-    
     var timeStampInt: Int64 {
         return Int64(self.timeIntervalSince1970 * 1000)
     }

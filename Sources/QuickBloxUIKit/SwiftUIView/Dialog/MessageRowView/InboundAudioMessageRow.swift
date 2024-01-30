@@ -108,20 +108,20 @@ public struct InboundAudioMessageRow<MessageItem: MessageEntity>: View {
                     preferredContentSize: settings.inboundAudioPreviewSize
                 ) {
                     CustomContextMenuAction(title: settings.reply.title,
-                                         systemImage: settings.reply.systemImage ?? "",
+                                         systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
                                          attributes: features.reply.enable == true
                                          ? nil : .hidden) {
                         onSelect(message, .reply)
                     }
                     CustomContextMenuAction(title: settings.forward.title,
-                                         image: settings.forward.image ?? "",
+                                         systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
                                          attributes: features.forward.enable == true
                                          ? nil : .hidden) {
                         onSelect(message, .forward)
                     }
                     CustomContextMenuAction(title: settings.save.title,
-                                         systemImage: settings.save.systemImage ?? ""
-                                         , attributes: nil) {
+                                         systemImage: settings.save.systemImage ?? "", tintColor: settings.save.color, flipped: nil,
+                                            attributes: nil) {
                         save()
                     }
                 }

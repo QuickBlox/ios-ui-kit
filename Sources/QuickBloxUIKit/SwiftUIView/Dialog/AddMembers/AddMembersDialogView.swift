@@ -13,8 +13,7 @@ import QuickBloxData
 public struct AddMembersDialogView<ViewModel: AddMembersDialogProtocol>: View {
     @State public var settings
     = QuickBloxUIKit.settings.addMembersScreen
-    
-    @Environment(\.dismiss) var dismiss
+
     @Environment(\.isSearching) private var isSearching: Bool
     
     @StateObject public var viewModel: ViewModel
@@ -61,9 +60,7 @@ public struct AddMembersDialogView<ViewModel: AddMembersDialogProtocol>: View {
                 })
         }
         
-        .addMembersHeader(onDismiss: {
-            dismiss()
-        })
+        .addMembersHeader()
         
         .disabled(viewModel.isProcessing == true)
         .if(viewModel.isProcessing == true) { view in

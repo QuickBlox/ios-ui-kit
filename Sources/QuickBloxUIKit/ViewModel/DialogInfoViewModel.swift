@@ -29,6 +29,7 @@ public protocol DialogInfoProtocol: QuickBloxUIKitViewModel, PermissionProtocol 
     func removeExistingImage()
     func handleOnSelect(attachmentAsset: AttachmentAsset)
     func handleOnSelect(newName: String)
+    func setDefaultName()
     func deleteDialog()
     func openSettings()
     func requestPermission(_ mediaType: AVMediaType, completion: @escaping (_ granted: Bool) -> Void)
@@ -36,6 +37,7 @@ public protocol DialogInfoProtocol: QuickBloxUIKitViewModel, PermissionProtocol 
 
 final class DialogInfoViewModel: DialogInfoProtocol {
     let settings = QuickBloxUIKit.settings.dialogInfoScreen
+    let regex = QuickBloxUIKit.feature.regex
     
     @Published public var dialog: Dialog
     
@@ -67,9 +69,8 @@ final class DialogInfoViewModel: DialogInfoProtocol {
     
     init(_ dialog: Dialog) {
         self.dialog = dialog
-        
-        let dialogName = dialog.name
-        self.dialogName = dialogName
+
+        setDefaultName()
         
         getAvatar()
         
@@ -144,7 +145,7 @@ final class DialogInfoViewModel: DialogInfoProtocol {
         isProcessing = true
         taskGetAvatar = Task { [weak self] in
             do {
-                let avatar = try await self?.dialog.avatar
+                let avatar = try await self?.dialog.avatar(scale: .avatar3x)
                 
                 await MainActor.run { [weak self, avatar] in
                     self?.avatar = avatar
@@ -209,7 +210,13 @@ final class DialogInfoViewModel: DialogInfoProtocol {
     }
     
     public func handleOnSelect(newName: String) {
+        if regex.dialogName.isEmpty == false,
+           newName.isValid(regexes: [regex.dialogName]) == false { return }
         updateDialog(name: newName)
+    }
+    
+    public func setDefaultName() {
+        dialogName = dialog.name
     }
     
     public func updateDialog(name: String) {
@@ -284,7 +291,7 @@ private extension DialogInfoViewModel {
     var isDialogNameValidPublisher: AnyPublisher<Bool, Never> {
         $dialogName
             .map { dialogName in
-                return dialogName.isValid(regexes: [self.settings.regexDialogName])
+                return self.regex.dialogName.isEmpty ? true : dialogName.isValid(regexes: [self.regex.dialogName])
             }
             .eraseToAnyPublisher()
     }

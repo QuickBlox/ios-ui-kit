@@ -19,7 +19,6 @@ struct DialogHeaderToolbarContent: ToolbarContent {
     var dialog: any DialogEntity
     var isForward: Bool = false
     var selectedCount: Int
-    let onDismiss: () -> Void
     let onTapInfo: () -> Void
     let onTapCancel: () -> Void
     
@@ -29,14 +28,12 @@ struct DialogHeaderToolbarContent: ToolbarContent {
         dialog: any DialogEntity,
         isForward: Bool,
         selectedCount: Int,
-        onDismiss: @escaping () -> Void,
         onTapInfo: @escaping () -> Void,
         onTapCancel: @escaping () -> Void
     ) {
         self.dialog = dialog
         self.isForward = isForward
         self.selectedCount = selectedCount
-        self.onDismiss = onDismiss
         self.onTapInfo = onTapInfo
         self.onTapCancel = onTapCancel
     }
@@ -45,35 +42,18 @@ struct DialogHeaderToolbarContent: ToolbarContent {
         ToolbarItem(placement: .navigationBarLeading) {
             if isForward == false {
                 
-                HStack(spacing: 0.0) {
-                    Button {
-                        onDismiss()
-                    } label: {
-                        if let title = settings.leftButton.title {
-                            Text(title).foregroundColor(settings.leftButton.color)
-                        } else {
-                            settings.leftButton.image
-                                .resizable()
-                                .scaledToFit()
-                                .scaleEffect(settings.leftButton.scale)
-                                .tint(settings.leftButton.color)
-                                .padding(settings.leftButton.padding)
-                        }
-                    }.frame(width: 32, height: 44)
+                HStack(spacing: 8.0) {
                     
-                    HStack(spacing: 8.0) {
-                        
-                        AvatarView(image: avatar ?? dialog.placeholder,
-                                   height: settings.title.avatarHeight,
-                                   isHidden: settings.title.isHiddenAvatar)
-                        .task {
-                            do { avatar = try await dialog.avatar } catch { prettyLog(error) }
-                        }
-                        
-                        Text(dialog.name)
-                            .font(settings.title.font)
-                            .foregroundColor(settings.title.color)
+                    AvatarView(image: avatar ?? dialog.placeholder,
+                               height: settings.title.avatarHeight,
+                               isHidden: settings.title.isHiddenAvatar)
+                    .task {
+                        do { avatar = try await dialog.avatar(scale: .avatar3x) } catch { prettyLog(error) }
                     }
+                    
+                    Text(dialog.validName)
+                        .font(settings.title.font)
+                        .foregroundColor(settings.title.color)
                 }
             }
         }
@@ -119,22 +99,18 @@ public struct DialogHeader: ViewModifier {
     var dialog: any DialogEntity
     var isForward: Bool
     var selectedCount: Int
-    let onDismiss: () -> Void
     let onTapInfo: () -> Void
     let onTapCancel: () -> Void
     
     public init(
         dialog: any DialogEntity,
         isForward: Bool,
-        selectedCount: Int,
-        onDismiss: @escaping () -> Void,
-        onTapInfo: @escaping () -> Void,
+        selectedCount: Int,        onTapInfo: @escaping () -> Void,
         onTapCancel: @escaping () -> Void
     ) {
         self.dialog = dialog
         self.isForward = isForward
         self.selectedCount = selectedCount
-        self.onDismiss = onDismiss
         self.onTapInfo = onTapInfo
         self.onTapCancel = onTapCancel
     }
@@ -144,16 +120,16 @@ public struct DialogHeader: ViewModifier {
             DialogHeaderToolbarContent(dialog: dialog,
                                        isForward: isForward,
                                        selectedCount: selectedCount,
-                                       onDismiss: onDismiss,
                                        onTapInfo: onTapInfo,
                                        onTapCancel: onTapCancel)
         }
         .navigationBarTitleDisplayMode(settings.displayMode)
         .navigationTitle("")
-        .navigationBarBackButtonHidden(true)
+        .navigationBarBackButtonHidden(isForward == true)
         .navigationBarHidden(settings.isHidden)
         .toolbarBackground(settings.backgroundColor,for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)    }
+        .toolbarBackground(.visible, for: .navigationBar)
+    }
 }
 
 public struct TypingView: View {
@@ -318,6 +294,12 @@ public extension String {
         return detector.matches(in: self,
                                 options: [],
                                 range: NSRange(location: 0, length: self.utf16.count))
+    }
+    
+    func makeAttributedString(_ color: Color) -> AttributedString {
+        var attributedString = AttributedString(self)
+        attributedString.foregroundColor = color
+        return attributedString
     }
 }
 
@@ -548,7 +530,7 @@ struct CustomPreviewContextMenuView<Preview: View>: UIViewRepresentable {
     
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
-        view.backgroundColor = .clear
+        view.backgroundColor = .systemBackground
         view.addInteraction(
             UIContextMenuInteraction(
                 delegate: context.coordinator
@@ -606,37 +588,47 @@ struct CustomContextMenuAction {
     private let attributes: UIMenuElement.Attributes
     private let action: (() -> ())?
     private let title: String
+    private let flipped: UIImageAxis?
+    private let tintColor: Color
     
     init(
         title: String,
+        tintColor: Color,
+        flipped: UIImageAxis?,
         attributes: UIMenuElement.Attributes?,
         action: @escaping () -> ()
     ) {
-        self.init(title: title, image: nil, systemImage: nil, attributes: attributes ?? [], action: action)
+        self.init(title: title, image: nil, systemImage: nil, tintColor: tintColor, flipped: flipped, attributes: attributes ?? [], action: action)
     }
     
     init(
         title: String,
         systemImage: String,
+        tintColor: Color,
+        flipped: UIImageAxis?,
         attributes: UIMenuElement.Attributes?,
         action: @escaping () -> ()
     ) {
-        self.init(title: title, image: nil, systemImage: systemImage, attributes: attributes ?? [], action: action)
+        self.init(title: title, image: nil, systemImage: systemImage, tintColor: tintColor, flipped: flipped, attributes: attributes ?? [], action: action)
     }
     
     init(
         title: String,
         image: String,
+        tintColor: Color,
+        flipped: UIImageAxis?,
         attributes: UIMenuElement.Attributes?,
         action: @escaping () -> ()
     ) {
-        self.init(title: title, image: image, systemImage: nil, attributes: attributes ?? [], action: action)
+        self.init(title: title, image: image, systemImage: nil, tintColor: tintColor, flipped: flipped, attributes: attributes ?? [], action: action)
     }
     
     private init(
         title: String,
         image: String?,
         systemImage: String?,
+        tintColor: Color,
+        flipped: UIImageAxis?,
         attributes: UIMenuElement.Attributes,
         action: (() -> ())?
     ) {
@@ -645,13 +637,19 @@ struct CustomContextMenuAction {
         self.systemImage = systemImage
         self.attributes = attributes
         self.action = action
+        self.flipped = flipped
+        self.tintColor = tintColor
     }
     
     private var uiImage: UIImage? {
         if let image = image {
             return UIImage(named: image)
-        } else if let systemImage = systemImage {
-            return UIImage(systemName: systemImage)
+        } else if let systemImage = systemImage, let uiImage = UIImage(systemName: systemImage) {
+            if let flipped = flipped {
+                return uiImage.flipped(flipped).withTintColor(UIColor(tintColor))
+            } else {
+                return uiImage.withTintColor(UIColor(tintColor))
+            }
         } else {
             return nil
         }
@@ -672,4 +670,32 @@ struct ButtonBuilder {
     public static func buildBlock(_ buttons: CustomContextMenuAction...) -> [CustomContextMenuAction] {
         buttons
     }
+}
+
+enum UIImageAxis {
+case none, horizontal, vertical
+}
+
+extension UIImage {
+  func flipped(_ axis: UIImageAxis) -> UIImage {
+    let renderer = UIGraphicsImageRenderer(size: size)
+    
+    return renderer.image {
+      let context = $0.cgContext
+      context.translateBy(x: size.width / 2, y: size.height / 2)
+      
+      switch axis {
+      case .horizontal:
+        context.scaleBy(x: -1, y: 1)
+      case .vertical:
+        context.scaleBy(x: 1, y: -1)
+      case .none:
+          context.scaleBy(x: 1, y: 1)
+      }
+      
+      context.translateBy(x: -size.width / 2, y: -size.height / 2)
+      
+      draw(at: .zero)
+    }
+  }
 }

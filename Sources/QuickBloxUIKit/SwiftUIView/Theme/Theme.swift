@@ -264,7 +264,7 @@ public protocol ThemeStringProtocol {
     var remove: String { get set }
     var cancel: String { get set }
     var ok: String { get set }
-    var removeUser: String { get set }
+    var removeItem: String { get set }
     var questionMark: String { get set }
     var errorValidation: String { get set }
     var addUser: String { get set }
@@ -296,7 +296,7 @@ public protocol ThemeStringProtocol {
     var permissionMicrophoneTitle: String { get set }
     var permissionMicrophoneMessage: String { get set }
     var permissionActionCancel: String { get set }
-    var permissionActionSettings: String { get set }
+    var settings: String { get set }
     
     var createdGroupChat: String { get set }
     var dialogRenamedByUser: String { get set }
@@ -321,12 +321,16 @@ public protocol ThemeStringProtocol {
     var repliedTo: String { get set }
     var forwardSuccess: String { get set }
     var forwardFailure: String { get set }
+    
+    var unknown: String { get set }
+    var selectDialog: String { get set }
 }
 
 public class ThemeString: ThemeStringProtocol {
     public var dialogsEmpty: String = String(localized: "dialog.items.empty", bundle: .module)
     public var usersEmpty: String = String(localized: "dialog.members.empty", bundle: .module)
     public var messegesEmpty: String = String(localized: "dialog.messages.empty", bundle: .module)
+    public var selectDialog: String = String(localized: "dialog.info.selectDialog", bundle: .module)
     
     public var privateDialog: String = String(localized: "dialog.type.private", bundle: .module)
     public var groupDialog: String = String(localized: "dialog.type.group", bundle: .module)
@@ -373,7 +377,7 @@ public class ThemeString: ThemeStringProtocol {
     public var remove: String = String(localized: "alert.actions.remove", bundle: .module)
     public var cancel: String = String(localized: "alert.actions.cancel", bundle: .module)
     public var ok: String = String(localized: "alert.actions.ok", bundle: .module)
-    public var removeUser: String = String(localized: "alert.message.removeUser", bundle: .module)
+    public var removeItem: String = String(localized: "alert.message.removeItem", bundle: .module)
     public var questionMark: String = String(localized: "alert.message.questionMark", bundle: .module)
     public var errorValidation: String = String(localized: "alert.message.errorValidation", bundle: .module)
     public var addUser: String = String(localized: "alert.message.addUser", bundle: .module)
@@ -407,7 +411,7 @@ public class ThemeString: ThemeStringProtocol {
     public var permissionMicrophoneTitle: String = String(localized: "permission.microphone.title", bundle: .module)
     public var permissionMicrophoneMessage: String = String(localized: "permission.microphone.message", bundle: .module)
     public var permissionActionCancel: String = String(localized: "permission.actions.cancel", bundle: .module)
-    public var permissionActionSettings: String = String(localized: "permission.actions.settings", bundle: .module)
+    public var settings: String = String(localized: "permission.actions.settings", bundle: .module)
     
     public var createdGroupChat: String = String(localized: "utils.string.createdGroupChat", bundle: .module)
     public var dialogRenamedByUser: String = String(localized: "utils.string.dialogRenamedByUser", bundle: .module)
@@ -432,6 +436,8 @@ public class ThemeString: ThemeStringProtocol {
     public var repliedTo: String = String(localized: "features.action.repliedTo", bundle: .module)
     public var forwardSuccess: String = String(localized: "features.action.forwardSuccess", bundle: .module)
     public var forwardFailure: String = String(localized: "features.action.forwardFailure", bundle: .module)
+    
+    public var unknown: String = String(localized: "utils.string.unknown", bundle: .module)
     
     public init() {}
 }

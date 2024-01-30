@@ -40,9 +40,10 @@ public struct RemoveUsersAlert {
     private var theme: ThemeProtocol
     public var cancel: String
     public var remove: String
+    public var removeItem: String
     public var message: String = ""
     public func alertTitle(_ name: String) -> String {
-        return theme.string.removeUser
+        return theme.string.removeItem
         + name
         + theme.string.questionMark
     }
@@ -51,6 +52,7 @@ public struct RemoveUsersAlert {
         self.theme = theme
         self.cancel = theme.string.cancel
         self.remove = theme.string.remove
+        self.removeItem = theme.string.removeItem
     }
 }
 

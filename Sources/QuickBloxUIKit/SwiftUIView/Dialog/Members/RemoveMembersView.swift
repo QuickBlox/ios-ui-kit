@@ -13,7 +13,6 @@ import QuickBloxData
 public struct RemoveMembersView<ViewModel: MembersDialogProtocol>: View {
     @State public var settings = QuickBloxUIKit.settings.membersScreen
     
-    @Environment(\.dismiss) var dismiss
     @Environment(\.isSearching) private var isSearching: Bool
     
     @StateObject public var viewModel: ViewModel
@@ -68,22 +67,20 @@ public struct RemoveMembersView<ViewModel: MembersDialogProtocol>: View {
             viewModel.removeUserFromDialog()
         })
         
-        .membersHeader(onDismiss: {
-            dismiss()
-        }, onAdd: {
-            isAddPresented.toggle()
+        .if(isAddPresented == true, transform: { view in
+            view.navigationDestination(isPresented: $isAddPresented) {
+                Fabric.screen.addMembers(to: viewModel.dialog)
+            }
         })
+        
+        .modifier(MembersHeader(onAdd: {
+            isAddPresented = true
+        }))
         
         .disabled(viewModel.isProcessing == true)
         .if(viewModel.isProcessing == true) { view in
             view.overlay() {
                 CustomProgressView()
-            }
-        }
-        
-        .navigationDestination(isPresented: $isAddPresented) {
-            if isAddPresented == true {
-                Fabric.screen.addMembers(to: viewModel.dialog)
             }
         }
     }
@@ -94,7 +91,7 @@ struct RemoveMembersView_Previews: PreviewProvider {
         Group {
             RemoveMembersView(viewModel: MembersPreviewModel())
                 .previewDisplayName("Members View Light Delete")
-
+            
             RemoveMembersView(viewModel: MembersPreviewModel())
                 .previewDisplayName("Members View Dark Delete")
                 .preferredColorScheme(.dark)
@@ -120,10 +117,10 @@ private class MembersPreviewModel: MembersDialogProtocol {
     var displayed: [QuickBloxData.User] = PreviewModel.users
     
     func removeUserFromDialog() {}
-
+    
     var cancellables: Set<AnyCancellable> = []
-
+    
     var tasks: Set<Task<Void, Never>> = []
-
+    
     func sync() { }
 }

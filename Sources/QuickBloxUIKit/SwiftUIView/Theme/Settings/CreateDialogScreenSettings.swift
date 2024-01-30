@@ -193,11 +193,13 @@ public struct UserNameSettings {
     public var you: String
     public var foregroundColor: Color
     public var font: Font
+    public var unknown: String
     
     public init(_ theme: ThemeProtocol) {
         self.foregroundColor = theme.color.mainText
         self.font = theme.font.callout
         self.you = theme.string.you
+        self.unknown = theme.string.unknown
     }
 }
 

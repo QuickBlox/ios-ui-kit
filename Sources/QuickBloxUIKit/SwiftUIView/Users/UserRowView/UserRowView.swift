@@ -71,7 +71,7 @@ public struct UserRow<Item: UserEntity>: View  {
                                      height: settings.contentHeight,
                                      isHidden: settings.isHiddenAvatar )
             
-            nameView ?? UserRowName(text: user.name)
+            nameView ?? UserRowName(text: user.validName)
             Spacer()
             checkboxView ?? Checkbox(isSelected: isSelected, onTap: {
                 onTap(user)
@@ -84,7 +84,7 @@ public struct UserRow<Item: UserEntity>: View  {
     
     public var body: some View {
         contentView.task {
-            do { avatar = try await user.avatar } catch { prettyLog(error) }
+            do { avatar = try await user.avatar(scale: .avatar3x) } catch { prettyLog(error) }
         }
     }
 }
@@ -126,9 +126,7 @@ public struct RemoveUserRow<Item: UserEntity>: View  {
                                      height: settings.contentHeight,
                                      isHidden: settings.isHiddenAvatar )
             
-            nameView ?? UserRowName(text: user.isCurrent
-                                    ? user.name + settings.name.you
-                                    : user.name)
+            nameView ?? UserRowName(text: user.validName)
             Spacer()
             if user.id == ownerId {
                 RoleUserRowName().padding(.trailing, 60)
@@ -147,8 +145,21 @@ public struct RemoveUserRow<Item: UserEntity>: View  {
     
     public var body: some View {
         contentView.task {
-            do { avatar = try await user.avatar } catch { prettyLog(error) }
+            do { avatar = try await user.avatar(scale: .avatar3x) } catch { prettyLog(error) }
         }
+    }
+}
+
+private extension UserEntity {
+    var validName: String {
+        let settings = QuickBloxUIKit.settings.createDialogScreen.userRow.name
+        let regex = QuickBloxUIKit.feature.regex
+        
+        var valid = regex.userName.isEmpty ? name : (name.isValid(regexes: [regex.userName]) == true ? name : settings.unknown)
+        if isCurrent {
+            valid = valid + settings.you
+        }
+        return valid
     }
 }
 
@@ -183,7 +194,7 @@ public struct AddUserRow<Item: UserEntity>: View  {
                                      height: settings.contentHeight,
                                      isHidden: settings.isHiddenAvatar )
             
-            nameView ?? UserRowName(text: user.name)
+            nameView ?? UserRowName(text: user.validName)
             Spacer()
             addBoxView ?? AddUserButton(onTap: {
                 onTap(user)
@@ -196,7 +207,7 @@ public struct AddUserRow<Item: UserEntity>: View  {
     
     public var body: some View {
         contentView.task {
-            do { avatar = try await user.avatar } catch { prettyLog(error) }
+            do { avatar = try await user.avatar(scale: .avatar3x) } catch { prettyLog(error) }
         }
     }
 }

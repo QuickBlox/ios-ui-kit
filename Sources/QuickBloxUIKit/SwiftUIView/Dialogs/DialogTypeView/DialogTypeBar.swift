@@ -13,9 +13,6 @@ public struct DialogTypeBar {
     var barSettings = QuickBloxUIKit.settings.dialogTypeScreen.dialogTypeBar
     
     @Binding public var selectedSegment: DialogType?
-    public var font: Font? = nil
-    public var foregroundColor: Color? = nil
-    public var backgroundColor: Color? = nil
 }
 
 extension DialogTypeBar: View {
@@ -26,7 +23,7 @@ extension DialogTypeBar: View {
             }
         }
         .frame(height: barSettings.height)
-        .background(backgroundColor ?? barSettings.backgroundColor)
+        .background(barSettings.backgroundColor)
     }
 }
 

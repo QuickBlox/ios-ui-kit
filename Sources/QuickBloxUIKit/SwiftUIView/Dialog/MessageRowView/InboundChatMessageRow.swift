@@ -110,13 +110,13 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                                     preferredContentSize: size
                                 ) {
                                     CustomContextMenuAction(title: settings.reply.title,
-                                                         systemImage: settings.reply.systemImage ?? "",
+                                                         systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
                                                          attributes: features.reply.enable == true
                                                          ? nil : .hidden) {
                                         onSelect(message, .reply)
                                     }
                                     CustomContextMenuAction(title: settings.forward.title,
-                                                         image: settings.forward.image ?? "",
+                                                            systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
                                                          attributes: features.forward.enable == true
                                                          ? nil : .hidden) {
                                         onSelect(message, .forward)
@@ -179,19 +179,19 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                                         .cornerRadius(settings.attachmentRadius, corners: settings.outboundForwardCorners),
                                     preferredContentSize: size
                                 ) {
-                                    CustomContextMenuAction(title: features.ai.ui.answerAssist.title,
+                                    CustomContextMenuAction(title: features.ai.ui.answerAssist.title, tintColor: features.ai.ui.answerAssist.color, flipped: nil,
                                                          attributes: features.ai.ui.robot.hidden == true && features.ai.answerAssist.enable == true
                                                          ? nil : .hidden) {
                                         onAIFeature(.answerAssist, message)
                                     }
                                     CustomContextMenuAction(title: settings.reply.title,
-                                                         systemImage: settings.reply.systemImage ?? "",
+                                                            systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
                                                          attributes: features.reply.enable == true
                                                          ? nil : .hidden) {
                                         onSelect(message, .reply)
                                     }
                                     CustomContextMenuAction(title: settings.forward.title,
-                                                         image: settings.forward.image ?? "",
+                                                        systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
                                                          attributes: features.forward.enable == true
                                                          ? nil : .hidden) {
                                         onSelect(message, .forward)

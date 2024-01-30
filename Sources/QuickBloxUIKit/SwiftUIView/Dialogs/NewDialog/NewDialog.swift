@@ -10,6 +10,7 @@ import SwiftUI
 import QuickBloxDomain
 import PhotosUI
 import QuickBloxData
+import Combine
 
 struct NewDialog<ViewModel: NewDialogProtocol>: View {
     @Environment(\.dismiss) var dismiss
@@ -21,8 +22,10 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
     private var type: DialogType
     
     @State private var isAlertPresented: Bool = false
-    @State private var presentCreateDialog: Bool = false
+    @State private var isCreatedDialog: Bool = false
     @State private var isSizeAlertPresented: Bool = false
+    
+    @State private var dialogName: String = ""
     
     @State private var attachmentAsset: AttachmentAsset? = nil
     
@@ -32,9 +35,14 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
         self.type = type
     }
     
-    
     public var body: some View {
-        container()
+        if isIphone {
+            container()
+        } else if isIPad {
+            NavigationStack {
+                container()
+            }.accentColor(settings.header.leftButton.color)
+        }
     }
     
     @ViewBuilder
@@ -47,13 +55,15 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
                         isAlertPresented = true
                     }
                     
-                    DialogNameTextField(dialogName: $viewModel.dialogName, isValidDialogName: viewModel.isValidDialogName)
+                    DialogNameTextField(dialogName: $dialogName, isValidDialogName: viewModel.isValidDialogName, isFocused: isCreatedDialog)
+                        .onChange(of: dialogName, perform: { newValue in
+                            viewModel.update(newValue)
+                        })
                 }.padding([.leading, .trailing])
                 
                 Spacer()
             }
             .padding(.top)
-            
             .mediaAlert(isAlertPresented: $isAlertPresented,
                         isExistingImage: viewModel.isExistingImage,
                         isHiddenFiles: settings.isHiddenFiles,
@@ -86,10 +96,38 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
             .permissionAlert(isPresented: $viewModel.permissionNotGranted.notGranted,
                              viewModel: viewModel)
             
+            .onChange(of: viewModel.modelDialog, perform: { newValue in
+                if newValue != nil {
+                    isCreatedDialog = true
+                }
+            })
+            
+            .if(isCreatedDialog == true) { view in
+                view.navigationDestination(isPresented: $isCreatedDialog) {
+                    if let modelDialog = viewModel.modelDialog {
+                        CreateDialogView(viewModel: CreateDialogViewModel(users: [],
+                                                                          modeldDialog: Dialog(type: modelDialog.type,
+                                                                                               name: modelDialog.name,
+                                                                                               photo: modelDialog.photo)),
+                                         onDismiss: {
+                            isCreatedDialog = false
+                        },
+                                         content: {
+                            viewModel in
+                            
+                            UserListView(viewModel: viewModel,
+                                         content: { item, isSelected, onTap in
+                                UserRow(item, isSelected: isSelected, onTap: onTap)
+                            })}).onAppear {
+                                isCreatedDialog = false
+                            }
+                    }
+                }
+            }
+            
             .modifier(DialogNameHeader(type: type, disabled: !viewModel.isValidDialogName, onDismiss: {
                 dismiss()
             }, onNext: {
-                presentCreateDialog.toggle()
                 if type == .public {
                     //TODO: createPublicDialog method
                     viewModel.createPublicDialog()
@@ -102,25 +140,6 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
             .if(viewModel.isProcessing == true) { view in
                 view.overlay() {
                     CustomProgressView()
-                }
-            }
-            
-            .if(viewModel.modelDialog != nil) { view in
-                view.navigationDestination(isPresented: Binding.constant(viewModel.modelDialog != nil)) {
-                    if let modelDialog = viewModel.modelDialog {
-                        CreateDialogView(viewModel: CreateDialogViewModel(users: [],
-                                                                          modeldDialog: Dialog(type: modelDialog.type,
-                                                                                                          name: modelDialog.name,
-                                                                                                          photo: modelDialog.photo)),
-                                         content: {
-                            viewModel in
-                            
-                            UserListView(viewModel: viewModel,
-                                         content: { item, isSelected, onTap in
-                                UserRow(item, isSelected: isSelected, onTap: onTap)
-                            })})
-                    }
-                    
                 }
             }
         }
@@ -157,31 +176,24 @@ public struct DialogNameTextField: View {
     
     @Binding var dialogName: String
     var isValidDialogName: Bool
-    @State private var isFocused: Bool = false
+    @State var isFocused: Bool = false
     
     public var body: some View {
         VStack(spacing: settings.spacing / 2) {
             TextField(settings.textfieldPrompt, text: $dialogName, onEditingChanged: { (changed) in
                 isFocused = changed
-            }).padding(.top)
+            })
+            .padding(.top)
             
             Divider()
-                .frame(height: 1)
-                .background(settings.dividerColor.opacity(settings.header.opacity))
+                .background(settings.hint.color)
             
-            TextFieldHint(hint: (isValidDialogName || isFocused == false) ? "" : settings.hint)
+            Text(settings.hint.text)
+                .font(settings.hint.font)
+                .foregroundColor(settings.hint.color)
+                .frame(maxWidth: .infinity, alignment: .leading)
             
             Spacer()
-        }
-    }
-    
-    private struct TextFieldHint: View {
-        let hint: String
-        var body: some View {
-            return Text(hint)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

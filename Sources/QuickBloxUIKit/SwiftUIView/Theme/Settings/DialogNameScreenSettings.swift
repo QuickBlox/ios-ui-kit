@@ -17,10 +17,9 @@ public class DialogNameScreenSettings {
     public var dividerColor: Color
     public var height: CGFloat = 56.0
     public var spacing: CGFloat = 16.0
-    public var hint: String
+    public var hint: HintSettings
     public var textfieldPrompt: String
     public var mediaAlert: MediaAlert
-    public var regexDialogName = "^(?=.{3,60}$)(?!.*([\\s])\\1{2})[\\w\\s]+$"
     public var avatarSize: CGSize = CGSize(width: 80.0, height: 80.0)
     public var isHiddenFiles: Bool = true
     public var maximumMB: Double = 10
@@ -31,8 +30,20 @@ public class DialogNameScreenSettings {
         self.backgroundColor = theme.color.mainBackground
         self.avatarCamera = theme.image.avatarCamera
         self.dividerColor = theme.color.divider
-        self.hint = theme.string.nameHint
+        self.hint = HintSettings(theme)
         self.textfieldPrompt = theme.string.enterName
+    }
+}
+
+public struct HintSettings {
+    public var text: String
+    public var color: Color
+    public var font: Font
+    
+    init(_ theme: ThemeProtocol) {
+        self.font = theme.font.caption
+        self.color = theme.color.secondaryElements.opacity(0.4)
+        self.text = theme.string.nameHint
     }
 }
 
@@ -43,9 +54,24 @@ public struct MediaAlert {
     public var gallery: String
     public var cancel: String
     public var file: String
+    public var changeImage: String
+    public var changeDialogName: String
     public var galleryMediaTypes: [String] = [UTType.movie.identifier, UTType.image.identifier]
     public var fileMediaTypes: [UTType] = [.jpeg, .png, .heic, .heif, .gif, .webP, .mpeg4Movie, .mpeg4Audio, .aiff, .wav, .webArchive, .mp3, .pdf, .image, .video, .movie, .audio, .data, .diskImage, .zip]
     public var blurRadius:CGFloat = 12.0
+    
+    public var iPadBackgroundColor: Color
+    public var iPadForegroundColor: Color
+    public var iPadImageColor: Color
+    public var shadowColor: Color
+    public var buttonSize: CGSize = CGSize(width: 260, height: 56)
+    public var cornerRadius: CGFloat = 14.0
+    public var removePhotoColor: Color
+    
+    public var imageClose: Image
+    public var imageCamera: Image
+    public var imageGallery: Image
+    public var imageFile: Image
     
     public init(_ theme: ThemeProtocol) {
         self.title = theme.string.photo
@@ -54,9 +80,21 @@ public struct MediaAlert {
         self.gallery = theme.string.gallery
         self.file = theme.string.file
         self.cancel = theme.string.cancel
+        self.changeImage = theme.string.changeImage
+        self.changeDialogName = theme.string.changeDialogName
+        self.iPadBackgroundColor = theme.color.secondaryBackground
+        self.iPadForegroundColor = theme.color.mainText
+        self.iPadImageColor = theme.color.mainElements
+        self.imageClose = theme.image.close
+        self.imageCamera = theme.image.camera
+        self.imageGallery = theme.image.photo
+        self.imageFile = theme.image.doctext
+        self.removePhotoColor = theme.color.error
+        self.shadowColor = Color(uiColor: UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark ? UIColor(theme.color.secondaryBackground)
+            : UIColor(theme.color.disabledElements)
+        }).opacity(0.6)
     }
-    
-    
 }
 
 public struct DialogNameHeaderSettings: HeaderSettingsProtocol {
@@ -129,9 +167,4 @@ public struct DialogNameHeaderSettings: HeaderSettingsProtocol {
             self.title = theme.string.cancel
         }
     }
-}
-
-extension UTType {
-    static let ipa = UTType(filenameExtension: "ipa")!
-    static let dmg = UTType(filenameExtension: "dmg")!
 }

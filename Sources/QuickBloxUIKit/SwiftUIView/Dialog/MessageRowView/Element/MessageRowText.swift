@@ -39,7 +39,7 @@ public struct MessageRowText: View {
                 .animation(.easeInOut, value: text)
             }
         } else {
-            Text(text == features.forward.forwardedMessageKey ? features.forward.forwardedMessage : text)
+            Text(text == features.forward.forwardedMessageKey ? "" : text)
                 .lineLimit(nil)
                 .font(isOutbound == true ? settings.outboundFont : settings.inboundFont)
                 .foregroundColor(isOutbound == true ? settings.outboundForeground : settings.inboundForeground)

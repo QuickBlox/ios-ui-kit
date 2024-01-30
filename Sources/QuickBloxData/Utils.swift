@@ -25,22 +25,6 @@ extension ComparisonResult {
     }
 }
 
-extension Array where Element: Hashable {
-    mutating func removeDuplicates() {
-        var set = Set<Element>()
-        var newArray = [Element]()
-        
-        for element in self {
-            if !set.contains(element) {
-                newArray.append(element)
-                set.insert(element)
-            }
-        }
-        
-        self = newArray
-    }
-}
-
 extension Array where Element: Dated, Element: Identifiable, Element: Hashable {
     mutating func insertElement(_ new: Element, withSorting order: ComparisonResult) {
         if isEmpty {
@@ -70,7 +54,6 @@ extension Array where Element: Dated, Element: Identifiable, Element: Hashable {
                     append(new)
                 }
             }
-            self.removeDuplicates()
         }
     }
 }

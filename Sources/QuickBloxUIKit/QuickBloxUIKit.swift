@@ -68,7 +68,7 @@ class Sync {
     }
 }
 
-var syncState: AnyPublisher<SyncState, Never> {
+public var syncState: AnyPublisher<SyncState, Never> {
     syncData()
     return sync!.state
 }
@@ -81,33 +81,23 @@ private func syncData() {
     }
 }
 
-let imageCache = ImageCache.shared
-
 //FIXME: add dialogsView screen
 @MainActor @ViewBuilder
-public func dialogsView(onExit: (() -> Void)? = nil, onAppear: ((Bool) -> Void)? = nil) -> some View {
+public func dialogsView(onExit: (() -> Void)? = nil,
+                        onSelect: @escaping (_ tabIndex: TabIndex) -> Void) -> some View {
     DialogsView(dialogsList: DialogsViewModel(dialogsRepo: RepositoriesFabric.dialogs),
-                content: { dialogsList in
-        DialogsListView(dialogsList: dialogsList, detailContent: { item, onDismiss in
-            if item.type == .group {
-                GroupDialogView(viewModel: DialogViewModel(dialog: item), onDismiss: onDismiss)
-            } else if item.type == .private {
-                PrivateDialogView(viewModel: DialogViewModel(dialog: item), onDismiss: onDismiss)
-            }
-        },
-                        content: DialogsRowBuilder.defaultRow)
-    }, detailContent: { item, onDismiss in
+                detailContent: { item, isInfoPresented in
         if item.type == .group {
-            GroupDialogView(viewModel: DialogViewModel(dialog: item), onDismiss: onDismiss)
+            GroupDialogView(viewModel: DialogViewModel(dialog: item), isInfoPresented: isInfoPresented)
         } else if item.type == .private {
-            PrivateDialogView(viewModel: DialogViewModel(dialog: item), onDismiss: onDismiss)
+            PrivateDialogView(viewModel: DialogViewModel(dialog: item), isInfoPresented: isInfoPresented)
         }
     }, selectTypeContent: { onClose in
         DialogTypeView(onClose: onClose)
     }, onBack: {
         onExit?()
-    }, onAppear: { appear in
-        onAppear?(appear)
+    }, onSelect: { tabIndex in
+        onSelect(tabIndex)
     })
     .onAppear {
         syncData()

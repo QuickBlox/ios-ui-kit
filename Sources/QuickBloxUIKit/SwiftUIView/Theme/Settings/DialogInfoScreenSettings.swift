@@ -25,8 +25,8 @@ public class DialogInfoScreenSettings {
     public var members: MembersSegment
     public var search: SearchSegment
     public var leave: LeaveSegment
-    public var groupActionSegments: [DialogInfoAction] = [.members, .searchInDialog, .leaveDialog]
-    public var privateActionSegments: [DialogInfoAction] = [.searchInDialog, .leaveDialog]
+    public var groupActionSegments: [DialogInfoAction] = [.members, .leaveDialog]
+    public var privateActionSegments: [DialogInfoAction] = [.leaveDialog]
     public var editNameAlert: NameEditAlert
     public var editDialogAlert: DialogMediaEditAlert
     public var forwardAlert: ForwardAlert
@@ -34,7 +34,6 @@ public class DialogInfoScreenSettings {
     public var dividerColor: Color
     public var segmentHeight: CGFloat = 56.0
     public var segmentSpacing: CGFloat = 16.0
-    public var regexDialogName = "^(?=.{3,60}$)(?!.*([\\s])\\1{2})[\\w\\s]+$"
     public var avatarSize: CGSize = CGSize(width: 80.0, height: 80.0)
     public var maximumMB: Double = 10
     
@@ -273,15 +272,26 @@ public struct DialogMediaEditAlert {
     public var blurRadius: CGFloat = 12.0
     public var blurBackground: Color
     public var isHiddenFiles: Bool = true
+    public var iPadBackgroundColor: Color
+    public var iPadCancelColor: Color
+    public var shadowColor: Color
+    public var buttonSize: CGSize = CGSize(width: 260, height: 56)
+    public var cornerRadius: CGFloat = 14.0
     
     public init(_ theme: ThemeProtocol) {
         self.changeImage = theme.string.changeImage
         self.changeDialogName = theme.string.changeDialogName
+        self.iPadBackgroundColor = theme.color.secondaryBackground
+        self.iPadCancelColor = theme.color.mainElements
         self.cancel = theme.string.cancel
         self.blurBackground = Color(uiColor: UIColor { traitCollection in
             traitCollection.userInterfaceStyle == .dark ? UIColor(theme.color.secondaryBackground)
             : UIColor(theme.color.incomingBackground)
         })
+        self.shadowColor = Color(uiColor: UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark ? UIColor(theme.color.secondaryBackground)
+            : UIColor(theme.color.disabledElements)
+        }).opacity(0.6)
     }
 }
 

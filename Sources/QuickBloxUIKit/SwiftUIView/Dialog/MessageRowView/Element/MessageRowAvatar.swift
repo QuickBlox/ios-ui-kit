@@ -37,9 +37,7 @@ public struct MessageRowAvatar<MessageItem: MessageEntity>: View {
                            height: settings.avatar.height)
                     .clipShape(Circle())
                     .task {
-                        let size = CGSizeMake(settings.avatar.height,
-                                              settings.avatar.height)
-                        do { avatar = try await message.avatar(size: size) } catch { prettyLog(error) }
+                        do { avatar = try await message.avatar(scale: .avatar3x) } catch { prettyLog(error) }
                     }
             }
             .padding(.leading, 8)

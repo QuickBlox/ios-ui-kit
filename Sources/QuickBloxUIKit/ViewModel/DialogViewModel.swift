@@ -172,6 +172,7 @@ open class DialogViewModel: DialogViewModelProtocol {
     private var draftAttachmentMessage: QuickBloxData.Message? = nil
     
     init(dialog: Dialog) {
+        
         self.dialog = dialog
         
         isTypingEnable = QuickBloxUIKit.settings.dialogScreen.typing.enable

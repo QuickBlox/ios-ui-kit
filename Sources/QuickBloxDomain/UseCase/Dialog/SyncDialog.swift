@@ -58,7 +58,7 @@ where Dialog == DialogsRepo.DialogEntityItem,
                 
                 if let usersRepo = self?.usersRepo,
                    let users = try? await usersRepo.get(usersFromRemote: ids),
-                   users.isEmpty != false {
+                   users.isEmpty == false {
                     try? await usersRepo.save(usersToLocal: users)
                 }
                 try await dialogsRepo.save(dialogToLocal: dialog)
