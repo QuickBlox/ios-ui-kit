@@ -26,54 +26,69 @@ public struct PrivateDialogInfoView<ViewModel: DialogInfoProtocol>: View {
     }
     
     public var body: some View {
-        ZStack {
-            settings.backgroundColor.ignoresSafeArea()
-            VStack {
-                
-                InfoDialogAvatar()
-                
-                ForEach(settings.privateActionSegments, id:\.self) { action in
-                    InfoSegment(dialog: viewModel.dialog, action: action) { action in
-                        switch action {
-                        case .members: break
-                        case .searchInDialog: searchPresented.toggle()
-                        case .leaveDialog: isDeleteAlertPresented = true
-                        case .notification: break
+        if isIphone {
+            container()
+        } else if isIPad {
+            NavigationStack {
+                container()
+            }.accentColor(settings.header.leftButton.color)
+        }
+    }
+    
+    @ViewBuilder
+    private func container() -> some View {
+            ZStack {
+                settings.backgroundColor.ignoresSafeArea()
+                VStack {
+                    
+                    InfoDialogAvatar()
+                    
+                    ForEach(settings.privateActionSegments, id:\.self) { action in
+                        InfoSegment(dialog: viewModel.dialog, action: action) { action in
+                            switch action {
+                            case .members: break
+                            case .searchInDialog: searchPresented.toggle()
+                            case .leaveDialog: isDeleteAlertPresented = true
+                            case .notification: break
+                            }
                         }
+                    }
+                    
+                    SegmentDivider()
+                }
+                
+                .onChange(of: viewModel.error, perform: { error in
+                    if error.isEmpty { return }
+                    errorPresented.toggle()
+                })
+                
+                .errorAlert($viewModel.error, isPresented: $errorPresented)
+                
+                .deleteDialogAlert(isPresented: $isDeleteAlertPresented,
+                                   name: viewModel.dialog.name,
+                                   onCancel: {
+                    isDeleteAlertPresented = false
+                }, onTap: {
+                    viewModel.deleteDialog()
+                })
+                
+                .disabled(viewModel.isProcessing == true)
+                .if(viewModel.isProcessing == true) { view in
+                    view.overlay() {
+                        CustomProgressView()
                     }
                 }
                 
-                SegmentDivider()
+                .modifier(PrivateDialogInfoHeader())
+                
+                .environmentObject(viewModel)
             }
-            
-            .onChange(of: viewModel.error, perform: { error in
-                if error.isEmpty { return }
-                errorPresented.toggle()
-            })
-            
-            .errorAlert($viewModel.error, isPresented: $errorPresented)
-            
-            .deleteDialogAlert(isPresented: $isDeleteAlertPresented,
-                               name: viewModel.dialog.name,
-                               onCancel: {
-                isDeleteAlertPresented = false
-            }, onTap: {
-                viewModel.deleteDialog()
-            })
-            
-            .disabled(viewModel.isProcessing == true)
-            .if(viewModel.isProcessing == true) { view in
-                view.overlay() {
-                    CustomProgressView()
-                }
+            .onAppear {
+                viewModel.sync()
             }
-            
-            .modifier(PrivateDialogInfoHeader(onDismiss: {
-                dismiss()
-            }))
-            
-            .environmentObject(viewModel)
-        }
+            .onDisappear {
+                viewModel.unsync()
+            }
     }
 }
 

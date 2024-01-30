@@ -1,5 +1,5 @@
 //
-//  DialogListHeader.swift
+//  DialogListViewModifier.swift
 //  QuickBloxUIKit
 //
 //  Created by Injoit on 13.04.2023.
@@ -8,7 +8,7 @@
 
 import SwiftUI
 
-struct DialogListHeaderToolbarContent: ToolbarContent {
+struct DialogListViewModifierToolbarContent: ToolbarContent {
     
     private var settings = QuickBloxUIKit.settings.dialogsScreen.header
     
@@ -58,16 +58,14 @@ struct DialogListHeaderToolbarContent: ToolbarContent {
                     settings.rightButton.image
                         .resizable()
                         .scaledToFit()
-                        .scaleEffect(settings.rightButton.scale)
                         .tint(settings.rightButton.color)
-                        .padding(settings.rightButton.padding)
                 }
-            }.frame(width: 44, height: 44)
+            }
         }
     }
 }
 
-public struct DialogListHeader: ViewModifier {
+public struct DialogListViewModifier: ViewModifier {
     
     private var settings = QuickBloxUIKit.settings.dialogsScreen.header
     
@@ -83,8 +81,8 @@ public struct DialogListHeader: ViewModifier {
     
     public func body(content: Content) -> some View {
         content.toolbar {
-            DialogListHeaderToolbarContent(onDismiss: onDismiss,
-                                           onTapDialogType: onTapDialogType)
+            DialogListViewModifierToolbarContent(onDismiss: onDismiss,
+                                                 onTapDialogType: onTapDialogType)
         }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(settings.displayMode)
@@ -130,12 +128,12 @@ public struct DeleteDialogAlert: ViewModifier {
                         onCancel()
                         isPresented = false
                     })
-                    Button("Delete", role: .destructive, action: {
+                    Button(settings.remove, role: .destructive, action: {
                         onTap()
                         isPresented = false
                     })
                 } message: {
-                    Text( "Are you sure you want to delete that dialog?")
+                    Text(settings.removeItem + name + " dialog?")
                 }
         }
     }
@@ -205,4 +203,92 @@ struct EmptyDialogsView: View {
         }
         Spacer()
     }
+}
+
+public struct TabIndex: Hashable {
+    public var title: String
+    public var systemIcon: String
+    
+    public init(title: String, systemIcon: String) {
+        self.title = title
+        self.systemIcon = systemIcon
+    }
+}
+
+public extension TabIndex {
+    static let dialogs = TabIndex(title: "Dialogs",
+                                  systemIcon: "message.fill")
+    static let settings = TabIndex(title: "Settings",
+                                   systemIcon: "gearshape.fill")
+}
+
+struct EmptyDialogView: View {
+    let settings = QuickBloxUIKit.settings.dialogsScreen
+    let dialogSettings = QuickBloxUIKit.settings.dialogScreen
+    
+    var body: some View {
+        ZStack {
+            dialogSettings.contentBackgroundColor.ignoresSafeArea()
+            if dialogSettings.backgroundImage != nil {
+                dialogSettings.backgroundImage?
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFill()
+                    .foregroundColor(dialogSettings.backgroundImageColor)
+                    .opacity(0.8)
+                    .edgesIgnoringSafeArea(.all)
+            }
+            
+            Text(settings.selectDialog)
+                .font(settings.itemsIsEmptyFont)
+                .foregroundColor(settings.itemsIsEmptyColor)
+        }
+    }
+}
+
+public extension View {
+    func addKeyboardVisibilityToEnvironment() -> some View {
+        modifier(KeyboardVisibility())
+    }
+}
+
+private struct KeyboardShowingEnvironmentKey: EnvironmentKey {
+    static let defaultValue: Bool = false
+}
+
+extension EnvironmentValues {
+    var keyboardShowing: Bool {
+        get { self[KeyboardShowingEnvironmentKey.self] }
+        set { self[KeyboardShowingEnvironmentKey.self] = newValue }
+    }
+}
+
+import Combine
+private struct KeyboardVisibility:ViewModifier {
+    
+    @State var isKeyboardShowing:Bool = false
+    
+    private var keyboardPublisher: AnyPublisher<Bool, Never> {
+        Publishers
+            .Merge(
+                NotificationCenter
+                    .default
+                    .publisher(for: UIResponder.keyboardWillShowNotification)
+                    .map { _ in true },
+                NotificationCenter
+                    .default
+                    .publisher(for: UIResponder.keyboardWillHideNotification)
+                    .map { _ in false })
+            .debounce(for: .seconds(0.1), scheduler: RunLoop.main)
+            .eraseToAnyPublisher()
+    }
+    
+    fileprivate func body(content: Content) -> some View {
+        content
+            .environment(\.keyboardShowing, isKeyboardShowing)
+            .onReceive(keyboardPublisher) { value in
+                isKeyboardShowing = value
+            }
+    }
+    
 }

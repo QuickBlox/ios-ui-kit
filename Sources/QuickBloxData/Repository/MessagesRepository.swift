@@ -81,6 +81,7 @@ private extension RemoteMessageDTO {
         if let originSenderName = value.originSenderName {
             self.originSenderName = originSenderName
         }
+        
         originalMessages = value.originalMessages.compactMap { RemoteMessageDTO($0) }
         relatedId = value.relatedId
     }

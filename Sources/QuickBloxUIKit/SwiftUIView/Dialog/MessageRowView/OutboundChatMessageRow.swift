@@ -108,13 +108,13 @@ public struct OutboundChatMessageRow<MessageItem: MessageEntity>: View {
                     preferredContentSize: size
                 ) {
                     CustomContextMenuAction(title: settings.reply.title,
-                                         systemImage: settings.reply.systemImage ?? "",
+                                         systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
                                          attributes: features.reply.enable == true
                                          ? nil : .hidden) {
                         onSelect(message, .reply)
                     }
                     CustomContextMenuAction(title: settings.forward.title,
-                                         image: settings.forward.image ?? "",
+                                         systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
                                          attributes: features.forward.enable == true
                                          ? nil : .hidden) {
                         onSelect(message, .forward)

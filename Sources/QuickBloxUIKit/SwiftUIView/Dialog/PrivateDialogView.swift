@@ -17,11 +17,10 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
     let settings = QuickBloxUIKit.settings.dialogScreen
     let connectStatus = QuickBloxUIKit.settings.dialogsScreen.connectStatus
     let features = QuickBloxUIKit.feature
-    
-    @Environment(\.dismiss) var dismiss
-    
+
     @StateObject public var viewModel: ViewModel
     
+    @Binding private var infoPresented: Bool
     @State private var isInfoPresented: Bool = false
     @State private var isForwardPresented: Bool = false
     @State private var isForwardSuccess: Bool = false
@@ -40,11 +39,10 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
     
     @State private var tappedMessage: ViewModel.DialogItem.MessageItem? = nil
     
-    let onDismiss: () -> Void
-    
-    public init(viewModel: ViewModel, onDismiss: @escaping () -> Void) {
+    public init(viewModel: ViewModel,
+                isInfoPresented: Binding<Bool>) {
         _viewModel = StateObject(wrappedValue: viewModel)
-        self.onDismiss = onDismiss
+        _infoPresented = isInfoPresented
     }
     
     @ViewBuilder
@@ -131,7 +129,7 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
                             .opacity(0.8)
                             .edgesIgnoringSafeArea(.all)
                     }
-                }
+                }.ignoresSafeArea()
             )
             
                 .mediaAlert(isAlertPresented: $isAttachmentAlertPresented,
@@ -207,43 +205,83 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
                                             ActivityViewController(activityItems: [fileUrl])
                                         }
                                     })
+            
+                                    .if(isInfoPresented == true && isIphone == true, transform: { view in
+                                        view.navigationDestination(isPresented: $isInfoPresented) {
+                                            if let dialog = viewModel.dialog as? Dialog {
+                                                PrivateDialogInfoView(DialogInfoViewModel(dialog))
+                                                    .onAppear {
+                                                        infoPresented = true
+                                                    }
+                                                    .onDisappear {
+                                                        infoPresented = false
+                                                    }
+                                            }
+                                        }
+                                    })
+            
+                                    .if(isInfoPresented == true && isIPad == true, transform: { view in
+                                        view.sheet(isPresented: $isInfoPresented, content: {
+                                            if let dialog = viewModel.dialog as? Dialog {
+                                                PrivateDialogInfoView(DialogInfoViewModel(dialog))
+                                                    .onAppear {
+                                                        infoPresented = true
+                                                    }
+                                                    .onDisappear {
+                                                        infoPresented = false
+                                                    }
+                                            }
+                                        })
+                                    })
+                
+                                        .if(isForwardSuccess == true, transform: { view in
+                                            view.forwardSuccessAlert(isPresented: $isForwardSuccess, name: viewModel.dialog.name)
+                                        })
+            
+                                        .if(isForwardPresented == true && isIphone == true, transform: { view in
+                                            view.navigationDestination(isPresented: $isForwardPresented) {
+                                                ForwardView(viewModel: ForwardViewModel(messages: viewModel.selectedMessages as? [Message] ?? [],
+                                                                                        originSenderName: viewModel.dialog.name),
+                                                            onForwardSuccess: {
+                                                    viewModel.cancelMessageAction()
+                                                    isForwardSuccess = true
+                                                })
+                                                .onAppear {
+                                                    infoPresented = true
+                                                }
+                                                .onDisappear {
+                                                    infoPresented = false
+                                                }
+                                            }
+                                        })
+                
+                                        .if(isForwardPresented == true && isIPad == true, transform: { view in
+                                            view.sheet(isPresented: $isForwardPresented, content: {
+                                                ForwardView(viewModel: ForwardViewModel(messages: viewModel.selectedMessages as? [Message] ?? [],
+                                                                                        originSenderName: viewModel.dialog.name),
+                                                            onForwardSuccess: {
+                                                    viewModel.cancelMessageAction()
+                                                    isForwardSuccess = true
+                                                })
+                                                .onAppear {
+                                                    infoPresented = true
+                                                }
+                                                .onDisappear {
+                                                    infoPresented = false
+                                                }
+                                            })
+                                        })
                     
                                         .modifier(DialogHeader(dialog: viewModel.dialog,
                                                                isForward: viewModel.messagesActionState == .forward,
                                                                selectedCount: viewModel.selectedMessages.count,
-                                                               onDismiss: {
-                                            dismiss()
-                                            onDismiss()
-                                        }, onTapInfo: {
+                                                               onTapInfo: {
                                             isInfoPresented = true
                                         }, onTapCancel: {
                                             viewModel.cancelMessageAction()
                                         }))
                     
                                             .environmentObject(viewModel)
-                    
-                                            .if(isInfoPresented == true, transform: { view in
-                                                view.navigationDestination(isPresented: $isInfoPresented) {
-                                                    if let dialog = viewModel.dialog as? Dialog {
-                                                        PrivateDialogInfoView(DialogInfoViewModel(dialog))
-                                                    }
-                                                }
-                                            })
-                    
-                                                .if(isForwardSuccess == true, transform: { view in
-                                                    view.forwardSuccessAlert(isPresented: $isForwardSuccess, name: viewModel.dialog.name)
-                                                })
-                    
-                                                .if(isForwardPresented == true, transform: { view in
-                                                    view.navigationDestination(isPresented: $isForwardPresented) {
-                                                        ForwardView(viewModel: ForwardViewModel(messages: viewModel.selectedMessages as? [Message] ?? [],
-                                                                                                originSenderName: viewModel.dialog.name),
-                                                                    onForwardSuccess: {
-                                                            viewModel.cancelMessageAction()
-                                                            isForwardSuccess = true
-                                                        })
-                                                    }
-                                                })
         }
     }
     
@@ -371,7 +409,6 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
                 viewModel.sendStopTyping()
                 viewModel.stopPlayng()
                 viewModel.unsync()
-                isInfoPresented = false
             }
     }
 }

@@ -18,6 +18,7 @@ public protocol ScreensProtocol: AnyObject {
     var dialogInfoScreen: DialogInfoScreenSettings { get set }
     var membersScreen: MembersScreenSettings { get set }
     var addMembersScreen: AddMembersScreenSettings { get set }
+    var thumbnailImageSize: ThumbnailImageSizeSettings { get set }
     
     init(_ theme: ThemeProtocol)
 }
@@ -97,6 +98,7 @@ public class ScreenSettings: ScreensProtocol {
             self.dialogInfoScreen = DialogInfoScreenSettings(theme)
             self.membersScreen = MembersScreenSettings(theme)
             self.addMembersScreen = AddMembersScreenSettings(theme)
+            self.thumbnailImageSize = ThumbnailImageSizeSettings()
         }
     }
     public var dialogsScreen: DialogsScreenSettings
@@ -107,6 +109,7 @@ public class ScreenSettings: ScreensProtocol {
     public var dialogInfoScreen: DialogInfoScreenSettings
     public var membersScreen: MembersScreenSettings
     public var addMembersScreen: AddMembersScreenSettings
+    public var thumbnailImageSize: ThumbnailImageSizeSettings
     
     required public init(_ theme: ThemeProtocol) {
         self.theme = theme
@@ -119,5 +122,6 @@ public class ScreenSettings: ScreensProtocol {
         self.dialogInfoScreen = DialogInfoScreenSettings(theme)
         self.membersScreen = MembersScreenSettings(theme)
         self.addMembersScreen = AddMembersScreenSettings(theme)
+        self.thumbnailImageSize = ThumbnailImageSizeSettings()
     }
 }

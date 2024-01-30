@@ -38,10 +38,8 @@ final class MembersDialogViewModel: MembersDialogProtocol {
     
     public var cancellables = Set<AnyCancellable>()
     public var tasks = Set<Task<Void, Never>>()
-    private var taskUsers: Task<Void, Never>?
     private var taskUpdate: Task<Void, Never>?
     
-    // use for PreviewProvider
     init(dialog: Dialog,
          usersRepo: UsersRepository = RepositoriesFabric.users,
          dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs) {
@@ -70,12 +68,24 @@ final class MembersDialogViewModel: MembersDialogProtocol {
         Task { [weak self] in
             do {
                 let dialog = try await getDialog.execute()
-                await MainActor.run { [weak self, dialog] in
-                    self?.dialog = dialog
-                    self?.showUsers(dialog)
+                
+                guard let repo = self?.usersRepo else { return }
+                let getUsers: GetUsers<UserItem, UsersRepository>
+                = GetUsers(ids: dialog.participantsIds,
+                           repo: repo)
+                let users = try await getUsers.execute()
+                
+                await MainActor.run { [weak self, users] in
+                    guard let self = self else { return }
+                    self.dialog = dialog
+                    self.displayed = users
+                    self.isProcessing = false
                 }
             } catch {
                 prettyLog(error)
+                await MainActor.run { [weak self] in
+                    self?.isProcessing = false
+                }
             }
         }
     }
@@ -83,7 +93,6 @@ final class MembersDialogViewModel: MembersDialogProtocol {
     public func sync() {
         getDialog()
     }
-    public func unsync() {}
     
     //MARK: - Users
     //MARK: - Public Methods
@@ -100,43 +109,10 @@ final class MembersDialogViewModel: MembersDialogProtocol {
                 try await updateDialog.execute()
             }  catch {
                 prettyLog(error)
-                if error is RepositoryException {
-                    await MainActor.run { [weak self] in
-                        guard let self = self else { return }
-                        self.isProcessing = false
-                    }
-                    self?.taskUpdate = nil
+                await MainActor.run { [weak self] in
+                    self?.isProcessing = false
                 }
-            }
-        }
-    }
-    
-    //MARK: - Private Methods
-    private func showUsers(_ dialog: Dialog,
-                           name: String = "") {
-        taskUsers?.cancel()
-        taskUsers = nil
-        taskUsers = Task { [weak self] in
-            do {
-                guard let repo = self?.usersRepo else { return }
-                let getUsers: GetUsers<UserItem, UsersRepository>
-                = GetUsers(ids: dialog.participantsIds,
-                                    repo: repo)
-                let users = try await getUsers.execute()
-                
-                await MainActor.run { [weak self, users] in
-                    guard let self = self else { return }
-                    self.displayed = users
-                    self.isProcessing = false
-                }
-            } catch {
-                prettyLog(error)
-                if error is RepositoryException {
-                    await MainActor.run { [weak self] in
-                        guard let self = self else { return }
-                        self.isProcessing = false
-                    }
-                }
+                self?.taskUpdate = nil
             }
         }
     }

@@ -30,3 +30,12 @@ public struct ReplyUISettings {
     public init(_ theme: ThemeProtocol) {
     }
 }
+
+public class RegexFeature {
+    public var userName = "^(?=[a-zA-Z])[-a-zA-Z_ ]{3,49}(?<! )$"
+    public var dialogName = "^(?=.{3,60}$)(?!.*([\\s])\\1{2})[\\w\\s]+$"
+}
+
+public class ToolbarFeature {
+    public var enable: Bool = true
+}

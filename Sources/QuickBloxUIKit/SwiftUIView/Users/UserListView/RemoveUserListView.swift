@@ -52,25 +52,24 @@ extension RemoveUserListView: View {
                     Spacer()
                 }
             } else {
-                List {
-                    ForEach(items) { item in
-                        ZStack {
-                            RemoveUserRow(item, isAdmin: isAdmin, ownerId: ownerId, isSelected: false) { user in
-                                onSelect(user)
-                            }
-                            Separator(isLastRow: items.last?.id == item.id)
+                List(items) { item in
+                    ZStack {
+                        RemoveUserRow(item, isAdmin: isAdmin, ownerId: ownerId, isSelected: false) { user in
+                            onSelect(user)
                         }
-                        .onAppear {
-                            if visibleRows.contains(item.id) == false {
-                                self.visibleRows.insert(item.id)
-                                onAppearItem(item.id)
-                            }
-                            
-                            if items.last?.id == item.id {
-                                onNext()
-                            }
+                        Separator(isLastRow: items.last?.id == item.id)
+                    }
+                    .onAppear {
+                        if visibleRows.contains(item.id) == false {
+                            self.visibleRows.insert(item.id)
+                            onAppearItem(item.id)
+                        }
+                        
+                        if items.last?.id == item.id {
+                            onNext()
                         }
                     }
+                    .listRowBackground(settings.backgroundColor)
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
                 }.listStyle(.plain)

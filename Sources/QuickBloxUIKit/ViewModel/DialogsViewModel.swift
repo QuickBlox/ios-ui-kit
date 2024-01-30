@@ -19,26 +19,22 @@ public protocol DialogsListProtocol: QuickBloxUIKitViewModel {
     
     var dialogs: [Item] { get set }
     var syncState: SyncState { get set }
-    
     var dialogsRepo: DialogsRepo { get }
-    
     var selectedItem: Item? { get set }
-    
-    func deleteDialog(withID dialogId: String)
-    
     var dialogToBeDeleted: Item? { get set }
     
+    func deleteDialog(withID dialogId: String)
     init(dialogsRepo: DialogsRepo)
 }
 
 @MainActor
 final class DialogsViewModel: DialogsListProtocol {
-    
+
     @Published public var selectedItem: Dialog? = nil
     @Published public var dialogToBeDeleted: Dialog? = nil
     @MainActor
     @Published public var dialogs: [Dialog] = []
-    @Published public var syncState: SyncState = .syncing(stage: SyncState.Stage.disconnected)
+    @Published public var syncState: SyncState = .synced
     public let dialogsRepo: DialogsRepository
     
     private let leaveDialogObserve: LeaveDialogObserver<Dialog, DialogsRepository>!
@@ -58,7 +54,11 @@ final class DialogsViewModel: DialogsListProtocol {
         createDialogObserve.execute()
             .receive(on: RunLoop.main)
             .sink { [weak self] dialog in
-                if self?.selectedItem == nil {
+                if isIphone {
+                    if self?.selectedItem == nil {
+                        self?.selectedItem = dialog
+                    }
+                } else {
                     self?.selectedItem = dialog
                 }
             }
@@ -68,14 +68,15 @@ final class DialogsViewModel: DialogsListProtocol {
             .receive(on: RunLoop.main)
             .sink { [weak self] dialogId in
                 if dialogId == self?.selectedItem?.id {
-                    self?.selectedItem = nil
+                    if isIPad {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            self?.selectedItem = nil
+                        }
+                    } else {
+                        self?.selectedItem = nil
+                    }
                 }
                 self?.dialogToBeDeleted = nil
-                
-                if self?.onAppear == true { return }
-                
-                guard let dialog = self?.dialogs.first(where: { $0.id == dialogId }) else { return }
-                self?.refresh(eventType: .create, with: dialog)
             }
             .store(in: &cancellables)
         
@@ -86,9 +87,6 @@ final class DialogsViewModel: DialogsListProtocol {
                 .receive(on: RunLoop.main)
                 .sink { [weak self] updated in
                     self?.dialogs = updated
-                    
-                    if self?.onAppear == true { return }
-                    self?.refresh(eventType: .update, with: nil)
                 }
                 .store(in: &strSelf.cancellables)
             strSelf.updateDialogs = nil
@@ -97,6 +95,7 @@ final class DialogsViewModel: DialogsListProtocol {
         QuickBloxUIKit.syncState
             .receive(on: RunLoop.main)
             .sink { [weak self] syncState in
+                if self?.syncState == syncState { return }
                 self?.syncState = syncState
             }
             .store(in: &cancellables)
@@ -107,10 +106,8 @@ final class DialogsViewModel: DialogsListProtocol {
     public var tasks = Set<Task<Void, Never>>()
     
     public func sync() {
-        onAppear = true
     }
     public func unsync() {
-        onAppear = false
     }
 }
 
@@ -125,29 +122,12 @@ extension DialogsViewModel {
         deleteDialog = Task { [weak self] in
             do {
                 try await leaveDialogCase.execute()
-                
             } catch {
                 prettyLog(error)
             }
             self?.deleteDialog = nil
             await MainActor.run { [weak self] in
                 self?.dialogToBeDeleted = nil
-            }
-        }
-    }
-    
-    private func refresh(eventType: MessageEventType, with dialog: Dialog?) {
-        if eventType == .leave, let dialog,
-                  let index = dialogs.firstIndex(where: {$0.id == dialog.id}) {
-            dialogs.remove(at: index)
-        }
-        
-        let updatedDialogs = dialogs
-        
-        DispatchQueue.main.async {
-            self.dialogs = []
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                self.dialogs = updatedDialogs
             }
         }
     }

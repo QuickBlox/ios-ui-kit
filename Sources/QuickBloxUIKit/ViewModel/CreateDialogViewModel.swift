@@ -12,7 +12,9 @@ import QuickBloxData
 import QuickBloxLog
 import Combine
 
-public protocol CreateDialogProtocol: QuickBloxUIKitViewModel {
+public protocol CreateDialogProtocol: ObservableObject
+//: QuickBloxUIKitViewModel
+{
     associatedtype UserItem: UserEntity
     associatedtype DialogItem: DialogEntity
     
@@ -21,11 +23,10 @@ public protocol CreateDialogProtocol: QuickBloxUIKitViewModel {
     var selected: Set<UserItem> { get set }
     var isProcessing: Bool { get set }
     var isSynced: Bool { get set }
-    
     var modeldDialog: DialogItem { get }
     
+    func sync()
     func handleOnSelect(_ item: UserItem)
-    
     func createDialog()
 }
 
@@ -48,7 +49,7 @@ final class CreateDialogViewModel: CreateDialogProtocol {
     private var createTask: Task<Void, Never>?
     
     // use for PreviewProvider
-    init(users: [User],
+    public init(users: [User],
          modeldDialog: Dialog) {
         self.modeldDialog = modeldDialog
     }

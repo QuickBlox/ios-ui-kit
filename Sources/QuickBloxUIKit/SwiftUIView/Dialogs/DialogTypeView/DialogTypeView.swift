@@ -10,20 +10,33 @@ import SwiftUI
 import QuickBloxDomain
 import QuickBloxData
 
-public struct DialogTypeView: View {
+struct DialogTypeView: View {
     private var settings = QuickBloxUIKit.settings.dialogTypeScreen
     
     @State private var selectedSegment: DialogType?
+    @State private var presentCreateDialog: Bool = false
+    
     var dialogTypeBar: DialogTypeBar?
     
     // Actions
     private var onClose: () -> Void
     
-    public init(onClose: @escaping () -> Void) {
+    init(onClose: @escaping () -> Void) {
         self.onClose = onClose
     }
     
     public var body: some View {
+        if isIphone {
+            container()
+        } else if isIPad {
+            NavigationStack {
+                container()
+            }.accentColor(settings.header.leftButton.color)
+        }
+    }
+    
+    @ViewBuilder
+    private func container() -> some View {
         VStack {
             VStack {
                 DialogTypeHeaderView(onClose: onClose)
@@ -34,12 +47,15 @@ public struct DialogTypeView: View {
             
             Spacer().materialModifier()
             
-                .if(selectedSegment != nil) { view in
-                    view.navigationDestination(isPresented: Binding.constant(selectedSegment != nil) ) {
+                .if(presentCreateDialog == true && isIphone == true) { view in
+                    view.navigationDestination(isPresented: $presentCreateDialog) {
                         if let selectedSegment {
-                            
                             if selectedSegment == .private {
-                                CreateDialogView(viewModel: CreateDialogViewModel(users: [], modeldDialog: Dialog(type: .private)),
+                                CreateDialogView(viewModel: CreateDialogViewModel(users: [],
+                                                                                  modeldDialog: Dialog(type: .private)),
+                                                 onDismiss: {
+                                    presentCreateDialog = false
+                                },
                                                  content: {
                                     viewModel in
                                     
@@ -53,9 +69,39 @@ public struct DialogTypeView: View {
                         }
                     }
                 }
+            
+                .if(presentCreateDialog == true && isIPad == true) { view in
+                    view.sheet(isPresented: $presentCreateDialog, content: {
+                        if let selectedSegment {
+                            
+                            if selectedSegment == .private {
+                                CreateDialogView(viewModel: CreateDialogViewModel(users: [],
+                                                                                  modeldDialog: Dialog(type: .private)),
+                                                 onDismiss: {
+                                    presentCreateDialog = false
+                                },
+                                                 content: {
+                                    viewModel in
+                                    
+                                    UserListView(viewModel: viewModel,
+                                                 content: { item, isSelected, onTap in
+                                        UserRow(item, isSelected: isSelected, onTap: onTap)
+                                    })}).onDisappear {
+                                        self.selectedSegment = nil
+                                        presentCreateDialog = false
+                                    }
+                            } else {
+                                NewDialog(NewDialogViewModel(), type: selectedSegment).onDisappear {
+                                    self.selectedSegment = nil
+                                    presentCreateDialog = false
+                                }
+                            }
+                        }
+                    })
+                }
         }
         .onChange(of: selectedSegment, perform: { selectedType in
-            selectedSegment = selectedType
+            presentCreateDialog = selectedType != nil
         })
         .onAppear {
             selectedSegment = nil

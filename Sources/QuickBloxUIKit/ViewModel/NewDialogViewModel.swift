@@ -26,18 +26,19 @@ public enum AttachmentType: String {
     case error = "error"
 }
 
-public protocol NewDialogProtocol: QuickBloxUIKitViewModel, PermissionProtocol  {
+public protocol NewDialogProtocol: PermissionProtocol, ObservableObject  {
     associatedtype DialogItem: DialogEntity
     
-    var dialogName: String { get set }
     var isValidDialogName: Bool { get set }
     var isExistingImage: Bool { get }
     var selectedImage: Image? { get set }
     var isProcessing: Bool { get set }
     var permissionNotGranted: PermissionInfo { get set }
+    
 
     var modelDialog: DialogItem? { get set }
     
+    func update(_ name: String)
     func removeExistingImage()
     func handleOnSelect(attachmentAsset: AttachmentAsset)
     func createPublicDialog()
@@ -48,8 +49,8 @@ public protocol NewDialogProtocol: QuickBloxUIKitViewModel, PermissionProtocol  
 
 final class NewDialogViewModel: NewDialogProtocol {
     let settings = QuickBloxUIKit.settings.dialogNameScreen
+    let regex = QuickBloxUIKit.feature.regex
     
-    @Published public var dialogName = ""
     @Published public var isValidDialogName = false
     @Published public var selectedImage: Image? = nil
     @Published public var  isProcessing: Bool = false
@@ -58,6 +59,14 @@ final class NewDialogViewModel: NewDialogProtocol {
     public var isExistingImage: Bool {
         return selectedImage != nil
     }
+    
+    private var dialogName = "" {
+        didSet {
+            isValidDialogName = regex.dialogName.isEmpty ? true : dialogName.isValid(regexes: [regex.dialogName])
+        }
+    }
+    
+    private var avatarUUID = ""
     
     private let permissionsRepo: PermissionsRepository = RepositoriesFabric.permissions
     
@@ -68,19 +77,19 @@ final class NewDialogViewModel: NewDialogProtocol {
     public var cancellables = Set<AnyCancellable>()
     public var tasks = Set<Task<Void, Never>>()
     
-    init() {
-        isDialogNameValidPublisher
-            .receive(on: RunLoop.main)
-            .assign(to: \.isValidDialogName, on: self)
-            .store(in: &cancellables)
-    }
+    init() {}
     
     public func sync() {}
+    
+    func update(_ name: String) {
+        dialogName = name
+    }
     
     public func handleOnSelect(attachmentAsset: AttachmentAsset) {
         if let uiImage = attachmentAsset.image {
             selectedImage = Image(uiImage: uiImage)
             self.attachmentAsset = attachmentAsset
+            upload(avatar: uiImage, name: dialogName)
         }
     }
     
@@ -95,41 +104,39 @@ final class NewDialogViewModel: NewDialogProtocol {
 //        let publicDialog = Dialog(type: .public, name: dialogName, photo: publicImageUrl ?? "")
     }
     
-    public func createDialogModel() {
-        //TODO: implement
-        if let uiImage = attachmentAsset?.image {
-            isProcessing = true
-            Task { [weak self] in
-                var compressionQuality: CGFloat = 1.0
-                let maxFileSize: Int = 10 * 1024 * 1024 // 10MB in bytes
-                var imageData = uiImage.jpegData(compressionQuality: compressionQuality)
-                
-                while let data = imageData, data.count > maxFileSize && compressionQuality > 0.0 {
-                    compressionQuality -= 0.1
-                    imageData = uiImage.jpegData(compressionQuality: compressionQuality)
+    public func upload(avatar: UIImage, name: String) {
+        isProcessing = true
+        Task { [weak self] in
+            var compressionQuality: CGFloat = 1.0
+            let maxFileSize: Int = 10 * 1024 * 1024 // 10MB in bytes
+            var imageData = avatar.jpegData(compressionQuality: compressionQuality)
+            
+            while let data = imageData, data.count > maxFileSize && compressionQuality > 0.0 {
+                compressionQuality -= 0.1
+                imageData = avatar.jpegData(compressionQuality: compressionQuality)
+            }
+            
+            if let finalImageData = imageData {
+                let uploadAvatar = UploadFile(data: finalImageData,
+                                              ext: .png,
+                                              name: name,
+                                              repo: RepositoriesFabric.files)
+                let fileInfo =  try await uploadAvatar.execute()
+                guard let uuid = fileInfo.info.path.uuid else { return }
+                await MainActor.run { [weak self, uuid] in
+                    self?.avatarUUID = uuid
+                    self?.isProcessing = false
                 }
-                
-                if let finalImageData = imageData, let name = self?.dialogName {
-                    let uploadAvatar = UploadFile(data: finalImageData,
-                                                  ext: .png,
-                                                  name: name,
-                                                  repo: RepositoriesFabric.files)
-                    let fileInfo =  try await uploadAvatar.execute()
-                    guard let uuid = fileInfo.info.path.uuid else { return }
-                    await MainActor.run { [weak self, uuid] in
-                        self?.modelDialog = Dialog(type: .group,
-                                                   name: name,
-                                                   photo:uuid)
-                        self?.isProcessing = false
-                    }
-                }
+            } else {
                 await MainActor.run { [weak self] in
                     self?.isProcessing = false
                 }
             }
-        } else {
-            modelDialog = Dialog(type: .group, name: dialogName, photo:"")
         }
+    }
+    
+    public func createDialogModel() {
+        modelDialog = Dialog(type: .group, name: dialogName, photo: avatarUUID)
     }
     
     //MARK: - Media Permissions
@@ -160,17 +167,6 @@ final class NewDialogViewModel: NewDialogProtocol {
                 prettyLog(error)
             }
         }
-    }
-}
-
-// MARK: - Validation
-private extension NewDialogViewModel {
-    var isDialogNameValidPublisher: AnyPublisher<Bool, Never> {
-        $dialogName
-            .map { dialogName in
-                return dialogName.isValid(regexes: [self.settings.regexDialogName])
-            }
-            .eraseToAnyPublisher()
     }
 }
 

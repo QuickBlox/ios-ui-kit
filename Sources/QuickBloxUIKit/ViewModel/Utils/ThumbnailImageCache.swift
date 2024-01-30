@@ -1,5 +1,5 @@
 //
-//  ImageCache.swift
+//  ThumbnailImageCache.swift
 //  QuickBloxUIKit
 //
 //  Created by Injoit on 13.06.2023.
@@ -13,8 +13,8 @@ public enum Result<T> {
     case failure(NSError)
 }
 
-class ImageCache {
-    static let shared = ImageCache()
+class ThumbnailImageCache {
+    static let shared = ThumbnailImageCache()
     private let fileManager = FileManager.default
     lazy var cachesDirectoryUrl: URL = {
         let cachesDirectoryUrl = self.fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first!
@@ -23,7 +23,7 @@ class ImageCache {
     
     private lazy var imageCache: NSCache<AnyObject, AnyObject> = {
         let cache = NSCache<AnyObject, AnyObject>()
-        cache.name = "com.quickbloxuikit.imageCache"
+        cache.name = "com.quickbloxuikit.thumbnailImageCache"
         cache.countLimit = 100 // Max 100 images in memory.
         cache.totalCostLimit = 1024 * 1024 * 90 // Max 90MB used.
         return cache

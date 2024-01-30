@@ -78,7 +78,7 @@ extension DialogRowView {
                                       isHidden: settings.isHiddenAvatar))
             VStack(spacing: settings.infoSpacing) {
                 HStack {
-                    nameView ?? DialogRowName(text: dialog.name)
+                    nameView ?? DialogRowName(text: dialog.validName)
                     settings.infoSpacer
                     timeView ?? DialogRowTime(time: dialog.time,
                                               isHidden: settings.isHiddenTime)
@@ -98,7 +98,6 @@ extension DialogRowView {
         }
         .padding(settings.padding)
         .frame(height: settings.height)
-        .background(settings.backgroundColor)
         .id(dialog.id)
     }
 }
@@ -123,7 +122,7 @@ public struct PrivateDialogRowView: DialogRowView  {
     
     public var body: some View {
         contentView.task {
-            do { avatar = try await dialog.avatar } catch { prettyLog(error) }
+            do { avatar = try await dialog.avatar(scale: .avatar3x) } catch { prettyLog(error) }
         }
     }
 }
@@ -148,7 +147,7 @@ public struct GroupDialogRowView: DialogRowView  {
     
     public var body: some View {
         contentView.task {
-            do { avatar = try await dialog.avatar } catch { prettyLog(error) }
+            do { avatar = try await dialog.avatar(scale: .avatar3x) } catch { prettyLog(error) }
         }
     }
 }
@@ -173,7 +172,7 @@ public struct PublicDialogRowView: DialogRowView  {
     
     public var body: some View {
         contentView.task {
-            do { avatar = try await dialog.avatar } catch { prettyLog(error) }
+            do { avatar = try await dialog.avatar(scale: .avatar3x) } catch { prettyLog(error) }
         }
     }
 }
@@ -207,7 +206,7 @@ public struct SelectDialogRowView: View {
                                      height: settings.selectAvatarSize.height,
                                      isHidden: settings.isHiddenAvatar )
             
-            UserRowName(text: dialog.name)
+            UserRowName(text: dialog.validName)
             Spacer()
             
             Checkbox(isSelected: isSelected) {
@@ -218,7 +217,7 @@ public struct SelectDialogRowView: View {
         .padding(settings.selectPadding)
         .background(settings.backgroundColor)
         .task {
-            do { avatar = try await dialog.avatar } catch { prettyLog(error) }
+            do { avatar = try await dialog.avatar(scale: .avatar3x) } catch { prettyLog(error) }
         }
     }
 }
@@ -240,6 +239,7 @@ public struct DialogsRowBuilder<DialogItem: DialogEntity> {
 extension DialogEntity {
     public var time: String {
         let stringUtils = QuickBloxUIKit.settings.dialogScreen.stringUtils
+        
         let formatter = DateFormatter()
         
         if Calendar.current.isDateInToday(date) == true {
@@ -254,6 +254,16 @@ extension DialogEntity {
             formatter.dateStyle = .short
         }
         return formatter.string(from: date)
+    }
+    
+    public var validName: String {
+        let settings = QuickBloxUIKit.settings.dialogScreen.messageRow.name
+        let regex = QuickBloxUIKit.feature.regex
+        
+        if type == .private && regex.userName.isEmpty == false {
+            return name.isValid(regexes: [regex.userName]) == true ? name : settings.unknown
+        }
+        return name
     }
 }
 

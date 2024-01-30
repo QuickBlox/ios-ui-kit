@@ -12,35 +12,13 @@ struct MembersHeaderToolbarContent: ToolbarContent {
     
     private var settings = QuickBloxUIKit.settings.membersScreen.header
     
-    let onDismiss: () -> Void
     let onAdd: () -> Void
     
-    public init(
-        onDismiss: @escaping () -> Void,
-        onAdd: @escaping () -> Void) {
-            self.onDismiss = onDismiss
-            self.onAdd = onAdd
-        }
+    public init(onAdd: @escaping () -> Void) {
+        self.onAdd = onAdd
+    }
     
     public var body: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarLeading) {
-            Button {
-                onDismiss()
-            } label: {
-                if let title = settings.leftButton.title {
-                    Text(title)
-                        .foregroundColor(settings.leftButton.color)
-                } else {
-                    settings.leftButton.image
-                        .resizable()
-                        .scaledToFit()
-                        .scaleEffect(settings.leftButton.scale)
-                        .tint(settings.leftButton.color)
-                        .padding(settings.leftButton.padding)
-                }
-            }.frame(width: 32, height: 44)
-        }
-        
         ToolbarItem(placement: .navigationBarTrailing) {
             Button {
                 onAdd()
@@ -64,35 +42,23 @@ struct MembersHeaderToolbarContent: ToolbarContent {
 public struct MembersHeader: ViewModifier {
     private var settings = QuickBloxUIKit.settings.membersScreen.header
     
-    let onDismiss: () -> Void
     let onAdd: () -> Void
     
-    public init(
-        onDismiss: @escaping () -> Void,
-        onAdd: @escaping () -> Void) {
-            self.onDismiss = onDismiss
-            self.onAdd = onAdd
-        }
+    public init(onAdd: @escaping () -> Void) {
+        self.onAdd = onAdd
+    }
     
     public func body(content: Content) -> some View {
         content.toolbar {
-            MembersHeaderToolbarContent(onDismiss: onDismiss,
-                                        onAdd: onAdd)
+            MembersHeaderToolbarContent(onAdd: onAdd)
         }
         .navigationTitle(settings.title.text)
         .navigationBarTitleDisplayMode(settings.displayMode)
-        .navigationBarBackButtonHidden(true)
+        .navigationBarBackButtonHidden(false)
         .navigationBarHidden(settings.isHidden)
         .toolbarBackground(settings.backgroundColor,for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-    }
-}
-
-extension View {
-    func membersHeader(onDismiss: @escaping () -> Void,
-                       onAdd: @escaping () -> Void) -> some View {
-        self.modifier(MembersHeader(onDismiss: onDismiss,
-                                       onAdd: onAdd))
+        .toolbarRole(.editor)
     }
 }
 

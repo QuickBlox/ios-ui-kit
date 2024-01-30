@@ -131,6 +131,17 @@ public struct CustomMediaAlert<ViewModel: PermissionProtocol>: ViewModifier {
     let isHiddenFiles: Bool
     let mediaTypes: [PHPickerFilter]
     
+    var mediaPickerActions: [MediaPickerAction] {
+        var mediaPickerAction: [MediaPickerAction]  = [.camera, .photo]
+        if isExistingImage == true {
+            mediaPickerAction = [.removePhoto, .camera, .photo]
+        }
+        if isHiddenFiles == false {
+            mediaPickerAction.append(.file)
+        }
+        return mediaPickerAction
+    }
+    
     let onRemoveImage: () -> Void
     let onGetAttachment: (_ attachmentAsset: AttachmentAsset) -> Void
     
@@ -138,30 +149,87 @@ public struct CustomMediaAlert<ViewModel: PermissionProtocol>: ViewModifier {
         ZStack {
             content
                 .blur(radius: isAlertPresented || isImagePickerPresented || isFilePresented ? settings.blurRadius : 0.0)
-                .confirmationDialog(settings.title, isPresented: $isAlertPresented, actions: {
-                    if isExistingImage == true {
-                        Button(settings.removePhoto, role: .destructive) {
-                            onRemoveImage()
-                            defaultState()
-                        }
-                    }
-                    Button(settings.camera, role: .none) {
-                        viewModel.requestPermission(AVMediaType.video) { granted in
-                            if granted {
-                                isCameraPresented = true
+            
+                .if(isIphone == true, transform: { view in
+                    view.confirmationDialog(settings.title, isPresented: $isAlertPresented, actions: {
+                        if isExistingImage == true {
+                            Button(settings.removePhoto, role: .destructive) {
+                                onRemoveImage()
+                                defaultState()
                             }
                         }
-                    }
-                    Button(settings.gallery, role: .none, action: {
-                        isImagePickerPresented = true
-                    })
-                    if isHiddenFiles == false {
-                        Button(settings.file, role: .none, action: {
-                            isFilePresented = true
+                        Button(settings.camera, role: .none) {
+                            viewModel.requestPermission(AVMediaType.video) { granted in
+                                if granted {
+                                    isCameraPresented = true
+                                }
+                            }
+                        }
+                        Button(settings.gallery, role: .none, action: {
+                            isImagePickerPresented = true
                         })
-                    }
-                    Button(settings.cancel, role: .cancel) {
-                        defaultState()
+                        if isHiddenFiles == false {
+                            Button(settings.file, role: .none, action: {
+                                isFilePresented = true
+                            })
+                        }
+                        Button(settings.cancel, role: .cancel) {
+                            defaultState()
+                        }
+                    })
+                })
+            
+                .if(isIPad == true && isAlertPresented == true, transform: { view in
+                    ZStack {
+                        view.disabled(true)
+                            .overlay(
+                                VStack(spacing: 8) {
+                                    VStack {
+                                        ForEach(mediaPickerActions, id:\.self) { action in
+                                            MediaPickerSegmentView(action: action) { action in
+                                                switch action {
+                                                case .removePhoto:
+                                                    onRemoveImage()
+                                                    defaultState()
+                                                case .camera:
+                                                    viewModel.requestPermission(AVMediaType.video) { granted in
+                                                        if granted {
+                                                            isCameraPresented = true
+                                                        }
+                                                    }
+                                                case .photo:
+                                                    isImagePickerPresented = true
+                                                case .file:
+                                                    isFilePresented = true
+                                                default: print("default")
+                                                }
+                                            }
+                                            
+                                            if mediaPickerActions.last != action {
+                                                Divider()
+                                            }
+                                        }
+                                    }
+                                    .background(RoundedRectangle(cornerRadius: settings.cornerRadius).fill(settings.iPadBackgroundColor))
+                                    .frame(width: settings.buttonSize.width)
+                                    
+                                    VStack {
+                                        Button {
+                                            defaultState()
+                                        } label: {
+                                            
+                                            HStack {
+                                                Text(settings.cancel).foregroundColor(settings.iPadImageColor)
+                                            }
+                                            .frame(width: settings.buttonSize.width, height: settings.buttonSize.height)
+                                        }
+                                    }
+                                    .background(RoundedRectangle(cornerRadius: settings.cornerRadius).fill(settings.iPadBackgroundColor))
+                                    .frame(width: settings.buttonSize.width)
+                                }
+                                    .frame(width: settings.buttonSize.width)
+                                    .shadow(color: settings.shadowColor.opacity(0.6), radius: settings.blurRadius)
+                            )
                     }
                 })
             
@@ -182,37 +250,37 @@ public struct CustomMediaAlert<ViewModel: PermissionProtocol>: ViewModifier {
                             onGetAttachment: onGetAttachment)
             
                 .onChange(of: selectedItem) { _ in
-                            Task {
-                                self.attachmentAsset = nil
-                                
-                                if let data = try? await selectedItem?.loadTransferable(type: Data.self),
-                                   let contentType = selectedItem?.supportedContentTypes.first {
-                                    let url = documentsDirectoryPath().appendingPathComponent("\(UUID().uuidString).\(contentType.preferredFilenameExtension ?? "")")
-                                    guard let ext = FileExtension(rawValue: url.pathExtension.lowercased()) else { return }
-                                    do {
-                                        try data.write(to: url)
-                                        if let avatarImage = UIImage(data: data) {
-                                            self.attachmentAsset = AttachmentAsset(name: url.lastPathComponent,
-                                                                                   image: avatarImage,
-                                                                                   data: data,
-                                                                                   ext: ext,
-                                                                                   url: nil,
-                                                                                   size: url.fileSizeMB)
-                                        } else {
-                                            self.attachmentAsset = AttachmentAsset(name: url.lastPathComponent,
-                                                                                   image: nil,
-                                                                                   data: data,
-                                                                                   ext: ext,
-                                                                                   url: url,
-                                                                                   size: url.fileSizeMB)
-                                        }
-                                    } catch {
-                                        print("Failed")
-                                    }
+                    Task {
+                        self.attachmentAsset = nil
+                        
+                        if let data = try? await selectedItem?.loadTransferable(type: Data.self),
+                           let contentType = selectedItem?.supportedContentTypes.first {
+                            let url = documentsDirectoryPath().appendingPathComponent("\(UUID().uuidString).\(contentType.preferredFilenameExtension ?? "")")
+                            guard let ext = FileExtension(rawValue: url.pathExtension.lowercased()) else { return }
+                            do {
+                                try data.write(to: url)
+                                if let avatarImage = UIImage(data: data) {
+                                    self.attachmentAsset = AttachmentAsset(name: url.lastPathComponent,
+                                                                           image: avatarImage,
+                                                                           data: data,
+                                                                           ext: ext,
+                                                                           url: nil,
+                                                                           size: url.fileSizeMB)
+                                } else {
+                                    self.attachmentAsset = AttachmentAsset(name: url.lastPathComponent,
+                                                                           image: nil,
+                                                                           data: data,
+                                                                           ext: ext,
+                                                                           url: url,
+                                                                           size: url.fileSizeMB)
                                 }
+                            } catch {
                                 print("Failed")
                             }
                         }
+                        print("Failed")
+                    }
+                }
         }
     }
     
@@ -234,13 +302,58 @@ extension View {
         onGetAttachment: @escaping (_ attachmentAsset: AttachmentAsset) -> Void
     ) -> some View {
         self.modifier(CustomMediaAlert<ViewModel>(viewModel: viewModel,
-                                       isAlertPresented: isAlertPresented,
-                                       isExistingImage: isExistingImage,
-                                       isHiddenFiles: isHiddenFiles,
-                                       mediaTypes: mediaTypes,
-                                       onRemoveImage: onRemoveImage,
-                                       onGetAttachment: onGetAttachment
-                                      ))
+                                                  isAlertPresented: isAlertPresented,
+                                                  isExistingImage: isExistingImage,
+                                                  isHiddenFiles: isHiddenFiles,
+                                                  mediaTypes: mediaTypes,
+                                                  onRemoveImage: onRemoveImage,
+                                                  onGetAttachment: onGetAttachment
+                                                 ))
+    }
+}
+
+public enum MediaPickerAction: CaseIterable {
+    case removePhoto, camera, photo, file, image, name
+}
+
+public struct MediaPickerSegmentView: View {
+    public var settings = QuickBloxUIKit.settings.dialogNameScreen.mediaAlert
+    
+    let action: MediaPickerAction
+    let onTap: (_ action: MediaPickerAction) -> Void
+    
+    @ViewBuilder
+    public var body: some View {
+        Button {
+            onTap(action)
+        } label: {
+            HStack {
+                switch action {
+                case .removePhoto:
+                    Text(settings.removePhoto).foregroundColor(settings.removePhotoColor)
+                    Spacer()
+                    settings.imageClose.foregroundColor(settings.removePhotoColor)
+                case .camera:
+                    Text(settings.camera).foregroundColor(settings.iPadForegroundColor)
+                    Spacer()
+                    settings.imageCamera.foregroundColor(settings.iPadImageColor)
+                case .photo:
+                    Text(settings.gallery).foregroundColor(settings.iPadForegroundColor)
+                    Spacer()
+                    settings.imageGallery.foregroundColor(settings.iPadImageColor)
+                case .file:
+                    Text(settings.file).foregroundColor(settings.iPadForegroundColor)
+                    Spacer()
+                    settings.imageFile.foregroundColor(settings.iPadImageColor)
+                case .image:
+                    Text(settings.changeImage).foregroundColor(settings.iPadForegroundColor)
+                case .name:
+                    Text(settings.changeDialogName).foregroundColor(settings.iPadForegroundColor)
+                }
+            }
+            .padding()
+        }
+        .frame(width: settings.buttonSize.width, height: settings.buttonSize.height)
     }
 }
 
@@ -354,7 +467,7 @@ public struct LargeFileSizeAlert: ViewModifier {
             content.blur(radius: isPresented ? settings.blurRadius : 0.0)
                 .alert(settings.maxSize, isPresented: $isPresented) {
                     Button("Cancel", action: {
-                            onCancel?()
+                        onCancel?()
                         isPresented = false
                     })
                     if compressible {
@@ -422,7 +535,7 @@ extension View {
 public struct PermissionAlert<ViewModel: PermissionProtocol>: ViewModifier {
     public var settings = QuickBloxUIKit.settings.dialogScreen.permissions
     
-   let viewModel: ViewModel
+    let viewModel: ViewModel
     
     @Binding var isPresented: Bool
     

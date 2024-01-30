@@ -21,18 +21,28 @@ where DialogItem == ViewModel.DialogItem, UserItem == ViewModel.UserItem {
     @Environment(\.isSearching) private var isSearching: Bool
     @State private var onTapCreate: Bool = false
     
+    let onDismiss: () -> Void
+    
     @StateObject public var viewModel: ViewModel
     
     init(viewModel: ViewModel,
+         onDismiss: @escaping () -> Void,
         @ViewBuilder content: @escaping (_ viewModel: ViewModel) -> ListView) {
         self.content = content
+        self.onDismiss = onDismiss
         _viewModel = StateObject(wrappedValue: viewModel)
     }
     
     private var content: (_ viewModel: ViewModel) -> ListView
     
-    var body: some View {
-        container()
+    public var body: some View {
+        if isIphone {
+            container()
+        } else if isIPad {
+            NavigationStack {
+                container()
+            }.accentColor(settings.header.leftButton.color)
+        }
     }
     
     @ViewBuilder
@@ -52,6 +62,7 @@ where DialogItem == ViewModel.DialogItem, UserItem == ViewModel.UserItem {
         
         .modifier(CreateDialogHeader(onDismiss: {
             dismiss()
+            onDismiss()
         }, onTapCreate: {
             onTapCreate.toggle()
             viewModel.createDialog()

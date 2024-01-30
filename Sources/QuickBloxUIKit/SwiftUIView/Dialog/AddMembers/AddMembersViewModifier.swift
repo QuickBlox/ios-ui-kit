@@ -43,29 +43,21 @@ struct AddMembersHeaderToolbarContent: ToolbarContent {
 public struct AddMembersHeader: ViewModifier {
     private var settings = QuickBloxUIKit.settings.addMembersScreen.header
     
-    let onDismiss: () -> Void
-    
-    public init(
-        onDismiss: @escaping () -> Void) {
-            self.onDismiss = onDismiss
-        }
-    
     public func body(content: Content) -> some View {
-        content.toolbar {
-            AddMembersHeaderToolbarContent(onDismiss: onDismiss)
-        }
+        content
         .navigationTitle(settings.title.text)
         .navigationBarTitleDisplayMode(settings.displayMode)
-        .navigationBarBackButtonHidden(true)
+        .navigationBarBackButtonHidden(false)
         .navigationBarHidden(settings.isHidden)
         .toolbarBackground(settings.backgroundColor,for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarRole(.editor)
     }
 }
 
 extension View {
-    func addMembersHeader(onDismiss: @escaping () -> Void) -> some View {
-        self.modifier(AddMembersHeader(onDismiss: onDismiss))
+    func addMembersHeader() -> some View {
+        self.modifier(AddMembersHeader())
     }
 }
 

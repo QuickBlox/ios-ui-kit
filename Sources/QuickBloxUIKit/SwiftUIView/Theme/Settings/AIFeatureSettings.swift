@@ -11,17 +11,6 @@ import QBAITranslate
 import QBAIRephrase
 import QBAIAnswerAssistant
 
-public class Feature {
-    /// An instance of the AI module for AI-related settings and operations.
-    public var ai: AIFeature = AIFeature()
-    
-    /// An instance of the ForwardFeature settings and operations.
-    public var forward: ForwardFeature = ForwardFeature()
-    
-    /// An instance of the ReplyFeature settings and operations.
-    public var reply: ReplyFeature = ReplyFeature()
-}
-
 public class AIFeature {
     /// Determines if AIfunctionality is enabled.
     public var enable: Bool = true
@@ -408,9 +397,11 @@ public struct AITranslateUISettings {
 
 public struct AIAnswerAssistUISettings {
     public var title: String
+    public var color: Color
     
     public init(_ theme: ThemeProtocol) {
         self.title = theme.string.answerAssistTitle
+        self.color = theme.color.mainText
     }
 }
 

@@ -35,7 +35,6 @@ public class DialogScreenSettings {
     public var maxSize: String
     public var maxSizeHint: String
     public var compressibleMaxSizeHint: String
-    public var avatarSize: AvatarSizeSettings = AvatarSizeSettings()
     public var isHiddenFiles = false
     public var connectForeground: Color
     public var invalidFile: String = "Request failed: bad request (400)"
@@ -74,7 +73,7 @@ public struct AVPermissionsSettings {
         self.microphoneErrorTitle = theme.string.permissionMicrophoneTitle
         self.microphoneErrorMessage = theme.string.permissionMicrophoneMessage
         self.alertCancelAction = theme.string.permissionActionCancel
-        self.alertSettingsAction = theme.string.permissionActionSettings
+        self.alertSettingsAction = theme.string.settings
     }
 }
 
@@ -123,12 +122,6 @@ public struct StringUtilsConstant {
         self.today = theme.string.today
         self.yesterday = theme.string.yesterday
     }
-}
-
-public struct AvatarSizeSettings {
-    public var avatar1x: CGSize = CGSize(width: 32.0, height: 32.0)
-    public var avatar2x: CGSize = CGSize(width: 56.0, height: 56.0)
-    public var avatar3x: CGSize = CGSize(width: 80.0, height: 80.0)
 }
 
 public struct TypingSettings {
@@ -569,38 +562,40 @@ public struct MessageRowSettings {
     
     public struct ForwardActionSettings {
         public var title: String
-        public var image: String?
         public var systemImage: String?
+        public var color: Color
         public var attributes: UIMenuElement.Attributes = []
         
         public init(_ theme: ThemeProtocol) {
             self.title = theme.string.forward
             self.systemImage = "arrowshape.turn.up.left.2"
-            self.image = "forwardIcon"
+            self.color = theme.color.mainElements
         }
     }
     
     public struct ReplyActionSettings {
         public var title: String
-        public var image: String?
         public var systemImage: String?
+        public var color: Color
         public var attributes: UIMenuElement.Attributes = []
         
         public init(_ theme: ThemeProtocol) {
             self.title = theme.string.reply
             self.systemImage = "arrowshape.turn.up.backward"
+            self.color = theme.color.mainElements
         }
     }
     
     public struct SaveActionSettings {
         public var title: String
-        public var image: String?
         public var systemImage: String?
+        public var color: Color
         public var attributes: UIMenuElement.Attributes = []
         
         public init(_ theme: ThemeProtocol) {
             self.title = theme.string.save
             self.systemImage = "folder"
+            self.color = theme.color.mainText
         }
     }
     
@@ -643,10 +638,12 @@ public struct MessageRowSettings {
     public struct MessageNameSettings {
         public var foregroundColor: Color
         public var font: Font
+        public var unknown: String
         
         public init(_ theme: ThemeProtocol) {
             self.foregroundColor = theme.color.tertiaryElements
             self.font = theme.font.caption
+            self.unknown = theme.string.unknown
         }
     }
 }
@@ -664,13 +661,13 @@ public struct MessageTextFieldSettings {
     public var emojiButton: EmojiButton
     public var timer: RecordTimer
     public var progressBar: TextFieldProgressBarSettings
-    public var barHeight: CGFloat = 56.0
+    public var barHeight: CGFloat = 48.0
     public var barColor: Color
     public var height: CGFloat = 36.0
     public var radius: CGFloat = 20.0
-    public var padding: EdgeInsets = EdgeInsets(top: 7,
+    public var padding: EdgeInsets = EdgeInsets(top: 5,
                                                 leading: 16,
-                                                bottom: 7,
+                                                bottom: 5,
                                                 trailing: 16)
     public var debounceSeconds: Double = 1.5
     public var messageActionBanner: MessageActionBannerSettings

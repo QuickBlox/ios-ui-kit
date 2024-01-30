@@ -41,7 +41,6 @@ extension UserListView: View {
     public var body: some View {
         container()
             .onAppear { viewModel.sync() }
-            .onDisappear {  viewModel.unsync() }
     }
     
     
@@ -72,15 +71,14 @@ extension UserListView: View {
                     Spacer()
                 }
             } else {
-                List {
-                    ForEach(viewModel.displayed) { item in
-                        ZStack {
-                            content(item, viewModel.selected.contains(item), { user in
-                                viewModel.handleOnSelect(user)
-                            })
-                            Separator(isLastRow: viewModel.displayed.last?.id == item.id)
-                        }
+                List(viewModel.displayed) { item in
+                    ZStack {
+                        content(item, viewModel.selected.contains(item), { user in
+                            viewModel.handleOnSelect(user)
+                        })
+                        Separator(isLastRow: viewModel.displayed.last?.id == item.id)
                     }
+                    .listRowBackground(settings.backgroundColor)
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
                 }
