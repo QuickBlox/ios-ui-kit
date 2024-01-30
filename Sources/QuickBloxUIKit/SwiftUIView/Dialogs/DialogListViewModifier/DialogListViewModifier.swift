@@ -216,9 +216,9 @@ public struct TabIndex: Hashable {
 }
 
 public extension TabIndex {
-    static let dialogs = TabIndex(title: QuickBloxUIKit.settings.theme.string.dialogs,
+    static let dialogs = TabIndex(title: "Dialogs",
                                   systemIcon: "message.fill")
-    static let settings = TabIndex(title: QuickBloxUIKit.settings.theme.string.settings,
+    static let settings = TabIndex(title: "Settings",
                                    systemIcon: "gearshape.fill")
 }
 
