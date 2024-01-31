@@ -36,7 +36,7 @@ extension RemoteMessageDTO {
             self.filesInfo = attachments.compactMap {
                 do {
                     var fileInfo = try RemoteFileInfoDTO($0)
-                    if text.contains("MediaContentEntity|") {
+                    if text.contains("MediaContentEntity|"), fileInfo.uid == "" {
                         var separated: [String] = text.components(separatedBy: "|")
                         separated.removeLast()
                         if let uid = separated.last {
