@@ -23,6 +23,10 @@ where Dialog == DialogsRepo.DialogEntityItem {
     }
     
     public func execute() async throws -> Dialog {
-        return try await dialogsRepo.get(dialogFromLocal: dialogId)
+        guard let dialog = try? await dialogsRepo.get(dialogFromLocal: dialogId) else {
+            let dialog = try await dialogsRepo.get(dialogFromRemote: dialogId)
+            return dialog
+        }
+        return dialog
     }
 }

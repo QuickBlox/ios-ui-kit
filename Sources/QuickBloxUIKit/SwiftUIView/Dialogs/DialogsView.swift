@@ -10,9 +10,7 @@ import SwiftUI
 import QuickBloxData
 import QuickBloxDomain
 
-public struct DialogsView<ViewModel: DialogsListProtocol,
-                          DetailView: View,
-                          TypeView: View>: View {
+public struct DialogsView<ViewModel: DialogsListProtocol>: View {
     
     let settings = QuickBloxUIKit.settings.dialogsScreen
     let feature = QuickBloxUIKit.feature
@@ -22,42 +20,29 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
     @Environment(\.isSearching) var isSearching
     
     let connectStatus = QuickBloxUIKit.settings.dialogsScreen.connectStatus
-
-    @StateObject public var dialogsList: ViewModel
+    
+    @StateObject private var dialogsList: ViewModel
     
     public init(dialogsList: ViewModel,
-                @ViewBuilder detailContent: @escaping (_ dialog: ViewModel.Item,
-                                                       _ isInfoPresented: Binding<Bool>) -> DetailView,
-                selectTypeContent: @escaping (@escaping() -> Void) -> TypeView,
                 onBack: @escaping () -> Void,
                 onSelect: @escaping (_ tabIndex: TabIndex) -> Void) {
         _dialogsList = StateObject(wrappedValue: dialogsList)
-        self.detailContent = detailContent
-        self.selectTypeContent = selectTypeContent
         self.onBack = onBack
         self.onSelect = onSelect
     }
-
-    private var detailContent: (ViewModel.Item,
-                                _ isInfoPresented: Binding<Bool>) -> DetailView
-    private var selectTypeContent: (@escaping () -> Void) -> TypeView
+    
     private var onBack: () -> Void
     public var onSelect: (_ tabIndex: TabIndex) -> Void
     
     @State private var isDialogTypePresented: Bool = false
     @State private var isDeleteAlertPresented: Bool = false
     @State private var dialogForDeleting: ViewModel.Item? = nil
-    @State private var isInfoPresented: Bool = false
     
     @State private var searchText = ""
     @State private var submittedSearchTerm = ""
-    @State private var needDismiss: Bool = false
     
     @State public var isPresentedItem: Bool = false
-    
     @State private var selectedSegment: TabIndex = .dialogs
-    
-    @State private var selectedItem: ViewModel.Item?
     
     @State private var tabBarVisibility: Visibility = .visible
     
@@ -81,16 +66,16 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
                 
                 if feature.toolbar.enable {
                     TabView(selection: $selectedSegment) {
-                            dialogsContentView().blur(radius: isDialogTypePresented ? settings.blurRadius : 0)
-                                .toolbar(tabBarVisibility, for: .tabBar)
-                                .toolbarBackground(settings.backgroundColor, for: .tabBar)
-                                .toolbarBackground(tabBarVisibility, for: .tabBar)
-                                .tag(TabIndex.dialogs)
-                                .tabItem {
-                                    Label(TabIndex.dialogs.title, systemImage: TabIndex.dialogs.systemIcon)
-                                }
+                        dialogsContentView().blur(radius: isDialogTypePresented ? settings.blurRadius : 0)
+                            .toolbar(tabBarVisibility, for: .tabBar)
+                            .toolbarBackground(settings.backgroundColor, for: .tabBar)
+                            .toolbarBackground(tabBarVisibility, for: .tabBar)
+                            .tag(TabIndex.dialogs)
+                            .tabItem {
+                                Label(TabIndex.dialogs.title, systemImage: TabIndex.dialogs.systemIcon)
+                            }
                         
-                        ForEach(settings.tabIndex.externalIndexes, id:\.self) { tabIndex in
+                        ForEach(feature.toolbar.externalIndexes, id:\.self) { tabIndex in
                             settings.backgroundColor.ignoresSafeArea()
                                 .toolbar(tabBarVisibility, for: .tabBar)
                                 .toolbarBackground(settings.backgroundColor, for: .tabBar)
@@ -108,7 +93,7 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
             }
             
             if isDialogTypePresented == true {
-                selectTypeContent({
+                DialogTypeView(onClose: {
                     // action onDismiss
                     isDialogTypePresented = false
                 })
@@ -134,60 +119,16 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
             selectedSegment = .dialogs
         }
         
-        .onChange(of: selectedSegment, perform: { newValue in
-            if newValue != .dialogs {
-                onSelect(newValue)
+        .onChange(of: selectedSegment, perform: { newSelectedSegment in
+            if newSelectedSegment != .dialogs {
+                onSelect(newSelectedSegment)
             }
         })
         
-        .onChange(of: dialogsList.selectedItem, perform: { newValue in
-            if let newValueId = newValue?.id,
-               let selectedItemId = selectedItem?.id,
-               newValueId == selectedItemId {
-                return
-            }
-            selectedItem = newValue
+        .onChange(of: dialogsList.selectedItem, perform: { newSelectedItem in
             isDialogTypePresented = false
+            isPresentedItem = newSelectedItem != nil
         })
-        
-        .onChange(of: selectedItem, perform: { newValue in
-            if newValue != nil {
-                isDialogTypePresented = false
-            }
-            
-            isPresentedItem = newValue != nil
-            
-            if let newValueId = newValue?.id,
-               let selectedItemId = dialogsList.selectedItem?.id,
-               newValueId == selectedItemId {
-                return
-            }
-            dialogsList.selectedItem = newValue
-        })
-        
-        .if(isIphone == true, transform: { view in
-            view.navigationDestination(isPresented: $isPresentedItem) {
-                if let dialog = dialogsList.selectedItem {
-                detailContent(dialog, $isInfoPresented).onAppear {
-                    isDialogTypePresented = false
-                }
-                .onDisappear {
-                    if isInfoPresented == false {
-                        dialogsList.selectedItem = nil
-                    }
-                }
-            }
-        }
-    })
-        
-        .modifier(DialogListViewModifier(onDismiss: {
-            onBack()
-            dismiss()
-        }, onTapDialogType: {
-            isDialogTypePresented = true
-        }))
-        
-        .navigationBarHidden(isDialogTypePresented)
         
         .if(dialogsList.dialogToBeDeleted != nil) { view in
             view.overlay() {
@@ -238,9 +179,17 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
            dialogsList.dialogToBeDeleted == nil {
             EmptyDialogsView()
         } else {
-            List(items, selection: $selectedItem) { item in
-                NavigationLink(value: item) {
-                    GroupDialogRowView(item)
+            List(items) { item in
+                Button {
+                    if isIPad && dialogsList.selectedItem?.id == item.id {
+                        return
+                    }
+                    dialogsList.selectedItem = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        dialogsList.selectedItem = item
+                    }
+                } label: {
+                    DialogsRowBuilder.defaultRow(item)
                         .if(item.type != .public && dialogsList.dialogToBeDeleted == nil, transform: { view in
                             view.swipeActions(edge: .trailing) {
                                 Button(role: .destructive, action: {
@@ -252,15 +201,14 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
                                 }
                             }
                         })
-
-                    }.foregroundColor(Color.clear)
-                
+                }
                 .alignmentGuide(.listRowSeparatorLeading) { viewDimensions in
                     return items.last?.id == item.id ? viewDimensions[.leading]
                     : viewDimensions[.listRowSeparatorLeading]
                 }
                 .listRowBackground(settings.backgroundColor)
                 .listRowInsets(EdgeInsets())
+                .buttonStyle(.plain)
             }
             .listStyle(.plain)
             .deleteDisabled(dialogForDeleting != nil)
@@ -271,21 +219,50 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
         if isIphone {
             NavigationStack {
                 container()
-            }.accentColor(settings.header.leftButton.color)
-        } else if isIPad {
-            NavigationSplitView(columnVisibility: Binding.constant(.all)) {
-                container()
-            } detail: {
-                if let dialog = selectedItem {
-                    detailContent(dialog, $isPresentedItem).id(dialog.id)
-                        .onAppear {
-                            isDialogTypePresented = false
-                        }
-                        .onDisappear {
-                            if isInfoPresented == false {
-                                dialogsList.selectedItem = nil
+                    .navigationDestination(isPresented: $isPresentedItem) {
+                        if let dialog = dialogsList.selectedItem as? Dialog {
+                            switch dialog.type {
+                            case .group:
+                                GroupDialogView(viewModel: DialogViewModel(dialog: dialog))
+                            case .private:
+                                PrivateDialogView(viewModel: DialogViewModel(dialog: dialog))
+                            default:
+                                EmptyView()
                             }
                         }
+                    }
+                    .modifier(DialogListHeader(onDismiss: {
+                        onBack()
+                        dismiss()
+                    }, onTapDialogType: {
+                        isDialogTypePresented = true
+                    }))
+                    .navigationBarHidden(isDialogTypePresented)
+            }.accentColor(settings.header.leftButton.color)
+        }
+        else if isIPad {
+            
+            NavigationSplitView(columnVisibility: Binding.constant(.all)) {
+                NavigationStack {
+                    container()
+                        .modifier(DialogListHeader(onDismiss: {
+                            onBack()
+                            dismiss()
+                        }, onTapDialogType: {
+                            isDialogTypePresented = true
+                        }))
+                        .navigationBarHidden(isDialogTypePresented)
+                }
+            } detail: {
+                if let dialog = dialogsList.selectedItem as? Dialog {
+                    switch dialog.type {
+                    case .group:
+                        GroupDialogView(viewModel: DialogViewModel(dialog: dialog))
+                    case .private:
+                        PrivateDialogView(viewModel: DialogViewModel(dialog: dialog))
+                    default:
+                        EmptyView()
+                    }
                 } else {
                     EmptyDialogView()
                 }
@@ -295,34 +272,3 @@ public struct DialogsView<ViewModel: DialogsListProtocol,
         }
     }
 }
-
-//public struct DialogsViewViewBuilder<DialogItem: DialogEntity, UserItem: UserEntity, ListView: View, UserView: View> {
-//    @MainActor @ViewBuilder
-//    public static func `default`() -> some View {
-//        DialogsView(dialogsList: DialogsViewModel(dialogs: PreviewModel.dialogs), content: { (dialogs, onTap, onAppear, onDelete)   in
-//            DialogsViewBuilder.defaultListView(dialogs, onItemTap: { item in
-//
-//            }, onAppearItem: { itemId in
-//
-//            }, onDeleteItem: { itemId in
-//
-//            })
-//        }, detailContent: { item in
-//            DialogView<Dialog, User, UserListView<User, UserRow>, UserRow, Message>(dialog: item)
-//        }, selectTypeContent: { onClose in
-//            DialogTypeView<DialogItem, UserItem, ListView, UserView>(onClose: onClose)
-//        })
-//    }
-//}
-//
-//struct DialogsView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        Group {
-//            DialogsViewViewBuilder<Dialog, User, UserListView<User, UserRow>, UserRow>.default()
-//                .previewDisplayName("Dialogs View Light")
-//            DialogsViewViewBuilder<Dialog, User, UserListView<User, UserRow>, UserRow>.default()
-//                .previewDisplayName("Dialogs View Dark")
-//                .preferredColorScheme(.dark)
-//        }
-//    }
-//}

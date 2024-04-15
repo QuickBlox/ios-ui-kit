@@ -128,6 +128,8 @@ public struct NonEditInfoHeaderSettings {
     }
     
     public struct BackButton: ButtonSettingsProtocol {
+        public var hidden: Bool = false
+        
         public var imageSize: CGSize?
         public var frame: CGSize?
         
@@ -175,6 +177,8 @@ public struct PrivateDialogInfoHeaderSettings {
     }
     
     public struct CancelButton: ButtonSettingsProtocol {
+        public var hidden: Bool = false
+        
         public var imageSize: CGSize?
         public var frame: CGSize?
         
@@ -211,6 +215,8 @@ public struct DialogInfoHeaderSettings {
     }
     
     public struct EditButton: ButtonSettingsProtocol {
+        public var hidden: Bool = false
+        
         public var imageSize: CGSize?
         public var frame: CGSize?
         
@@ -245,6 +251,8 @@ public struct DialogInfoHeaderSettings {
     }
     
     public struct CancelButton: ButtonSettingsProtocol {
+        public var hidden: Bool = false
+        
         public var imageSize: CGSize?
         public var frame: CGSize?
         

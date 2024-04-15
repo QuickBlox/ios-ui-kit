@@ -31,6 +31,7 @@ public struct Segment: View {
     var barSettings = QuickBloxUIKit.settings.dialogTypeScreen.dialogTypeBar
     
     @Binding public var selectedSegment: DialogType?
+    
     public var type: DialogType
     
     public var body: some View {
@@ -60,16 +61,5 @@ private extension DialogType {
         case .group: return settings.groupSegment
         case .public: return settings.publicSegment
         }
-    }
-}
-
-struct DialogTypeBar_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            DialogTypeBar(selectedSegment: Binding.constant(.group))
-            DialogTypeBar(selectedSegment: Binding.constant(.group))
-                .previewDisplayName("Dark")
-                .preferredColorScheme(.dark)
-        }.previewLayout(.fixed(width: 375, height: 80))
     }
 }

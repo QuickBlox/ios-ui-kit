@@ -11,16 +11,18 @@ import QuickBloxDomain
 import QuickBloxData
 import Combine
 
-public struct SelectDialogsListView<ViewModel: ForwardViewModelProtocol, DialogItem: DialogEntity> where DialogItem: Hashable {
+public struct SelectDialogsListView {
+//public struct SelectDialogsListView<ViewModel: DialogViewModelProtocol> {
     @Environment(\.isSearching) private var isSearching: Bool
     
     let settings = QuickBloxUIKit.settings.dialogsScreen
     
-    @StateObject public var viewModel: ViewModel
+    @EnvironmentObject var viewModel: ForwardViewModel
+    
     @State private var searchText = ""
     @State private var submittedSearchTerm = ""
     
-    private var items: [ViewModel.DialogItem] {
+    private var items: [Dialog] {
         if settings.searchBar.isSearchable == false || submittedSearchTerm.isEmpty {
             return viewModel.displayedDialogs
         } else {
@@ -28,9 +30,6 @@ public struct SelectDialogsListView<ViewModel: ForwardViewModelProtocol, DialogI
                 .contains(submittedSearchTerm.lowercased()) }
         }
     }
-    
-    public init(viewModel: ViewModel) {
-        _viewModel = StateObject(wrappedValue: viewModel)    }
 }
 
 extension SelectDialogsListView: View {

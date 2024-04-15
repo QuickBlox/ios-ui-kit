@@ -11,13 +11,12 @@ import QuickBloxData
 import QuickBloxDomain
 
 public struct OutboundForwardedMessageRowView<MessageItem: MessageEntity>: View {
-    
     var message: MessageItem
     var isSelected: Bool
     var relatedTime: Date?
     var relatedStatus: MessageStatus?
     var messagesActionState: MessageAction
-    var fileTuple: (type: String, image: Image?, url: URL?)?
+    var fileTuple: (type: String, image: UIImage?, url: URL?)?
     @Binding var isPlaying: Bool
     @Binding var currentTime: TimeInterval
     var playingMessage: MessageIdsInfo
@@ -26,13 +25,12 @@ public struct OutboundForwardedMessageRowView<MessageItem: MessageEntity>: View 
     let onAIFeature: (_ type: AIFeatureType, _ message: MessageItem) -> Void
     let onSelect: (_ item: MessageItem, _ actionType: MessageAction) -> Void
     @Binding var aiAnswerWaiting: AIAnswerInfo
-    
 
     @ViewBuilder
     public var body: some View {
         
         switch message.rowType {
-        case .inboundAudio, .outboundAudio: OutboundAudioMessageRow(message: message, messagesActionState: messagesActionState, relatedTime: relatedTime, relatedStatus: relatedStatus, isSelected: isSelected,onTap: onPlay, playingMessage: playingMessage, isPlaying: isPlaying, currentTime: currentTime, onSelect: onSelect)
+        case .inboundAudio, .outboundAudio: OutboundAudioMessageRow(message: message, messagesActionState: messagesActionState, relatedTime: relatedTime, relatedStatus: relatedStatus, isSelected: isSelected, onTap: onPlay, playingMessage: playingMessage, isPlaying: isPlaying, currentTime: currentTime, onSelect: onSelect)
         case .inboundChat, .outboundChat: OutboundChatMessageRow(message: message, messagesActionState: messagesActionState, relatedTime: relatedTime, relatedStatus: relatedStatus, isSelected: isSelected, onSelect: onSelect)
         case .inboundImage, .outboundImage: OutboundImageMessageRow(message: message, fileTuple: fileTuple, messagesActionState: messagesActionState, relatedTime: relatedTime, relatedStatus: relatedStatus, isSelected: isSelected, onTap: onTap, onSelect: onSelect)
         case .inboundVideo, .outboundVideo: OutboundVideoMessageRow(message: message, fileTuple: fileTuple, messagesActionState: messagesActionState, relatedTime: relatedTime, relatedStatus: relatedStatus, isSelected: isSelected, onTap: onTap, onSelect: onSelect)

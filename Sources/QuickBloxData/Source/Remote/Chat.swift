@@ -124,7 +124,9 @@ private extension QBChatDialog {
             } else {
                 join { error in
                     if let error = error, error._code == -1006 {
-                        continuation.resume()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            continuation.resume()
+                        }
                     } else if let error {
                         continuation.resume(throwing:error)
                     } else {

@@ -44,7 +44,7 @@ extension LocalDataSource {
 //MARK: Dialogs
 extension LocalDataSource {
     func save(dialog dto: LocalDialogDTO) async throws {
-        if dialogs.value.first(where: { $0.id == dto.id }) != nil {
+        if dialogs.value.first(where: { $0.id == dto.id } ) != nil {
             try await update(dialog: dto)
             return
         }
@@ -55,25 +55,29 @@ extension LocalDataSource {
     }
     
     func get(dialog dto: LocalDialogDTO) async throws -> LocalDialogDTO {
-        guard let dialog = dialogs.value.first(where: { $0.id == dto.id }) else {
+        guard let dialog = dialogs.value.first(where: { $0.id == dto.id } ) else {
             throw DataSourceException.notFound()
         }
         return dialog
     }
     
     func delete(dialog dto: LocalDialogDTO) async throws {
-        guard let index = dialogs.value.firstIndex(where: { $0.id == dto.id }) else {
+        guard let index = dialogs.value.firstIndex(where: { $0.id == dto.id } ) else {
             throw DataSourceException.notFound()
         }
         dialogs.value.remove(at: index)
     }
     
     func update(dialog dto: LocalDialogDTO) async throws {
-        guard let index = dialogs.value.firstIndex(where: { $0.id == dto.id }) else {
+        guard let index = dialogs.value.firstIndex(where: { $0.id == dto.id } ) else {
             throw DataSourceException.notFound()
         }
         
         var isUpdated = false
+        
+        if dto.type == .private {
+            isUpdated = true
+        }
         
         var dialog = dialogs.value[index]
         

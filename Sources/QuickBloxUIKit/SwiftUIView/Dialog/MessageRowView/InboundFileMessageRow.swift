@@ -19,7 +19,7 @@ public struct InboundFileMessageRow<MessageItem: MessageEntity>: View {
     
     let onTap: (_ action: MessageAttachmentAction, _ url: URL?) -> Void
     
-    @State public var fileTuple: (type: String, image: Image?, url: URL?)? = nil
+    @State public var fileTuple: (type: String, image: UIImage?, url: URL?)? = nil
     
     private var messagesActionState: MessageAction
     private var isSelected = false

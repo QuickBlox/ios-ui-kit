@@ -35,6 +35,7 @@ public struct MessageRowText: View {
                 .font(isOutbound == true ? settings.outboundFont : settings.inboundFont)
                 .padding(settings.messagePadding)
                 .frame(minWidth: features.ai.translate.enable == true ? features.ai.ui.translate.width : 0, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
                 .background(isOutbound == true ? settings.outboundBackground : settings.inboundBackground)
                 .animation(.easeInOut, value: text)
             }
@@ -45,30 +46,32 @@ public struct MessageRowText: View {
                 .foregroundColor(isOutbound == true ? settings.outboundForeground : settings.inboundForeground)
                 .padding(settings.messagePadding)
                 .frame(minWidth: features.ai.translate.enable == true ? features.ai.ui.translate.width : 0, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
                 .background(isOutbound == true ? settings.outboundBackground : settings.inboundBackground)
-                .animation(.easeInOut, value: text)        }
-    }
-}
-
-struct MessageRowText_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            MessageRowText(isOutbound: false, text: "Test text https://quickblox.com/blog/how-to-build-chat-app-with-ios-ui-kit/ Message")
-                .previewDisplayName("Message")
-            
-            MessageRowText(isOutbound: false, text: "T")
-                .previewDisplayName("1")
-            
-            MessageRowText(isOutbound: false, text: "Test text Message Test text Message Test text Message Test text Message Test text Message Test text Message")
-                .previewDisplayName("Message")
-            
-            MessageRowText(isOutbound: false, text: "Test text https://quickblox.com/blog/how-to-build-chat-app-with-ios-ui-kit/ Message")
-                .previewDisplayName("Message")
-                .preferredColorScheme(.dark)
-            
-            MessageRowText(isOutbound: false, text: "Test text Message Test text Message Test text Message Test text Message Test text Message Test text Message")
-                .previewDisplayName("Message")
-                .preferredColorScheme(.dark)
+                .animation(.easeInOut, value: text)
         }
     }
 }
+
+//struct MessageRowText_Previews: PreviewProvider {
+//    static var previews: some View {
+//        Group {
+//            MessageRowText(isOutbound: false, text: "Test text https://quickblox.com/blog/how-to-build-chat-app-with-ios-ui-kit/ Message")
+//                .previewDisplayName("Message")
+//            
+//            MessageRowText(isOutbound: false, text: "T")
+//                .previewDisplayName("1")
+//            
+//            MessageRowText(isOutbound: false, text: "Test text Message Test text Message Test text Message Test text Message Test text Message Test text Message")
+//                .previewDisplayName("Message")
+//            
+//            MessageRowText(isOutbound: false, text: "Test text https://quickblox.com/blog/how-to-build-chat-app-with-ios-ui-kit/ Message")
+//                .previewDisplayName("Message")
+//                .preferredColorScheme(.dark)
+//            
+//            MessageRowText(isOutbound: false, text: "Test text Message Test text Message Test text Message Test text Message Test text Message Test text Message")
+//                .previewDisplayName("Message")
+//                .preferredColorScheme(.dark)
+//        }
+//    }
+//}

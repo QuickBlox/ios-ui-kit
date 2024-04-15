@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 public class ForwardFeature {
     /// Determines if ForwardFeature functionality is enabled.
@@ -38,4 +39,38 @@ public class RegexFeature {
 
 public class ToolbarFeature {
     public var enable: Bool = true
+    public var externalIndexes: [TabIndex] = [.settings]
+}
+
+public struct ToolbarUISettings {
+    public var backgroundColor: Color
+    public init(_ theme: ThemeProtocol) {
+        self.backgroundColor = theme.color.mainBackground
+    }
+}
+
+public struct TabIndex: Hashable {
+    public var title: String
+    public var systemIcon: String
+    
+    public init(title: String, systemIcon: String) {
+        self.title = title
+        self.systemIcon = systemIcon
+    }
+}
+
+public extension TabIndex {
+    static let dialogs = TabIndex(title: "Dialogs",
+                                  systemIcon: "message.fill")
+    static let settings = TabIndex(title: "Settings",
+                                   systemIcon: "gearshape.fill")
+}
+
+public enum StartScreens {
+    case dialogs
+    case dialog
+}
+
+public class StartScreenFeature {
+    public var screen: StartScreens = .dialogs
 }

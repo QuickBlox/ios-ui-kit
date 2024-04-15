@@ -126,16 +126,18 @@ final class DialogInfoViewModel: DialogInfoProtocol {
                 
                 await MainActor.run { [weak self] in
                     self?.getAvatar()
+                    self?.dialogName = modeldDialog.name
+                    self?.taskUpdate = nil
                 }
-                self?.taskUpdate = nil
+                
             } catch {
                 prettyLog(error)
                 if error is RepositoryException {
                     await MainActor.run { [weak self] in
                         guard let self = self else { return }
                         self.isProcessing = false
+                        self.taskUpdate = nil
                     }
-                    self?.taskUpdate = nil
                 }
             }
         }
@@ -150,16 +152,18 @@ final class DialogInfoViewModel: DialogInfoProtocol {
                 await MainActor.run { [weak self, avatar] in
                     self?.avatar = avatar
                     self?.isProcessing = false
+                    self?.taskGetAvatar = nil
                 }
-                self?.taskGetAvatar = nil
+                
             } catch {
                 prettyLog(error)
                 if error is RepositoryException {
                     await MainActor.run { [weak self] in
                         guard let self = self else { return }
                         self.isProcessing = false
+                        self.taskGetAvatar = nil
                     }
-                    self?.taskGetAvatar = nil
+                    
                 }
             }
         }
@@ -167,6 +171,7 @@ final class DialogInfoViewModel: DialogInfoProtocol {
     
     public func handleOnSelect(attachmentAsset: AttachmentAsset) {
         if let uiImage = attachmentAsset.image {
+            avatar = Image(uiImage: uiImage) 
             isProcessing = true
             self.attachmentAsset = attachmentAsset
             updateDialog(avatar: uiImage, name: dialogName)
@@ -235,11 +240,6 @@ final class DialogInfoViewModel: DialogInfoProtocol {
                 let leave = LeaveDialog(dialog: dialog,
                                         repo: RepositoriesFabric.dialogs)
                 try await leave.execute()
-                
-                await MainActor.run { [weak self] in
-                    guard let self = self else { return }
-                    self.isProcessing = false
-                }
                 self.taskDelete = nil
             } catch {
                 prettyLog(error)
@@ -248,8 +248,8 @@ final class DialogInfoViewModel: DialogInfoProtocol {
                         guard let self = self else { return }
                         self.error = error.localizedDescription
                         self.isProcessing = false
+                        self.taskDelete = nil
                     }
-                    self.taskDelete = nil
                 }
             }
         }

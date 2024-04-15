@@ -455,7 +455,7 @@ extension View {
 }
 
 public struct LargeFileSizeAlert: ViewModifier {
-    public var settings = QuickBloxUIKit.settings.dialogScreen
+    public var settings = QuickBloxUIKit.settings.dialogScreen.largeFileSizeAlert
     
     @Binding var isPresented: Bool
     var onUseAttachment: (() -> Void)?
@@ -466,12 +466,12 @@ public struct LargeFileSizeAlert: ViewModifier {
         ZStack {
             content.blur(radius: isPresented ? settings.blurRadius : 0.0)
                 .alert(settings.maxSize, isPresented: $isPresented) {
-                    Button("Cancel", action: {
+                    Button(settings.cancel, action: {
                         onCancel?()
                         isPresented = false
                     })
                     if compressible {
-                        Button("Use", action: {
+                        Button(settings.compress, action: {
                             onUseAttachment?()
                             isPresented = false
                         })

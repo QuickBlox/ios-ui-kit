@@ -96,7 +96,7 @@ final class NewDialogViewModel: NewDialogProtocol {
     public func removeExistingImage() {
         selectedImage = nil
         attachmentAsset = nil
-        //TODO update dialog for remove photo
+        avatarUUID = ""
     }
     
     public func createPublicDialog() {

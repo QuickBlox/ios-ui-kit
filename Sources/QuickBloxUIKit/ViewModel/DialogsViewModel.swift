@@ -29,7 +29,7 @@ public protocol DialogsListProtocol: QuickBloxUIKitViewModel {
 
 @MainActor
 final class DialogsViewModel: DialogsListProtocol {
-
+    @MainActor
     @Published public var selectedItem: Dialog? = nil
     @Published public var dialogToBeDeleted: Dialog? = nil
     @MainActor
@@ -54,12 +54,17 @@ final class DialogsViewModel: DialogsListProtocol {
         createDialogObserve.execute()
             .receive(on: RunLoop.main)
             .sink { [weak self] dialog in
-                if isIphone {
-                    if self?.selectedItem == nil {
-                        self?.selectedItem = dialog
+                if isIPad {
+                    self?.selectedItem = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        DispatchQueue.main.async {
+                            self?.selectedItem = dialog
+                        }
                     }
                 } else {
-                    self?.selectedItem = dialog
+                    DispatchQueue.main.async {
+                        self?.selectedItem = dialog
+                    }
                 }
             }
             .store(in: &cancellables)
@@ -86,8 +91,7 @@ final class DialogsViewModel: DialogsListProtocol {
             await strSelf.dialogsUpdates?.execute()
                 .receive(on: RunLoop.main)
                 .sink { [weak self] updated in
-                    self?.dialogs = updated
-                }
+                    self?.dialogs = updated                }
                 .store(in: &strSelf.cancellables)
             strSelf.updateDialogs = nil
         }
@@ -132,35 +136,3 @@ extension DialogsViewModel {
         }
     }
 }
-
-
-//class DialogsListMock: DialogsListProtocol {
-//    @Published var selectedItem: Dialog? = nil
-//    @Published var dialogs: [PreviewDialog] = []
-//    @Published var syncState: SyncState = .syncing(stage: .disconnected)
-//    var dialogsRepo: QuickBloxData.DialogsRepository
-//    func deleteDialog(withID dialogId: String) { }
-//    required init(dialogsRepo: DialogsRepository) {
-//        self.dialogsRepo = dialogsRepo
-//    }
-//    var cancellables = Set<AnyCancellable>()
-//    var tasks = Set<Task<Void, Never>>()
-//    func sync() { }
-//    
-//    convenience init(dialogs: [PreviewDialog]) {
-//        self.init(dialogsRepo: RepositoriesFabric.dialogs)
-//        self.dialogs = dialogs
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-//            let info = "Display error information."
-//            let exeption = RepositoryException.unexpected(info)
-//            self.syncState = .syncing(stage: .connecting,
-//                                      error: exeption)
-//        }
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-//            self.syncState = .syncing(stage: .update)
-//        }
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-//            self.syncState = .synced
-//        }
-//    }
-//}
