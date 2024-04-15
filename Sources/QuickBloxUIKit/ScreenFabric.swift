@@ -47,7 +47,7 @@ public extension ScreenFabric {
     ) -> some View {
         let model = MembersDialogViewModel(dialog: Dialog(entity))
         return membersView(model: model,
-                              settings:settings)
+                           settings:settings)
     }
     
     func membersView<T: MembersDialogProtocol>(
@@ -56,6 +56,6 @@ public extension ScreenFabric {
         = QuickBloxUIKit.settings.membersScreen
     ) -> some View {
         return RemoveMembersView(viewModel: model,
-                                    settings: settings)
+                                 settings: settings)
     }
 }

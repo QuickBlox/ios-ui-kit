@@ -283,6 +283,7 @@ public protocol ThemeStringProtocol {
     var maxSize: String { get set }
     var maxSizeHint: String { get set }
     var compressibleMaxSizeHint: String { get set }
+    var compress: String { get set }
     var fileTitle: String { get set }
     var gif: String { get set }
     
@@ -397,6 +398,7 @@ public class ThemeString: ThemeStringProtocol {
     public var maxSize: String = String(localized: "attachment.maxSize.title", bundle: .module)
     public var maxSizeHint: String = String(localized: "attachment.maxSize.hint", bundle: .module)
     public var compressibleMaxSizeHint: String = String(localized: "attachment.maxSize.compressibleHint", bundle: .module)
+    public var compress: String = String(localized: "attachment.maxSize.compress", bundle: .module)
     
     public var fileTitle: String  = String(localized: "attachment.title.file", bundle: .module)
     public var gif: String = String(localized: "attachment.title.gif", bundle: .module)

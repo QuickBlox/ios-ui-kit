@@ -23,7 +23,6 @@ public class DialogsScreenSettings {
     public var messageImageColor: Color
     public var progressBar: ProgressBarSettings
     public var useToolbar: Bool = true
-    public var tabIndex: TabIndexSettings
     
     public init(_ theme: ThemeProtocol) {
         self.header = DialogsHeaderSettings(theme)
@@ -37,18 +36,7 @@ public class DialogsScreenSettings {
         self.itemsIsEmptyColor = theme.color.caption
         self.messageImage = theme.image.message
         self.messageImageColor = theme.color.caption
-        self.progressBar = ProgressBarSettings(theme)
-        self.tabIndex = TabIndexSettings(theme)
-    }
-}
-
-public struct TabIndexSettings {
-    public var backgroundColor: Color
-    public var externalIndexes: [TabIndex] = [.settings]
-    
-    public init(_ theme: ThemeProtocol) {
-        self.backgroundColor = theme.color.mainBackground
-    }
+        self.progressBar = ProgressBarSettings(theme)    }
 }
 
 public struct ProgressBarSettings: ProgressBarSettingsProtocol {
@@ -137,6 +125,7 @@ public struct DialogsHeaderSettings {
                                                     leading: 16.0,
                                                     bottom: 0.0,
                                                     trailing: 0.0)
+        public var hidden: Bool = false
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.newChat

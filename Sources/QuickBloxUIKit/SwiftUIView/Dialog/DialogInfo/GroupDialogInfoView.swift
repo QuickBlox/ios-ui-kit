@@ -13,8 +13,8 @@ import QuickBloxDomain
 public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
     let settings = QuickBloxUIKit.settings.dialogInfoScreen
 
-    @StateObject public var viewModel: ViewModel
-    
+    @StateObject private var viewModel: ViewModel
+
     @State private var isEditDialogAlertPresented: Bool = false
     @State private var isSizeAlertPresented: Bool = false
     @State private var isMembersPresented: Bool = false
@@ -49,7 +49,7 @@ public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
                     ForEach(settings.groupActionSegments, id:\.self) { action in
                         InfoSegment(dialog: viewModel.dialog, action: action) { action in
                             switch action {
-                            case .members: isMembersPresented.toggle()
+                            case .members: isMembersPresented = true
                             case .searchInDialog: searchPresented.toggle()
                             case .leaveDialog: isDeleteAlertPresented = true
                             case .notification: break
@@ -69,8 +69,7 @@ public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
                 })
                 
                 .editDialogAlert(isPresented: $isEditDialogAlertPresented, viewModel: viewModel,
-                                 dialogName: $viewModel.dialogName,
-                                 isValidDialogName: $viewModel.isValidDialogName,
+                                 dialogName: viewModel.dialogName,
                                  isExistingImage: viewModel.isExistingImage,
                                  isHiddenFiles: settings.editDialogAlert.isHiddenFiles,
                                  onRemoveImage: {
@@ -126,14 +125,10 @@ public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
                         CustomProgressView()
                     }
                 }
-                
                 .environmentObject(viewModel)
             }
             .onAppear {
                 viewModel.sync()
-            }
-            .onDisappear {
-                viewModel.unsync()
             }
     }
 }
@@ -146,24 +141,3 @@ public struct SegmentDivider: View {
         Spacer()
     }
 }
-
-//struct DialogInfoView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        Group {
-//            GroupDialogInfoView<Dialog,
-//                                User,
-//                                RemoveUserListView<User>,
-//                                RemoveUserRow>(DialogInfoViewModel<Dialog>(Dialog(id: "dffdfdfdfdf",
-//                                                                                  type: .group,
-//                                                                                  name: "Test Group Light Dialog")))
-//                                .previewDisplayName("Dialog Info View")
-//            GroupDialogInfoView<Dialog,
-//                                User, RemoveUserListView<User>,
-//                                RemoveUserRow>(DialogInfoViewModel<Dialog>(Dialog(id: "dffdfdfdfdf",
-//                                                                                  type: .group,
-//                                                                                  name: "Test Group Dark Dialog")))
-//                                .previewDisplayName("Dialog Info View Dark")
-//                                .preferredColorScheme(.dark)
-//        }
-//    }
-//}

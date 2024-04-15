@@ -40,6 +40,45 @@ extension DialogEntity {
         }
     }
     
+    func privateAvatar(scale: DialogThumbnailSize) async throws -> Image {
+        if QuickBloxUIKit.previewAware {  return placeholder }
+
+        let filesRepo = RepositoriesFabric.files
+        
+        let imageCache = ThumbnailImageCache.shared
+        
+        var path: String
+        
+        let usersRepo = RepositoriesFabric.users
+        guard let userId = participantsIds.filter({ isOwnedByCurrentUser == true ? $0 != ownerId : $0 == ownerId}).first else {
+            return placeholder
+        }
+        let getUser = GetUser(id: userId, repo: usersRepo)
+        let user = try await getUser.execute()
+        if user.avatarPath.isEmpty { return placeholder }
+        path = user.avatarPath
+        let thumbnailKey: String = user.id + "@" + scale.rawValue + "_" + path
+        if let uiImage = imageCache.imageFromCache(thumbnailKey) {
+            return Image(uiImage: uiImage)
+        }
+        
+        
+        let useCase = GetFile<File, FilesRepository>(id: path,
+                                                     repo: filesRepo)
+        try Task.checkCancellation()
+        let file = try await getFile(useCase: useCase, priority: .high)
+        try Task.checkCancellation()
+        let size = UserThumbnailScale.avatar3x.size
+        guard let uiImage = UIImage(data: file.data)?
+            .cropToRect()
+            .resize(to: size) else {
+            let info = "Dialog avatar image data is incorrect"
+            throw RepositoryException.incorrectData(info)
+        }
+        imageCache.store(uiImage, for: thumbnailKey)
+        return Image(uiImage: uiImage)
+    }
+    
     func avatar(scale: DialogThumbnailSize) async throws -> Image {
         if QuickBloxUIKit.previewAware {  return placeholder }
         
@@ -276,7 +315,7 @@ extension MessageEntity {
         return QuickBloxUIKit.settings.dialogScreen.messageRow.avatar.placeholder
     }
     
-    func file(size: CGSize?) async throws -> (type: String, image: Image?, url: URL?)?  {
+    func file(size: CGSize?) async throws -> (type: String, image: UIImage?, url: URL?)?  {
         do {
             if QuickBloxUIKit.previewAware, id.isEmpty {  return nil }
             
@@ -289,50 +328,48 @@ extension MessageEntity {
             try Task.checkCancellation()
             let uploaded = try await getFile(useCase: useCase, priority: .low)
             try Task.checkCancellation()
-            let settings = QuickBloxUIKit.settings.dialogsScreen.dialogRow.lastMessage
+            let settings = QuickBloxUIKit.settings.dialogScreen.messageRow
             let imageCache = ThumbnailImageCache.shared
             
             switch uploaded.info.ext.type {
             case .audio:
                 let localURL = uploaded.temporaryUrl
-                return (uploaded.info.name, Image(uiImage: UIImage().withTintColor(.blue, renderingMode: .alwaysTemplate)), localURL)
+                return (uploaded.info.name, UIImage().withTintColor(.blue, renderingMode: .alwaysTemplate), localURL)
             case .video:
                 let localURL = uploaded.temporaryUrl
                 if let cachedImage = imageCache.imageFromCache(id) {
-                    return (uploaded.info.name, Image(uiImage: cachedImage), localURL)
+                    return (uploaded.info.name, cachedImage, localURL)
                 }
-                var image: Image = settings.videoPlaceholder
+                var image: UIImage?
                 if let uiImage = await localURL.getThumbnailImage() {
-                    if let size {
-                        let resized = uiImage.resize(to: size)
+                    if size != nil {
+                        let imageSize = settings.imageSize(isPortrait: uiImage.size.height > uiImage.size.width)
+                        let resized = uiImage.crop(to: imageSize)
                         imageCache.store(resized, for: id)
-                        image = Image(uiImage: resized)
+                        image = resized
                     } else {
-                        image = Image(uiImage: uiImage)
+                        image = uiImage
                     }
                 }
                 return (uploaded.info.name, image, localURL)
             case .image:
                 guard let uiImage = UIImage(data: uploaded.data) else {
-                    return (uploaded.info.name, settings.imagePlaceholder, nil)
+                    return (uploaded.info.name, nil, nil)
                 }
                 let localURL = uploaded.temporaryUrl
-                if let size {
+                if size != nil {
                     if let cachedImage = imageCache.imageFromCache(id) {
-                        return (uploaded.info.name, Image(uiImage: cachedImage), localURL)
+                        return (uploaded.info.name, cachedImage, localURL)
                     }
-                    
-                    let resized = uiImage.resize(to: size)
+                    let imageSize = settings.imageSize(isPortrait: uiImage.size.height > uiImage.size.width)
+                    let resized = uiImage.crop(to: imageSize)
                     imageCache.store(resized, for: id)
-                    let image = Image(uiImage: resized)
-                    return (uploaded.info.name, image ,localURL)
+                    return (uploaded.info.name, resized ,localURL)
                 }
-                return (uploaded.info.name, Image(uiImage: uiImage) ,localURL)
+                return (uploaded.info.name, uiImage ,localURL)
             case .file:
                 let localURL = uploaded.temporaryUrl
-                return (uploaded.info.name,
-                        settings.filePlaceholder,
-                        localURL)
+                return (uploaded.info.name, nil, localURL)
             }
         } catch {
             return nil
@@ -526,5 +563,138 @@ extension URL {
 extension Double {
     func truncate(to places: Int) -> Double {
         return Double(Int((pow(10, Double(places)) * self).rounded())) / pow(10, Double(places))
+    }
+}
+
+extension UIImage {
+    func fixOrientation() -> UIImage {
+        var transformOrientation: CGAffineTransform = .identity
+        let width = size.width
+        let height = size.height
+        if imageOrientation == .up {
+            return self
+        }
+        
+        if imageOrientation == .down || imageOrientation == .downMirrored {
+            transformOrientation = transformOrientation.translatedBy(x: width, y: height)
+            transformOrientation = transformOrientation.rotated(by: .pi)
+        } else if imageOrientation == .left || imageOrientation == .leftMirrored {
+            transformOrientation = transformOrientation.translatedBy(x: width, y: 0)
+            transformOrientation = transformOrientation.rotated(by: .pi/2)
+        } else if imageOrientation == .right || imageOrientation == .rightMirrored {
+            transformOrientation = transformOrientation.translatedBy(x: 0, y: height)
+            transformOrientation = transformOrientation.rotated(by: -(.pi/2))
+        }
+        
+        if imageOrientation == .upMirrored || imageOrientation == .downMirrored {
+            transformOrientation = transformOrientation.translatedBy(x: width, y: 0)
+            transformOrientation = transformOrientation.scaledBy(x: -1, y: 1)
+        } else if imageOrientation == .leftMirrored || imageOrientation == .rightMirrored {
+            transformOrientation = transformOrientation.translatedBy(x: height, y: 0)
+            transformOrientation = transformOrientation.scaledBy(x: -1, y: 1)
+        }
+        
+        guard let cgImage = self.cgImage, let space = cgImage.colorSpace,
+              let context = CGContext(data: nil,
+                                      width: Int(width),
+                                      height: Int(height),
+                                      bitsPerComponent: cgImage.bitsPerComponent,
+                                      bytesPerRow: 0,
+                                      space: space,
+                                      bitmapInfo: cgImage.bitmapInfo.rawValue)  else {
+            return UIImage()
+        }
+        context.concatenate(transformOrientation)
+        
+        if imageOrientation == .left ||
+            imageOrientation == .leftMirrored ||
+            imageOrientation == .right ||
+            imageOrientation == .rightMirrored {
+            context.draw(cgImage, in: CGRect(x: 0, y: 0, width: height, height: width))
+        } else {
+            context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        }
+        
+        guard let newCGImage = context.makeImage() else {
+            return UIImage()
+        }
+        let image = UIImage(cgImage: newCGImage)
+        
+        return image
+    }
+    
+    func cropToRect() -> UIImage {
+        let sideLength = min(
+            size.width,
+            size.height
+        )
+        let source = size
+        let xOffset = (source.width - sideLength) / 2.0
+        let yOffset = (source.height - sideLength) / 2.0
+        let cropRect = CGRect(
+            x: xOffset,
+            y: yOffset,
+            width: sideLength,
+            height: sideLength
+        ).integral
+        
+        guard let sourceCGImage = cgImage else {
+            return self
+        }
+        let croppedCGImage = sourceCGImage.cropping(
+            to: cropRect
+        )!
+        let croppedUIImage = UIImage(
+            cgImage: croppedCGImage,
+            scale: imageRendererFormat.scale,
+            orientation: imageOrientation
+        )
+        return croppedUIImage
+    }
+    
+    func crop(to targetSize: CGSize) -> UIImage {
+        let source = size
+        let xOffset = (source.width - targetSize.width) / 2.0
+        let yOffset = (source.height - targetSize.height) / 2.0
+        let cropRect = CGRect(
+            x: xOffset,
+            y: yOffset,
+            width: targetSize.width,
+            height: targetSize.height
+        ).integral
+        
+        guard let sourceCGImage = cgImage else {
+            return self
+        }
+        let croppedCGImage = sourceCGImage.cropping(
+            to: cropRect
+        )!
+        let croppedUIImage = UIImage(
+            cgImage: croppedCGImage,
+            scale: imageRendererFormat.scale,
+            orientation: imageOrientation
+        )
+        return croppedUIImage
+    }
+    
+    func resize(to targetSize: CGSize) -> UIImage {
+        let size = self.size
+        let widthRatio  = targetSize.width  / size.width
+        let heightRatio = targetSize.height / size.height
+        let newSize = widthRatio > heightRatio ?
+        CGSize(width: size.width * heightRatio,
+               height: size.height * heightRatio)
+        : CGSize(width: size.width * widthRatio,
+                 height: size.height * widthRatio)
+        let rect = CGRect(x: 0, y: 0, width: newSize.width, height: newSize.height)
+        
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+        self.draw(in: rect)
+        guard let resizedImage = UIGraphicsGetImageFromCurrentImageContext() else {
+            return self
+        }
+        UIGraphicsEndImageContext()
+        
+        return resizedImage
     }
 }

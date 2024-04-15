@@ -13,12 +13,13 @@ import QuickBloxDomain
 import QuickLook
 
 struct DialogHeaderToolbarContent: ToolbarContent {
-    
-    private var settings = QuickBloxUIKit.settings.dialogScreen.header
+    private let dialogHeaderSettings = QuickBloxUIKit.settings.dialogScreen.header
+    private let features = QuickBloxUIKit.feature
     
     var dialog: any DialogEntity
     var isForward: Bool = false
     var selectedCount: Int
+    let onDismiss: () -> Void
     let onTapInfo: () -> Void
     let onTapCancel: () -> Void
     
@@ -28,67 +29,97 @@ struct DialogHeaderToolbarContent: ToolbarContent {
         dialog: any DialogEntity,
         isForward: Bool,
         selectedCount: Int,
+        onDismiss: @escaping () -> Void,
         onTapInfo: @escaping () -> Void,
         onTapCancel: @escaping () -> Void
     ) {
         self.dialog = dialog
         self.isForward = isForward
         self.selectedCount = selectedCount
+        self.onDismiss = onDismiss
         self.onTapInfo = onTapInfo
         self.onTapCancel = onTapCancel
     }
     
     public var body: some ToolbarContent {
+        
+            ToolbarItem(placement: .navigationBarLeading) {
+                
+                if feature.startScreen.screen == .dialog,
+                   dialogHeaderSettings.leftButton.hidden == false,
+                   isForward == false {
+                    Button {
+                        onDismiss()
+                    } label: {
+                        if let title = dialogHeaderSettings.leftButton.title {
+                            Text(title).foregroundColor(dialogHeaderSettings.leftButton.color)
+                        } else {
+                            dialogHeaderSettings.leftButton.image
+                                .resizable()
+                                .scaledToFit()
+                                .scaleEffect(dialogHeaderSettings.leftButton.scale)
+                                .tint(dialogHeaderSettings.leftButton.color)
+                                .padding(dialogHeaderSettings.leftButton.padding)
+                        }
+                    }.frame(width: 32, height: 44)
+                }
+            }
+        
         ToolbarItem(placement: .navigationBarLeading) {
+            
             if isForward == false {
                 
                 HStack(spacing: 8.0) {
                     
                     AvatarView(image: avatar ?? dialog.placeholder,
-                               height: settings.title.avatarHeight,
-                               isHidden: settings.title.isHiddenAvatar)
+                               height: dialogHeaderSettings.title.avatarHeight,
+                               isHidden: dialogHeaderSettings.title.isHiddenAvatar)
                     .task {
                         do { avatar = try await dialog.avatar(scale: .avatar3x) } catch { prettyLog(error) }
                     }
                     
                     Text(dialog.validName)
-                        .font(settings.title.font)
-                        .foregroundColor(settings.title.color)
+                        .font(dialogHeaderSettings.title.font)
+                        .foregroundColor(dialogHeaderSettings.title.color)
                 }
             }
         }
+        
         
         ToolbarItem(placement: .principal) {
             if isForward {
-                Text("\(selectedCount)" + " " + settings.selectedMessages(selectedCount))
-                    .font(settings.title.font)
-                    .foregroundColor(settings.title.color)
+                Text("\(selectedCount)" + " " + dialogHeaderSettings.selectedMessages(selectedCount))
+                    .font(dialogHeaderSettings.title.font)
+                    .foregroundColor(dialogHeaderSettings.title.color)
             }
         }
         
-        ToolbarItem(placement: .navigationBarTrailing) {
-            Button {
-                if isForward {
+        if isForward == true {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
                     onTapCancel()
-                } else {
+                } label: {
+                    Text(dialogHeaderSettings.cancelButton.title ?? "").foregroundColor(dialogHeaderSettings.rightButton.color)
+                }.frame(width: 44, height: 44)
+            }
+        } else if dialogHeaderSettings.rightButton.hidden == false {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
                     onTapInfo()
-                }
-            } label: {
-                if isForward {
-                    Text(settings.cancelButton.title ?? "").foregroundColor(settings.rightButton.color)
-                } else {
-                    if let title = settings.rightButton.title {
-                        Text(title).foregroundColor(settings.rightButton.color)
+                } label: {
+                    if let title = dialogHeaderSettings.rightButton.title {
+                        Text(title).foregroundColor(dialogHeaderSettings.rightButton.color)
                     } else {
-                        settings.rightButton.image
+                        dialogHeaderSettings.rightButton.image
                             .resizable()
+                            .renderingMode(.template)
                             .scaledToFit()
-                            .scaleEffect(settings.rightButton.scale)
-                            .tint(settings.rightButton.color)
-                            .padding(settings.rightButton.padding)
+                            .scaleEffect(dialogHeaderSettings.rightButton.scale)
+                            .tint(dialogHeaderSettings.rightButton.color)
+                            .padding(dialogHeaderSettings.rightButton.padding)
                     }
-                }
-            }.frame(width: 44, height: 44)
+                }.frame(width: 44, height: 44)
+            }
         }
     }
 }
@@ -99,18 +130,22 @@ public struct DialogHeader: ViewModifier {
     var dialog: any DialogEntity
     var isForward: Bool
     var selectedCount: Int
+    let onDismiss: () -> Void
     let onTapInfo: () -> Void
     let onTapCancel: () -> Void
     
     public init(
         dialog: any DialogEntity,
         isForward: Bool,
-        selectedCount: Int,        onTapInfo: @escaping () -> Void,
+        selectedCount: Int,
+        onDismiss: @escaping () -> Void,
+        onTapInfo: @escaping () -> Void,
         onTapCancel: @escaping () -> Void
     ) {
         self.dialog = dialog
         self.isForward = isForward
         self.selectedCount = selectedCount
+        self.onDismiss = onDismiss
         self.onTapInfo = onTapInfo
         self.onTapCancel = onTapCancel
     }
@@ -120,6 +155,7 @@ public struct DialogHeader: ViewModifier {
             DialogHeaderToolbarContent(dialog: dialog,
                                        isForward: isForward,
                                        selectedCount: selectedCount,
+                                       onDismiss: onDismiss,
                                        onTapInfo: onTapInfo,
                                        onTapCancel: onTapCancel)
         }
@@ -454,7 +490,6 @@ extension View {
     }}
 
 struct PreviewContextViewModifier<Preview: View>: ViewModifier {
-    
     @State private var isActive: Bool = false
     private let previewContent: Preview?
     private let preferredContentSize: CGSize?
@@ -495,7 +530,6 @@ struct PreviewContextViewModifier<Preview: View>: ViewModifier {
 }
 
 extension View {
-    
     @ViewBuilder
     func `if`<TrueContent: View, FalseContent: View>(
         _ conditional: Bool,
@@ -551,7 +585,8 @@ struct CustomPreviewContextMenuView<Preview: View>: UIViewRepresentable {
         private let view: CustomPreviewContextMenuView<Preview>
         
         init(_ view: CustomPreviewContextMenuView<Preview>) {
-            self.view = view        }
+            self.view = view
+        }
         
         func contextMenuInteraction(
             _ interaction: UIContextMenuInteraction,
@@ -698,4 +733,25 @@ extension UIImage {
       draw(at: .zero)
     }
   }
+}
+
+extension View {
+    func onViewDidLoad(perform action: (() -> Void)? = nil) -> some View {
+        self.modifier(ViewDidLoadModifier(action: action))
+    }
+}
+
+struct ViewDidLoadModifier: ViewModifier {
+    @State private var viewDidLoad = false
+    let action: (() -> Void)?
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear {
+                if viewDidLoad == false {
+                    viewDidLoad = true
+                    action?()
+                }
+            }
+    }
 }

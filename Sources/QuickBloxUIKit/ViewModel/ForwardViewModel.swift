@@ -43,7 +43,7 @@ public protocol ForwardViewModelProtocol: QuickBloxUIKitViewModel {
     var isSynced: Bool { get set }
     var forwardInfo: ForwardInfo { get set }
     
-    func sendMessage(_ text: String)
+    func sendMessage(_ text: String, originName: String)
     func handleOnSelect(_ itemId: String)
     func getDialogs()
     func cancelForward()
@@ -53,15 +53,16 @@ open class ForwardViewModel: ForwardViewModelProtocol {
     @Published public var messages: [Message] = []
     @Published public var isProcessing: Bool = false
     @Published public var syncState: SyncState = .synced
+    @MainActor
     @Published public var forwardInfo: ForwardInfo = ForwardInfo()
     @Published public var error = ""
-    
+    @MainActor
     @Published public var displayedDialogs: [Dialog] = []
+    @MainActor
     @Published public var selectedDialogs: [String] = []
     @Published public var search: String = ""
+    @MainActor
     @Published public var isSynced: Bool = false
-    
-    @Published public var isLoading = CurrentValueSubject<Bool, Never>(false)
     
     private let dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs
     private let usersRepo: UsersRepository = RepositoriesFabric.users
@@ -69,13 +70,10 @@ open class ForwardViewModel: ForwardViewModelProtocol {
     public var cancellables = Set<AnyCancellable>()
     public var tasks = Set<Task<Void, Never>>()
     
-    private var originSenderName = ""
-    
     private var forwardedMessageKey = QuickBloxUIKit.feature.forward.forwardedMessageKey
     
-    init(messages: [Message], originSenderName: String) {
+    init(messages: [Message]) {
         self.messages = messages
-        self.originSenderName = originSenderName
         
         QuickBloxUIKit.syncState
             .receive(on: RunLoop.main)
@@ -96,7 +94,7 @@ open class ForwardViewModel: ForwardViewModelProtocol {
     public func getDialogs() {
         let getDialogs = GetAllDialogsFromLocal(dialogsRepo: self.dialogsRepo)
         
-        Task { [weak self] in
+        Task { @MainActor [weak self] in
             do {
                 let dialogs = try await getDialogs.execute()
                 await MainActor.run { [weak self, dialogs] in
@@ -110,7 +108,7 @@ open class ForwardViewModel: ForwardViewModelProtocol {
     }
     
     //MARK: - Messages
-    public func sendMessage(_ text: String) {
+    @MainActor public func sendMessage(_ text: String, originName: String) {
         guard selectedDialogs.isEmpty == false else { return }
         guard messages.isEmpty == false else { return }
         
@@ -122,7 +120,7 @@ open class ForwardViewModel: ForwardViewModelProtocol {
                                   ? forwardedMessageKey : text.trimmingCharacters(in: .whitespacesAndNewlines),
                                   type: .chat,
                                   actionType: .forward,
-                                  originSenderName: originSenderName,
+                                  originSenderName: originName,
                                   originalMessages: messages)
             
             let sendForwardMessage = SendForwardMessage(message: message,
@@ -152,11 +150,11 @@ open class ForwardViewModel: ForwardViewModelProtocol {
         
     }
     
-    public func handleOnSelect(_ itemId: String) {
+    @MainActor public func handleOnSelect(_ itemId: String) {
         didSelect(single: true, itemId: itemId)
     }
     
-    private func didSelect(single: Bool, itemId: String) {
+    @MainActor private func didSelect(single: Bool, itemId: String) {
         if selectedDialogs.contains(where: { $0 == itemId }) == true, single == false {
             selectedDialogs.removeAll(where: { $0 == itemId })
         } else {

@@ -13,12 +13,13 @@ import QuickBloxData
 import Combine
 
 struct NewDialog<ViewModel: NewDialogProtocol>: View {
-    @Environment(\.dismiss) var dismiss
     
     private var settings = QuickBloxUIKit.settings.dialogNameScreen
     
-    @StateObject public var viewModel: ViewModel
+    @Environment(\.dismiss) var dismiss
     
+    @StateObject private var viewModel: ViewModel
+
     private var type: DialogType
     
     @State private var isAlertPresented: Bool = false
@@ -55,7 +56,9 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
                         isAlertPresented = true
                     }
                     
-                    DialogNameTextField(dialogName: $dialogName, isValidDialogName: viewModel.isValidDialogName, isFocused: isCreatedDialog)
+                    DialogNameTextField(dialogName: $dialogName,
+                                        isValidDialogName: viewModel.isValidDialogName,
+                                        isFocused: isCreatedDialog)
                         .onChange(of: dialogName, perform: { newValue in
                             viewModel.update(newValue)
                         })
@@ -96,8 +99,8 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
             .permissionAlert(isPresented: $viewModel.permissionNotGranted.notGranted,
                              viewModel: viewModel)
             
-            .onChange(of: viewModel.modelDialog, perform: { newValue in
-                if newValue != nil {
+            .onChange(of: viewModel.modelDialog, perform: { newModelDialog in
+                if newModelDialog != nil {
                     isCreatedDialog = true
                 }
             })
@@ -105,29 +108,20 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
             .if(isCreatedDialog == true) { view in
                 view.navigationDestination(isPresented: $isCreatedDialog) {
                     if let modelDialog = viewModel.modelDialog {
-                        CreateDialogView(viewModel: CreateDialogViewModel(users: [],
-                                                                          modeldDialog: Dialog(type: modelDialog.type,
+                        CreateDialogView(viewModel: CreateDialogViewModel(modeldDialog: Dialog(type: modelDialog.type,
                                                                                                name: modelDialog.name,
-                                                                                               photo: modelDialog.photo)),
-                                         onDismiss: {
+                                                                                               photo: modelDialog.photo)))
+                        .onAppear {
                             isCreatedDialog = false
-                        },
-                                         content: {
-                            viewModel in
-                            
-                            UserListView(viewModel: viewModel,
-                                         content: { item, isSelected, onTap in
-                                UserRow(item, isSelected: isSelected, onTap: onTap)
-                            })}).onAppear {
-                                isCreatedDialog = false
-                            }
+                        }
                     }
                 }
             }
-            
-            .modifier(DialogNameHeader(type: type, disabled: !viewModel.isValidDialogName, onDismiss: {
-                dismiss()
-            }, onNext: {
+
+            .modifier(DialogNameHeader(type: type, disabled: !viewModel.isValidDialogName,
+                                       onDismiss: {
+                    dismiss()
+                }, onNext: {
                 if type == .public {
                     //TODO: createPublicDialog method
                     viewModel.createPublicDialog()
@@ -197,16 +191,3 @@ public struct DialogNameTextField: View {
         }
     }
 }
-
-//struct NewDialog_Previews: PreviewProvider {
-//    static var previews: some View {
-//        Group {
-//            NewDialog(type: .group)
-//                .previewDisplayName("Default Light New Public Dialog View")
-//            
-//            NewDialog(type: .group)
-//                .preferredColorScheme(.dark)
-//                .previewDisplayName("Default Dark New Group Dialog View")
-//        }
-//    }
-//}

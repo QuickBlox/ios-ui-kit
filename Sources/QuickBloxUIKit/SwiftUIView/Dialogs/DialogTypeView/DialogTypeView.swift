@@ -13,9 +13,10 @@ import QuickBloxData
 struct DialogTypeView: View {
     private var settings = QuickBloxUIKit.settings.dialogTypeScreen
     
-    @State private var selectedSegment: DialogType?
     @State private var presentCreateDialog: Bool = false
+    @State private var presentNewDialog: Bool = false
     
+    @State private var selectedSegment: DialogType?
     var dialogTypeBar: DialogTypeBar?
     
     // Actions
@@ -39,7 +40,9 @@ struct DialogTypeView: View {
     private func container() -> some View {
         VStack {
             VStack {
-                DialogTypeHeaderView(onClose: onClose)
+                DialogTypeHeaderView(onClose: {
+                    onClose()
+                })
                 
                 dialogTypeBar ??
                 DialogTypeBar(selectedSegment: $selectedSegment)
@@ -51,18 +54,7 @@ struct DialogTypeView: View {
                     view.navigationDestination(isPresented: $presentCreateDialog) {
                         if let selectedSegment {
                             if selectedSegment == .private {
-                                CreateDialogView(viewModel: CreateDialogViewModel(users: [],
-                                                                                  modeldDialog: Dialog(type: .private)),
-                                                 onDismiss: {
-                                    presentCreateDialog = false
-                                },
-                                                 content: {
-                                    viewModel in
-                                    
-                                    UserListView(viewModel: viewModel,
-                                                 content: { item, isSelected, onTap in
-                                        UserRow(item, isSelected: isSelected, onTap: onTap)
-                                    })})
+                                CreateDialogView(viewModel: CreateDialogViewModel(modeldDialog: Dialog(type: .private)))
                             } else {
                                 NewDialog(NewDialogViewModel(), type: selectedSegment)
                             }
@@ -73,32 +65,21 @@ struct DialogTypeView: View {
                 .if(presentCreateDialog == true && isIPad == true) { view in
                     view.sheet(isPresented: $presentCreateDialog, content: {
                         if let selectedSegment {
-                            
                             if selectedSegment == .private {
-                                CreateDialogView(viewModel: CreateDialogViewModel(users: [],
-                                                                                  modeldDialog: Dialog(type: .private)),
-                                                 onDismiss: {
-                                    presentCreateDialog = false
-                                },
-                                                 content: {
-                                    viewModel in
-                                    
-                                    UserListView(viewModel: viewModel,
-                                                 content: { item, isSelected, onTap in
-                                        UserRow(item, isSelected: isSelected, onTap: onTap)
-                                    })}).onDisappear {
+                                CreateDialogView(viewModel: CreateDialogViewModel(modeldDialog: Dialog(type: .private)))
+                                    .onDisappear {
                                         self.selectedSegment = nil
-                                        presentCreateDialog = false
                                     }
                             } else {
-                                NewDialog(NewDialogViewModel(), type: selectedSegment).onDisappear {
-                                    self.selectedSegment = nil
-                                    presentCreateDialog = false
-                                }
+                                NewDialog(NewDialogViewModel(), type: selectedSegment)
+                                    .onDisappear {
+                                        self.selectedSegment = nil
+                                    }
                             }
                         }
                     })
                 }
+            
         }
         .onChange(of: selectedSegment, perform: { selectedType in
             presentCreateDialog = selectedType != nil
@@ -150,18 +131,3 @@ public struct DialogTypeHeaderView: View {
         .background(settings.header.backgroundColor)
     }
 }
-
-
-//struct DialogTypeView_Previews: PreviewProvider {
-//    @State var isModalPresented: Bool = true
-//    static var previews: some View {
-//        DialogTypeView<Dialog, User, UserListView<User, UserRow>, UserRow>(onClose: {
-//            
-//        })
-//        DialogTypeView<Dialog, User, UserListView<User, UserRow>, UserRow>(onClose: {
-//            
-//        })
-//        .previewDisplayName("Segmented Control Dark")
-//        . preferredColorScheme(.dark)
-//    }
-//}

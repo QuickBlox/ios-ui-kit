@@ -6,6 +6,7 @@
 //  Copyright © 2023 QuickBlox. All rights reserved.
 //
 
+import UIKit
 import SwiftUI
 import QuickBloxDomain
 import QuickBloxData
@@ -77,7 +78,8 @@ public protocol DialogViewModelProtocol: QuickBloxUIKitViewModel, PermissionProt
     var tones: [QBAIRephrase.AITone] { get set }
     var selectedMessages: [DialogItem.MessageItem] { get set }
     var messagesActionState: MessageAction { get set }
-    var filesInfo: [MessageIdsInfo: (type: String, image: Image?, url: URL?)] { get set }
+    var filesInfo: [MessageIdsInfo: (type: String, image: UIImage?, url: URL?)] { get set }
+    var originSenderName: String { get set }
     
     func startRecording()
     func stopRecording()
@@ -109,17 +111,20 @@ public extension QBAIRephrase.AITone {
 open class DialogViewModel: DialogViewModelProtocol {
     @Published public var waitingAnswer: AIAnswerInfo = AIAnswerInfo()
     @MainActor
-    @Published public var dialog: Dialog
+    @Published public var dialog: Dialog = DialogItem(type: .group)
     @Published public var targetMessage: QuickBloxData.Message?
     @Published public var audioPlayer = AudioPlayer()
     @Published public var deleteDialog: Bool = false
     @Published public var typing: String = ""
+    @MainActor
     @Published public var messagesActionState: MessageAction = .none
     @Published public var aiAnswer: String = ""
     @Published public var permissionNotGranted: PermissionInfo = PermissionInfo(mediaType: .audio)
     @Published public var isProcessing: Bool = false
     @Published public var syncState: SyncState = .synced
+    @MainActor
     @Published public var selectedMessages: [DialogItem.MessageItem] = []
+    @Published public var originSenderName = ""
     @Published public var error = ""
     @Published public var aiAnswerFailed: AIAnswerFailedInfo = AIAnswerFailedInfo() {
         didSet {
@@ -145,7 +150,7 @@ open class DialogViewModel: DialogViewModelProtocol {
     
     public var withAnimation: Bool = false
     
-    @Published public var filesInfo: [MessageIdsInfo: (type: String, image: Image?, url: URL?)]  = [:]
+    @Published public var filesInfo: [MessageIdsInfo: (type: String, image: UIImage?, url: URL?)]  = [:]
     @Published public var isLoading = CurrentValueSubject<Bool, Never>(false)
     
     private let dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs
@@ -171,8 +176,9 @@ open class DialogViewModel: DialogViewModelProtocol {
     
     private var draftAttachmentMessage: QuickBloxData.Message? = nil
     
+    private var forwardedMessageKey = QuickBloxUIKit.feature.forward.forwardedMessageKey
+    
     init(dialog: Dialog) {
-        
         self.dialog = dialog
         
         isTypingEnable = QuickBloxUIKit.settings.dialogScreen.typing.enable
@@ -269,8 +275,8 @@ open class DialogViewModel: DialogViewModelProtocol {
             let newImage = uiImage.fixOrientation()
             
             let largestSide = newImage.size.width > newImage.size.height ? newImage.size.width : newImage.size.height
-            let scaleCoeficient = largestSide/560.0
-            let newSize = CGSize(width: newImage.size.width/scaleCoeficient, height: newImage.size.height/scaleCoeficient)
+            let scaleFactor = largestSide/560.0
+            let newSize = CGSize(width: newImage.size.width/scaleFactor, height: newImage.size.height/scaleFactor)
             
             // create smaller image
             UIGraphicsBeginImageContext(newSize)
@@ -299,17 +305,9 @@ open class DialogViewModel: DialogViewModelProtocol {
         }
     }
     
-    private func sendAttachment(withData data: Data, ext: FileExtension, name: String) {
+   private func sendAttachment(withData data: Data, ext: FileExtension, name: String) {
         isProcessing = true
         sendStopTyping()
-        
-        var originalMessage: DialogItem.MessageItem? = nil
-        var actionState: MessageAction = .none
-        if let selectedMessage = selectedMessages.first, messagesActionState == .reply {
-            originalMessage = selectedMessage
-            actionState = .reply
-            messagesActionState = .none
-        }
         
         draftAttachmentMessage = Message(dialogId: dialog.id,
                                          text: "[Attachment]",
@@ -331,11 +329,9 @@ open class DialogViewModel: DialogViewModelProtocol {
                                             repo: RepositoriesFabric.files)
                 let file = try await uploadFile.execute()
                 
-                if actionState == .reply,
-                   let originalMessage {
+                if messagesActionState == .reply,
+                   let originalMessage = selectedMessages.first {
                     let originSenderName = try await originalMessage.userName
-                    
-                    self.messagesActionState = .none
                     
                     let message = Message(dialogId: dialog.id,
                                           text: attachmentMessageText(file.info),
@@ -349,10 +345,11 @@ open class DialogViewModel: DialogViewModelProtocol {
                     let sendMessage = SendMessage(message: message,
                                                   messageRepo: RepositoriesFabric.messages)
                     try await sendMessage.execute()
-                    cancelMessageAction()
-                    draftAttachmentMessage = nil
+                    
                     await MainActor.run { [weak self] in
                         guard let self = self else { return }
+                        cancelMessageAction()
+                        draftAttachmentMessage = nil
                         self.isProcessing = false
                     }
                 } else {
@@ -366,9 +363,11 @@ open class DialogViewModel: DialogViewModelProtocol {
                     let sendMessage = SendMessage(message: message,
                                                   messageRepo: RepositoriesFabric.messages)
                     try await sendMessage.execute()
-                    draftAttachmentMessage = nil
+                    
                     await MainActor.run { [weak self] in
                         guard let self = self else { return }
+                        self.messagesActionState = .none
+                        draftAttachmentMessage = nil
                         self.isProcessing = false
                     }
                 }
@@ -422,11 +421,13 @@ open class DialogViewModel: DialogViewModelProtocol {
                     let sendMessage = SendMessage(message: message,
                                                   messageRepo: RepositoriesFabric.messages)
                     try await sendMessage.execute()
-                    self.audioRecorder.delete()
-                    cancelMessageAction()
-                    draftAttachmentMessage = nil
+                    
                     await MainActor.run { [weak self] in
                         guard let self = self else { return }
+                        self.messagesActionState = .none
+                        self.audioRecorder.delete()
+                        cancelMessageAction()
+                        draftAttachmentMessage = nil
                         self.isProcessing = false
                     }
                 } else {
@@ -437,11 +438,13 @@ open class DialogViewModel: DialogViewModelProtocol {
                     let sendMessage = SendMessage(message: message,
                                                   messageRepo: RepositoriesFabric.messages)
                     try await sendMessage.execute()
-                    self.audioRecorder.delete()
-                    cancelMessageAction()
-                    draftAttachmentMessage = nil
+                    
                     await MainActor.run { [weak self] in
                         guard let self = self else { return }
+                        self.messagesActionState = .none
+                        self.audioRecorder.delete()
+                        cancelMessageAction()
+                        draftAttachmentMessage = nil
                         self.isProcessing = false
                     }
                 }
@@ -449,7 +452,7 @@ open class DialogViewModel: DialogViewModelProtocol {
         }
     }
     
-    private func sendVoiceMessage(_ voice: AudioRecording) {
+   private func sendVoiceMessage(_ voice: AudioRecording) {
         let name = "\(voice.createdAt)"
         
         Task { [weak self] in
@@ -468,7 +471,7 @@ open class DialogViewModel: DialogViewModelProtocol {
                    let originalMessage = self.selectedMessages.first {
                     let originSenderName = try await originalMessage.userName
                     
-                    let message = Message(dialogId: dialog.id,
+                    let message = Message(dialogId: dialogId,
                                           text: self.attachmentMessageText(file.info),
                                           isOwnedByCurrentUser: true,
                                           type: .chat,
@@ -480,11 +483,13 @@ open class DialogViewModel: DialogViewModelProtocol {
                     let sendMessage = SendMessage(message: message,
                                                   messageRepo: RepositoriesFabric.messages)
                     try await sendMessage.execute()
-                    self.audioRecorder.delete()
-                    cancelMessageAction()
-                    draftAttachmentMessage = nil
+                    
                     await MainActor.run { [weak self] in
                         guard let self = self else { return }
+                        self.messagesActionState = .none
+                        self.audioRecorder.delete()
+                        cancelMessageAction()
+                        draftAttachmentMessage = nil
                         self.isProcessing = false
                     }
                 } else {
@@ -496,16 +501,18 @@ open class DialogViewModel: DialogViewModelProtocol {
                     let sendMessage = SendMessage(message: message,
                                                   messageRepo: RepositoriesFabric.messages)
                     try await sendMessage.execute()
-                    self.audioRecorder.delete()
-                    self.cancelMessageAction()
+                    
                     await MainActor.run { [weak self] in
                         guard let self = self else { return }
+                        self.messagesActionState = .none
+                        self.audioRecorder.delete()
+                        cancelMessageAction()
                         self.isProcessing = false
                     }
                 }
             } catch { prettyLog(error) }
         }
-    }
+   }
     
     public func handleOnAppear(_ message: QuickBloxData.Message) {
         if (message.isImageMessage || message.isVideoMessage) && filesInfo[MessageIdsInfo(messageId: message.id, relatedId: message.relatedId)] == nil {
@@ -514,7 +521,8 @@ open class DialogViewModel: DialogViewModelProtocol {
                 do {
                     let fileTuple = try await message.file(size: imageSize)
                     if let fileTuple {
-                        self.filesInfo[MessageIdsInfo(messageId: message.id, relatedId: message.relatedId)] = fileTuple
+                        self.filesInfo[MessageIdsInfo(messageId: message.id,
+                                                      relatedId: message.relatedId)] = fileTuple
                     }
                 } catch { prettyLog(error)}
             }
@@ -540,25 +548,52 @@ open class DialogViewModel: DialogViewModelProtocol {
         updated.decrementCounter = true
         updated.messages = []
         
+        
+        
         let readMessage = ReadMessage(message: updatedMessage,
                                       messageRepo: RepositoriesFabric.messages,
                                       dialogRepo: dialogsRepo,
                                       dialog: updated)
+        
         Task {
             do {
                 try await readMessage.execute()
+                await MainActor.run { [weak self] in
+                    guard let self = self else { return }
+                    self.updateApplicationIconBadgeNumber()
+                }
             } catch {
                 prettyLog(error)
             }
         }
     }
     
-    public func handleOnSelect(_ item: DialogItem.MessageItem, actionType: MessageAction) {
-        messagesActionState = actionType
-        didSelect(single: true, item: item)
+    private func updateApplicationIconBadgeNumber() {
+        if UIApplication.shared.applicationIconBadgeNumber > 2 {
+            let badgeNumber = UIApplication.shared.applicationIconBadgeNumber
+            UIApplication.shared.applicationIconBadgeNumber = badgeNumber - 1
+        } else if UIApplication.shared.applicationIconBadgeNumber == 2 {
+            UIApplication.shared.applicationIconBadgeNumber = 0
+        }
     }
     
-    private func didSelect(single: Bool, item: DialogItem.MessageItem) {
+    public func handleOnSelect(_ item: DialogItem.MessageItem, actionType: MessageAction) {
+        
+        Task {
+            do {
+                await MainActor.run { [weak self, actionType, item] in
+                    guard let self = self else { return }
+                    self.messagesActionState = actionType
+                    self.didSelect(single: true, item: item)
+                }
+            }
+        }
+    }
+    
+   private func didSelect(single: Bool, item: DialogItem.MessageItem) {
+        if single, selectedMessages.isEmpty == false {
+            return
+        }
         if selectedMessages.contains(where: { $0.id == item.id && $0.relatedId == item.relatedId}) == true,
            single == false {
             selectedMessages.removeAll(where: { $0.id == item.id && $0.relatedId == item.relatedId })
@@ -567,6 +602,9 @@ open class DialogViewModel: DialogViewModelProtocol {
                 selectedMessages = []
             }
             selectedMessages.append(item)
+            Task {
+                do { self.originSenderName = try await item.userName } catch { prettyLog(error) }
+            }
         }
     }
     
@@ -628,7 +666,8 @@ open class DialogViewModel: DialogViewModelProtocol {
                 await MainActor.run { [weak self] in
                     guard let self = self else { return }
                     self.aiAnswerFailed = AIAnswerFailedInfo(feature: .answerAssist, failed: true)
-                }            }
+                } 
+            }
             await MainActor.run { [weak self] in
                 guard let self = self else { return }
                 self.waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: false)
@@ -964,112 +1003,4 @@ extension Date
         return dateFormatter.string(from: self)
     }
     
-}
-
-extension UIImage {
-    func fixOrientation() -> UIImage {
-        var transformOrientation: CGAffineTransform = .identity
-        let width = size.width
-        let height = size.height
-        if imageOrientation == .up {
-            return self
-        }
-        
-        if imageOrientation == .down || imageOrientation == .downMirrored {
-            transformOrientation = transformOrientation.translatedBy(x: width, y: height)
-            transformOrientation = transformOrientation.rotated(by: .pi)
-        } else if imageOrientation == .left || imageOrientation == .leftMirrored {
-            transformOrientation = transformOrientation.translatedBy(x: width, y: 0)
-            transformOrientation = transformOrientation.rotated(by: .pi/2)
-        } else if imageOrientation == .right || imageOrientation == .rightMirrored {
-            transformOrientation = transformOrientation.translatedBy(x: 0, y: height)
-            transformOrientation = transformOrientation.rotated(by: -(.pi/2))
-        }
-        
-        if imageOrientation == .upMirrored || imageOrientation == .downMirrored {
-            transformOrientation = transformOrientation.translatedBy(x: width, y: 0)
-            transformOrientation = transformOrientation.scaledBy(x: -1, y: 1)
-        } else if imageOrientation == .leftMirrored || imageOrientation == .rightMirrored {
-            transformOrientation = transformOrientation.translatedBy(x: height, y: 0)
-            transformOrientation = transformOrientation.scaledBy(x: -1, y: 1)
-        }
-        
-        guard let cgImage = self.cgImage, let space = cgImage.colorSpace,
-              let context = CGContext(data: nil,
-                                      width: Int(width),
-                                      height: Int(height),
-                                      bitsPerComponent: cgImage.bitsPerComponent,
-                                      bytesPerRow: 0,
-                                      space: space,
-                                      bitmapInfo: cgImage.bitmapInfo.rawValue)  else {
-            return UIImage()
-        }
-        context.concatenate(transformOrientation)
-        
-        if imageOrientation == .left ||
-            imageOrientation == .leftMirrored ||
-            imageOrientation == .right ||
-            imageOrientation == .rightMirrored {
-            context.draw(cgImage, in: CGRect(x: 0, y: 0, width: height, height: width))
-        } else {
-            context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-        }
-        
-        guard let newCGImage = context.makeImage() else {
-            return UIImage()
-        }
-        let image = UIImage(cgImage: newCGImage)
-        
-        return image
-    }
-    
-    func cropToRect() -> UIImage {
-        let sideLength = min(
-            size.width,
-            size.height
-        )
-        let source = size
-        let xOffset = (source.width - sideLength) / 2.0
-        let yOffset = (source.height - sideLength) / 2.0
-        let cropRect = CGRect(
-            x: xOffset,
-            y: yOffset,
-            width: sideLength,
-            height: sideLength
-        ).integral
-        
-        guard let sourceCGImage = cgImage else {
-            return self
-        }
-        let croppedCGImage = sourceCGImage.cropping(
-            to: cropRect
-        )!
-        let croppedUIImage = UIImage(
-            cgImage: croppedCGImage,
-            scale: imageRendererFormat.scale,
-            orientation: imageOrientation
-        )
-        return croppedUIImage
-    }
-    
-    func resize(to targetSize: CGSize) -> UIImage {
-        let size = self.size
-        let widthRatio  = targetSize.width  / size.width
-        let heightRatio = targetSize.height / size.height
-        let newSize = widthRatio > heightRatio ?
-        CGSize(width: size.width * heightRatio,
-               height: size.height * heightRatio)
-        : CGSize(width: size.width * widthRatio,
-                 height: size.height * widthRatio)
-        let rect = CGRect(x: 0, y: 0, width: newSize.width, height: newSize.height)
-        
-        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
-        self.draw(in: rect)
-        guard let resizedImage = UIGraphicsGetImageFromCurrentImageContext() else {
-            return self
-        }
-        UIGraphicsEndImageContext()
-        
-        return resizedImage
-    }
 }

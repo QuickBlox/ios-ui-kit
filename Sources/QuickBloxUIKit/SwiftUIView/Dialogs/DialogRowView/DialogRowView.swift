@@ -96,6 +96,7 @@ extension DialogRowView {
             }
             .padding([.bottom, .top], settings.infoSpacing)
         }
+        .background(settings.backgroundColor)
         .padding(settings.padding)
         .frame(height: settings.height)
         .id(dialog.id)
@@ -147,7 +148,9 @@ public struct GroupDialogRowView: DialogRowView  {
     
     public var body: some View {
         contentView.task {
-            do { avatar = try await dialog.avatar(scale: .avatar3x) } catch { prettyLog(error) }
+            do {
+                if dialog.photo.isEmpty == false { avatar = try await dialog.avatar(scale: .avatar3x) }
+            } catch { prettyLog(error) }
         }
     }
 }
@@ -172,7 +175,9 @@ public struct PublicDialogRowView: DialogRowView  {
     
     public var body: some View {
         contentView.task {
-            do { avatar = try await dialog.avatar(scale: .avatar3x) } catch { prettyLog(error) }
+            do { 
+                if dialog.photo.isEmpty == false { avatar = try await dialog.avatar(scale: .avatar3x) }
+            } catch { prettyLog(error) }
         }
     }
 }
@@ -217,16 +222,16 @@ public struct SelectDialogRowView: View {
         .padding(settings.selectPadding)
         .background(settings.backgroundColor)
         .task {
-            do { avatar = try await dialog.avatar(scale: .avatar3x) } catch { prettyLog(error) }
+            do {avatar = try await dialog.avatar(scale: .avatar3x)} catch { prettyLog(error) }
         }
     }
 }
 
 //TODO: Developer must have an ability to set his own implementations for each type of dialog, also he can disable  specific dialog type. https://quickblox.atlassian.net/wiki/spaces/CLNT/pages/3676045315/UIKit+v0.1.0+SRS#Dialog-cell
 
-public struct DialogsRowBuilder<DialogItem: DialogEntity> {
+public struct DialogsRowBuilder {
     @ViewBuilder
-    public static func defaultRow(_ dialog: DialogItem) -> some View {
+    public static func defaultRow(_ dialog: any DialogEntity) -> some View {
         switch dialog.type {
         case .private: PrivateDialogRowView(dialog)
         case .group: GroupDialogRowView(dialog)
@@ -264,57 +269,5 @@ extension DialogEntity {
             return name.isValid(regexes: [regex.userName]) == true ? name : settings.unknown
         }
         return name
-    }
-}
-
-import QuickBloxData
-
-struct PrivateDialogRowView_Previews: PreviewProvider {
-
-    static var previews: some View {
-        Group {
-//            DialogsRowBuilder.defaultRow(PreviewModel.privateDialog)
-
-//            DialogsRowBuilder.defaultRow(PreviewModel.groupDialog)
-//                .preferredColorScheme(.dark)
-
-//            GroupDialogRowView(PreviewModel.longNameGroupDialog)
-//                .previewSettings(scheme: .dark, name: "Long name")
-//
-//
-//            PublicDialogRowView(PreviewModel.publicDialog)
-//                .previewSettings(name: "Public")
-//
-//            PreviewRow(PreviewModel.publicDialog)
-//                .name(foregroundColor: .red)
-//                .badge(backgroundColor: .green)
-//                .avatar(image: Image("attachmentPlaceholder", bundle: .module),
-//                        height: 56.0,
-//                        isHidden: true)
-//                .time("last Year")
-//                .previewSettings(name: "Custom")
-//
-//            PublicDialogRowView(PreviewModel.oldMessagePublicDialog)
-//                .previewSettings(name: "Old Message")
-//
-//            PublicDialogRowView(PreviewModel.oldMessagePublicDialog)
-//                .time(isHidden: false)
-//                .previewSettings(name: "Without time")
-//
-//            PublicDialogRowView(PreviewModel.oldMessagePublicDialog)
-//                .message(isHidden: false)
-//                .previewSettings(name: "Without message")
-//
-//            PreviewRow(PreviewModel.publicDialog)
-//                .name(foregroundColor: .red)
-//                .badge(backgroundColor: .green)
-//                .time(nil)
-//                .avatar(image: Image("attachmentPlaceholder", bundle: .module),
-//                        height: 56.0,
-//                        isHidden: false)
-//                .message(LastMessage())
-//                .previewSettings(name: "Without optional")
-
-        }.previewLayout(.fixed(width: 375, height: 76))
     }
 }

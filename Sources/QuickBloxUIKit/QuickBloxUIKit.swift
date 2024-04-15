@@ -86,15 +86,7 @@ private func syncData() {
 public func dialogsView(onExit: (() -> Void)? = nil,
                         onSelect: @escaping (_ tabIndex: TabIndex) -> Void) -> some View {
     DialogsView(dialogsList: DialogsViewModel(dialogsRepo: RepositoriesFabric.dialogs),
-                detailContent: { item, isInfoPresented in
-        if item.type == .group {
-            GroupDialogView(viewModel: DialogViewModel(dialog: item), isInfoPresented: isInfoPresented)
-        } else if item.type == .private {
-            PrivateDialogView(viewModel: DialogViewModel(dialog: item), isInfoPresented: isInfoPresented)
-        }
-    }, selectTypeContent: { onClose in
-        DialogTypeView(onClose: onClose)
-    }, onBack: {
+                onBack: {
         onExit?()
     }, onSelect: { tabIndex in
         onSelect(tabIndex)

@@ -12,9 +12,7 @@ import QuickBloxData
 import QuickBloxLog
 import Combine
 
-public protocol CreateDialogProtocol: ObservableObject
-//: QuickBloxUIKitViewModel
-{
+public protocol CreateDialogProtocol: ObservableObject {
     associatedtype UserItem: UserEntity
     associatedtype DialogItem: DialogEntity
     
@@ -25,7 +23,7 @@ public protocol CreateDialogProtocol: ObservableObject
     var isSynced: Bool { get set }
     var modeldDialog: DialogItem { get }
     
-    func sync()
+    func syncUsers()
     func handleOnSelect(_ item: UserItem)
     func createDialog()
 }
@@ -49,12 +47,11 @@ final class CreateDialogViewModel: CreateDialogProtocol {
     private var createTask: Task<Void, Never>?
     
     // use for PreviewProvider
-    public init(users: [User],
-         modeldDialog: Dialog) {
+    public init(modeldDialog: Dialog) {
         self.modeldDialog = modeldDialog
     }
     
-    public func sync() {
+    public func syncUsers() {
         displayMembers()
         
         $search.eraseToAnyPublisher()
@@ -117,11 +114,26 @@ final class CreateDialogViewModel: CreateDialogProtocol {
     //MARK: - Users
     //MARK: - Public Methods
     public func handleOnSelect(_ item: User) {
-        didSelect(single: modeldDialog.type == .private, item: item)
+        if modeldDialog.type == .private {
+            if selected.contains(where: { $0.id == item.id }) {
+                return
+            } else {
+                selected = []
+                selected.insert(item)
+            }
+        } else {
+            if selected.contains(where: { $0.id == item.id }) {
+                selected.remove(item)
+            } else {
+                selected.insert(item)
+            }
+        }
     }
     
     // MARK: - Dialogs
     public func createDialog() {
+        if modeldDialog.type == .private, selected.isEmpty == true { return }
+        
         isProcessing = true
         modeldDialog.participantsIds = selected.map { $0.id }
         if modeldDialog.photo.isEmpty {
@@ -136,89 +148,15 @@ final class CreateDialogViewModel: CreateDialogProtocol {
                 
                 await MainActor.run { [weak self] in
                     self?.isProcessing = false
+                    self?.createTask = nil
                 }
-                self?.createTask = nil
             } catch {
                 prettyLog(error)
-                if error is RepositoryException {
-                    await MainActor.run { [weak self] in
-                        self?.isProcessing = false
-                    }
+                await MainActor.run { [weak self] in
+                    self?.isProcessing = false
                     self?.createTask = nil
                 }
             }
-            
         }
-    }
-}
-
-extension CreateDialogViewModel {
-    public convenience init(modeldDialog: Dialog) {
-        self.init(users: [],
-                  modeldDialog: modeldDialog)
-    }
-    
-    func didSelect(single: Bool, item: User) {
-        if selected.contains(item) == true {
-            selected.remove(item)
-        } else {
-            if single {
-                selected = []
-            }
-            selected.insert(item)
-        }
-    }
-}
-
-class CreateDialogViewModelMock: CreateDialogProtocol {
-    
-    var cancellables: Set<AnyCancellable>
-    
-    var tasks: Set<Task<Void, Never>>
-    
-    func sync() {
-        
-    }
-    
-    func handleOnSelect(_ item: User) {
-        
-    }
-    
-    var createdDialog: PreviewDialog? = nil
-    
-    var dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs
-    
-    var usersRepo: UsersRepository = RepositoriesFabric.users
-    
-    var modeldDialog: PreviewDialog
-    
-    typealias UserItem = User
-    
-    typealias UsersRepo = UsersRepository
-    
-    typealias DialogItem = PreviewDialog
-    
-    typealias DialogsRepo = DialogsRepository
-    
-    @Published public var search = ""
-    @Published public var selected: Set<User> = []
-    @Published public var isProcessing = false
-    @Published public var displayed: [User] = []
-    @Published public var  isSynced: Bool = false
-    
-    func createDialog() {
-        
-    }
-    
-    init(users: [User],
-         modeldDialog: PreviewDialog,
-         dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs,
-         usersRepo: UsersRepository = RepositoriesFabric.users) {
-        self.displayed = users
-        self.modeldDialog = modeldDialog
-        self.dialogsRepo = dialogsRepo
-        self.usersRepo = usersRepo
-        self.tasks = []
-        self.cancellables = []
     }
 }

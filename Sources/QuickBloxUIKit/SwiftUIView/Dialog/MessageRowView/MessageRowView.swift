@@ -27,7 +27,7 @@ public struct MessageRowView<MessageItem: MessageEntity>: View {
     var message: MessageItem
     var isSelected: Bool
     var messagesActionState: MessageAction
-    var fileTuple: (type: String, image: Image?, url: URL?)?
+    var fileTuple: (type: String, image: UIImage?, url: URL?)?
     @Binding var isPlaying: Bool
     @Binding var currentTime: TimeInterval
     var playingMessage: MessageIdsInfo
@@ -50,7 +50,7 @@ public struct MessageRowView<MessageItem: MessageEntity>: View {
         case .inboundVideo: InboundVideoMessageRow(message: message, fileTuple: fileTuple, messagesActionState: messagesActionState, isSelected: isSelected, onTap: onTap, onSelect: onSelect)
         case .inboundPDF: InboundFileMessageRow(message: message, messagesActionState: messagesActionState, isSelected: isSelected, onTap: onTap, onSelect: onSelect)
         case .inboundGIF: InboundGIFMessageRow(message: message, fileTuple: fileTuple, messagesActionState: messagesActionState, isSelected: isSelected, onTap: onTap, onSelect: onSelect)
-        case .outboundAudio: OutboundAudioMessageRow(message: message, messagesActionState: messagesActionState, relatedTime: nil, relatedStatus: nil, isSelected: isSelected,onTap: onPlay, playingMessage: playingMessage, isPlaying: isPlaying, currentTime: currentTime, onSelect: onSelect)
+        case .outboundAudio: OutboundAudioMessageRow(message: message, messagesActionState: messagesActionState, relatedTime: nil, relatedStatus: nil, isSelected: isSelected, onTap: onPlay, playingMessage: playingMessage, isPlaying: isPlaying, currentTime: currentTime, onSelect: onSelect)
         case .outboundChat: OutboundChatMessageRow(message: message, messagesActionState: messagesActionState, relatedTime: nil, relatedStatus: nil, isSelected: isSelected, onSelect: onSelect)
         case .outboundImage: OutboundImageMessageRow(message: message, fileTuple: fileTuple, messagesActionState: messagesActionState, relatedTime: nil, relatedStatus: nil, isSelected: isSelected, onTap: onTap, onSelect: onSelect)
         case .outboundVideo: OutboundVideoMessageRow(message: message, fileTuple: fileTuple, messagesActionState: messagesActionState, relatedTime: nil, relatedStatus: nil, isSelected: isSelected, onTap: onTap, onSelect: onSelect)
@@ -168,7 +168,7 @@ extension MessageEntity {
 extension Date {
     static var formatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "hh:mm"
+        formatter.dateFormat = "HH:mm"
         return formatter
     }()
 }

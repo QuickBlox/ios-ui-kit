@@ -12,35 +12,31 @@ import QuickBloxData
 
 struct CreateDialogView<ViewModel: CreateDialogProtocol,
                     DialogItem: DialogEntity,
-                    UserItem: UserEntity,
-                    ListView: View>: View
+                    UserItem: UserEntity>: View
 where DialogItem == ViewModel.DialogItem, UserItem == ViewModel.UserItem {
     let settings = QuickBloxUIKit.settings.createDialogScreen
-    
+
     @Environment(\.dismiss) var dismiss
     @Environment(\.isSearching) private var isSearching: Bool
-    @State private var onTapCreate: Bool = false
     
-    let onDismiss: () -> Void
-    
-    @StateObject public var viewModel: ViewModel
-    
-    init(viewModel: ViewModel,
-         onDismiss: @escaping () -> Void,
-        @ViewBuilder content: @escaping (_ viewModel: ViewModel) -> ListView) {
-        self.content = content
-        self.onDismiss = onDismiss
+    @StateObject private var viewModel: ViewModel
+
+    init(viewModel: ViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
-    
-    private var content: (_ viewModel: ViewModel) -> ListView
     
     public var body: some View {
         if isIphone {
             container()
+                .onViewDidLoad {
+                    viewModel.syncUsers()
+                }
         } else if isIPad {
             NavigationStack {
                 container()
+                .onViewDidLoad {
+                    viewModel.syncUsers()
+                }
             }.accentColor(settings.header.leftButton.color)
         }
     }
@@ -50,7 +46,9 @@ where DialogItem == ViewModel.DialogItem, UserItem == ViewModel.UserItem {
         ZStack {
             settings.backgroundColor.ignoresSafeArea()
             
-            content(viewModel)
+            UserListView(viewModel: viewModel) { item, isSelected, onSelect in
+                UserRow(item, isSelected: isSelected, onTap: onSelect)
+            }
         }
         
         .disabled(viewModel.isProcessing == true)
@@ -62,32 +60,8 @@ where DialogItem == ViewModel.DialogItem, UserItem == ViewModel.UserItem {
         
         .modifier(CreateDialogHeader(onDismiss: {
             dismiss()
-            onDismiss()
         }, onTapCreate: {
-            onTapCreate.toggle()
             viewModel.createDialog()
         }, disabled: viewModel.isProcessing == true))
     }
 }
-
-struct CreateDialog_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-//            CreateDialog(viewModel: CreateDialogViewModelMock(users: PreviewModel.users, modeldDialog: PreviewModel.groupDialog)) { items, searchText, selected, onSelect, onAppearItem, onNext in
-//                UserListView(items: PreviewModel.users, selected: Binding.constant(Set(PreviewModel.selectedUsersIds)), content: { item, isSelected, onTap in
-//                    UserRow(item, isSelected: isSelected, onTap: onTap)
-//                }, onSelect: onSelect, onAppearItem: onAppearItem, onNext: onNext)
-//            }
-//            .previewDisplayName("Create Dialog View")
-//            
-//            CreateDialog(viewModel: CreateDialogViewModelMock(users: PreviewModel.users, modeldDialog: PreviewModel.groupDialog)) { items, searchText, selected, onSelect, onAppearItem, onNext in
-//                UserListView(items: PreviewModel.users, selected: Binding.constant(Set(PreviewModel.selectedUsersIds)), content: { item, isSelected, onTap in
-//                    UserRow(item, isSelected: isSelected, onTap: onTap)
-//                }, onSelect: onSelect, onAppearItem: onAppearItem, onNext: onNext)
-//            }
-//            .preferredColorScheme(.dark)
-//            .previewDisplayName("Dark Create Dialog View")
-        }
-    }
-}
-

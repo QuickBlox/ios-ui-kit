@@ -70,6 +70,7 @@
 "attachment.maxSize.title" = "The uploaded file exceeds maximum file size (10MB)";
 "attachment.maxSize.hint" = "Please select a smaller attachment.";
 "attachment.maxSize.compressibleHint" = "Please select a smaller attachment. Or click Use to compress the attachment and use it.";
+"attachment.maxSize.compress" = "Compress";
 "attachment.title.file" = "file";
 "attachment.title.gif" = "GIF";
 

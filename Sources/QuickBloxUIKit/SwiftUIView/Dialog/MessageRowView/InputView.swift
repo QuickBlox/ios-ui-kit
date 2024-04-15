@@ -32,6 +32,8 @@ struct InputView: View  {
     @State private var isUpdatedContent: Bool = false
     @State private var isUpdatedByAIAnswer: Bool = false
     
+    @State private var originSenderName: String = ""
+    
     private var isWaitingAnswer: Bool {
         return viewModel.waitingAnswer.waiting == true && viewModel.aiAnswer.isEmpty == true
     }
@@ -64,7 +66,9 @@ struct InputView: View  {
                let message = viewModel.selectedMessages.first,
                viewModel.messagesActionState == .reply {
                 MessageActionBanner(
-                    message: message, messageAction: .reply, onCancelReply: {
+                    userName: $originSenderName,
+                    message: message,
+                    messageAction: .reply, onCancelReply: {
                         if viewModel.isProcessing { return }
                         viewModel.cancelMessageAction()
                     }, forMessage: false, count: viewModel.selectedMessages.count)
@@ -280,30 +284,5 @@ struct TextFieldView: View {
                     typing()
                 }
             }
-    }
-}
-
-import QuickBloxData
-struct MessageTextField_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            InputView(onAttachment: {
-                
-            }, onApplyTone: {_,_,_ in }
-            ).environmentObject({ () -> DialogViewModel in
-                let envObj = DialogViewModel(dialog: Dialog(type: .group))
-                return envObj
-            }() )
-            
-            InputView(onAttachment: {
-                
-            }, onApplyTone: {_,_,_ in }
-            ).environmentObject({ () -> DialogViewModel in
-                let envObj = DialogViewModel(dialog: Dialog(type: .group))
-                return envObj
-            }() )
-            .previewSettings(scheme: .dark, name: "Dark mode")
-            
-        }
     }
 }

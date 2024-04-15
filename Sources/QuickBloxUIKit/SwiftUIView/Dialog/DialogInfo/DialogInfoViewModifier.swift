@@ -16,9 +16,9 @@ struct DialogInfoHeaderToolbarContent: ToolbarContent {
     
     let settings = QuickBloxUIKit.settings.dialogInfoScreen.header
     let onTapEdit: () -> Void
+    
     public init(onTapEdit: @escaping () -> Void) {
-        self.onTapEdit = onTapEdit
-    }
+        self.onTapEdit = onTapEdit    }
     
     public var body: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
@@ -43,7 +43,7 @@ struct DialogInfoHeaderToolbarContent: ToolbarContent {
 
 public struct DialogInfoHeader: ViewModifier {
     let settings = QuickBloxUIKit.settings.dialogInfoScreen.header
-    
+
     let onTapEdit: () -> Void
     public init(onTapEdit: @escaping () -> Void) {
         self.onTapEdit = onTapEdit
@@ -69,19 +69,9 @@ public struct InfoDialogAvatar: View {
     
     public var body: some View {
         VStack(spacing: 8.0) {
-            if viewModel.isProcessing == true {
-                ZStack {
-                    Color.gray
-                        .frame(width: settings.height, height: settings.height)
-                        .clipShape(Circle())
-                    
-                    ProgressView()
-                }
-            } else {
-                AvatarView(image: viewModel.avatar ?? viewModel.dialog.placeholder,
-                           height: settings.height,
-                           isHidden: settings.isHidden)
-            }
+            AvatarView(image: viewModel.avatar ?? viewModel.dialog.placeholder,
+                       height: settings.height,
+                       isHidden: settings.isHidden)
             
             Text(viewModel.dialog.validName)
                 .font(settings.font)
@@ -152,18 +142,19 @@ public struct InfoSegment<Item: DialogEntity>: View {
 
 public struct EditDialogAlert<ViewModel: PermissionProtocol>: ViewModifier {
     public var settings = QuickBloxUIKit.settings.dialogInfoScreen.editDialogAlert
+    public var editNameAlert = QuickBloxUIKit.settings.dialogInfoScreen.editNameAlert
     
     let viewModel: ViewModel
     
     @Binding var isPresented: Bool
-    @Binding var dialogName: String
-    @Binding var isValidDialogName: Bool
+    var dialogName: String
     
     let isExistingImage: Bool
     let isHiddenFiles: Bool
     
     @State var isAlertNamePresented: Bool = false
     @State var isMediaAlertPresented: Bool = false
+    @State var isInvalidNameAlertPresented: Bool = false
     
     let onRemoveImage: () -> Void
     let onGetAttachment: (_ attachmentAsset: AttachmentAsset) -> Void
@@ -256,12 +247,27 @@ public struct EditDialogAlert<ViewModel: PermissionProtocol>: ViewModifier {
                     .if(isAlertNamePresented, transform: { view in
                         view
                             .editNameAlert(isAlertNamePresented: $isAlertNamePresented,
-                                           name: $dialogName,
+                                           name: dialogName,
                                            onGetName: { name in
                                 onGetName(name)
                                 isPresented = false
-                            }, onCancel: onCancelName)
+                            }, onCancel: onCancelName,
+                                           onInvalidName: {
+                                isInvalidNameAlertPresented = true
+                            })
                     })
+            
+                    .if(isInvalidNameAlertPresented == true) { view in
+                        view.blur(radius: 24)
+                            .alert(editNameAlert.errorValidation, isPresented: $isInvalidNameAlertPresented) {
+                            Button(settings.cancel, action: {
+                                isInvalidNameAlertPresented = false
+                                isAlertNamePresented = true
+                            })
+                        } message: {
+                            Text(editNameAlert.hint)
+                        }
+                    }
         }
     }
 }
@@ -270,8 +276,7 @@ extension View {
     func editDialogAlert<ViewModel: PermissionProtocol>(
         isPresented: Binding<Bool>,
         viewModel: ViewModel,
-        dialogName: Binding<String>,
-        isValidDialogName: Binding<Bool>,
+        dialogName: String,
         isExistingImage: Bool,
         isHiddenFiles: Bool,
         onRemoveImage: @escaping () -> Void,
@@ -282,7 +287,6 @@ extension View {
         self.modifier(EditDialogAlert(viewModel: viewModel,
                                       isPresented: isPresented,
                                       dialogName: dialogName,
-                                      isValidDialogName: isValidDialogName,
                                       isExistingImage: isExistingImage,
                                       isHiddenFiles: isHiddenFiles,
                                       onRemoveImage: onRemoveImage,
@@ -297,18 +301,24 @@ public struct EditNameAlert: ViewModifier {
     let regex = QuickBloxUIKit.feature.regex
     
     @Binding var isAlertNamePresented: Bool
-    @Binding var name: String
+    @State var name: String = ""
     @State var isValidDialogName: Bool = true
     
     let onGetName: (_ name: String) -> Void
     let onCancel: () -> Void
+    let onInvalidName: () -> Void
     
-    init(isAlertNamePresented: Binding<Bool>, name: Binding<String>, onGetName: @escaping (_: String) -> Void, onCancel: @escaping () -> Void) {
+    init(isAlertNamePresented: Binding<Bool>,
+         name: String,
+         onGetName: @escaping (_: String) -> Void,
+         onCancel: @escaping () -> Void,
+         onInvalidName: @escaping () -> Void) {
         _isAlertNamePresented = isAlertNamePresented
-        _name = name
-        self.isValidDialogName = regex.dialogName.isEmpty ? true : name.wrappedValue.isValid(regexes: [regex.dialogName])
+        self.name = name
+        self.isValidDialogName = regex.dialogName.isEmpty ? true : name.isValid(regexes: [regex.dialogName])
         self.onGetName = onGetName
         self.onCancel = onCancel
+        self.onInvalidName = onInvalidName
     }
     
     public func body(content: Content) -> some View {
@@ -324,12 +334,17 @@ public struct EditNameAlert: ViewModifier {
                         onCancel()
                     })
                     Button(settings.ok, action: {
-                        isAlertNamePresented = false
-                        onGetName(name)
+                        if isValidDialogName == false {
+                            onInvalidName()
+                        } else {
+                            isAlertNamePresented = false
+                            onGetName(name)
+                        }
                     }).disabled(isValidDialogName == false)
                 } message: {
                     Text(settings.hint)
                 }
+                
         }
     }
 }
@@ -337,14 +352,16 @@ public struct EditNameAlert: ViewModifier {
 extension View {
     func editNameAlert(
         isAlertNamePresented: Binding<Bool>,
-        name: Binding<String>,
+        name: String,
         onGetName: @escaping (_ name: String) -> Void,
-        onCancel: @escaping () -> Void
+        onCancel: @escaping () -> Void,
+        onInvalidName: @escaping () -> Void
     ) -> some View {
         self.modifier(EditNameAlert(isAlertNamePresented: isAlertNamePresented,
                                     name: name,
                                     onGetName: onGetName,
-                                    onCancel: onCancel))
+                                    onCancel: onCancel,
+                                    onInvalidName: onInvalidName))
     }
 }
 

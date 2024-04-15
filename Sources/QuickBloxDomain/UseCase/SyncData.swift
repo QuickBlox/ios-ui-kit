@@ -288,9 +288,13 @@ where Pagination == DialogsRepo.PaginationItem {
                         Task { [weak self] in do {
                             guard let self = self else { return }
                             var dialog = try await self.dialogsRepo.get(dialogFromLocal: message.dialogId)
-                            dialog.participantsIds.removeAll(where: { $0 == message.userId })
-                            try await self.dialogsRepo.update(dialogInLocal: dialog)
-                            try await self.update(dialog: message)
+                            if dialog.type == .private {
+                                try await self.dialogsRepo.delete(dialogFromLocal: message.dialogId)
+                            } else {
+                                dialog.participantsIds.removeAll(where: { $0 == message.userId })
+                                try await self.dialogsRepo.update(dialogInLocal: dialog)
+                                try await self.update(dialog: message)
+                            }
                         } catch {
                             prettyLog(error)
                         } }
@@ -338,6 +342,11 @@ where Pagination == DialogsRepo.PaginationItem {
     typealias MessageItem = DialogItem.MessageItem
     
     func create(dialog newMessage: MessageItem) async throws {
+        if let dialog = try? await dialogsRepo.get(dialogFromLocal: newMessage.dialogId),
+           dialog.isOwnedByCurrentUser == true,
+           newMessage.isOwnedByCurrentUser != dialog.isOwnedByCurrentUser {
+            return
+        }
         var dialog = try await dialogsRepo.get(dialogFromRemote: newMessage.dialogId)
         if dialog.type != .private {
             dialog = update(dialog, lastMessage: newMessage)

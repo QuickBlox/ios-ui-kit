@@ -13,8 +13,7 @@ import QuickBloxDomain
 public struct GroupDialogNonEditInfoView<ViewModel: DialogInfoProtocol>: View {
     let settings = QuickBloxUIKit.settings.dialogInfoScreen
 
-    @StateObject public var viewModel: ViewModel
-
+    @StateObject private var viewModel: ViewModel
     @State private var isMembersPresented: Bool = false
     @State private var searchPresented: Bool = false
     @State private var errorPresented: Bool = false
@@ -85,35 +84,10 @@ public struct GroupDialogNonEditInfoView<ViewModel: DialogInfoProtocol>: View {
                         CustomProgressView()
                     }
                 }
-                
                 .environmentObject(viewModel)
             }
             .onAppear {
                 viewModel.sync()
             }
-            .onDisappear {
-                viewModel.unsync()
-            }
         }
 }
-
-//struct GroupDialogNonEditInfoView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        Group {
-//            GroupDialogNonEditInfoView<Dialog,
-//                                User,
-//                                RemoveUserListView<User>,
-//                                RemoveUserRow>(DialogInfoViewModel<Dialog>(Dialog(id: "dffdfdfdfdf",
-//                                                                                  type: .group,
-//                                                                                  name: "Test Group Light Dialog")))
-//                                .previewDisplayName("Dialog Info View")
-//            GroupDialogNonEditInfoView<Dialog,
-//                                User, RemoveUserListView<User>,
-//                                RemoveUserRow>(DialogInfoViewModel<Dialog>(Dialog(id: "dffdfdfdfdf",
-//                                                                                  type: .group,
-//                                                                                  name: "Test Group Dark Dialog")))
-//                                .previewDisplayName("Dialog Info View Dark")
-//                                .preferredColorScheme(.dark)
-//        }
-//    }
-//}

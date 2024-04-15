@@ -20,7 +20,7 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
     
     let onTap: (_ action: MessageAttachmentAction, _ url: URL?) -> Void
     
-    private var fileTuple: (type: String, image: Image?, url: URL?)? = nil
+    private var fileTuple: (type: String, image: UIImage?, url: URL?)? = nil
     private var messagesActionState: MessageAction
     private var relatedTime: Date? = nil
     private var relatedStatus: MessageStatus? = nil
@@ -29,7 +29,7 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
     private let onSelect: (_ item: MessageItem, _ actionType: MessageAction) -> Void
     
     public init(message: MessageItem,
-                fileTuple: (type: String, image: Image?, url: URL?)? = nil,
+                fileTuple: (type: String, image: UIImage?, url: URL?)? = nil,
                 messagesActionState: MessageAction,
                 relatedTime: Date?,
                 relatedStatus: MessageStatus?,
@@ -142,11 +142,12 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
         ZStack {
             
             if let image = fileTuple?.image {
-                image
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: settings.attachmentSize.width,
-                           height: settings.attachmentSize.height)
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: settings.attachmentSize(isPortrait: image.size.height > image.size.width).width, height: settings.attachmentSize(isPortrait: image.size.height > image.size.width).height)
+                        .fixedSize()
+                        .clipped()
                     .cornerRadius(settings.attachmentRadius, corners: features.forward.enable == true && message.actionType == .forward ||
                                   message.actionType == .reply && message.relatedId.isEmpty == false ?
                                   settings.outboundForwardCorners : settings.outboundCorners)

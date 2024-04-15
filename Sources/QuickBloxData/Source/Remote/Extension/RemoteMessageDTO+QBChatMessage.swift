@@ -63,13 +63,18 @@ extension RemoteMessageDTO {
         type = eventType == .message ? .chat : .event
         actionType = value.actionType
         
-        let originSenderName: String = value.customParameters[QBChatMessage.Key.originSenderName] as? String ?? ""
-        
-        if let originalMessages = value.customParameters[QBChatMessage.Key.originalMessages] as? String {
-            self.originalMessages = originaldMessages(originalMessages, messageId: id,
-                                                      date: dateSent,
-                                                      actionType: actionType,
-                                                      originSenderName: originSenderName)
+        if actionType == .forward || actionType == .reply {
+            var originSenderName: String = value.customParameters[QBChatMessage.Key.originSenderName] as? String ?? "Unknown"
+            if originSenderName == "undefined" || originSenderName.isEmpty {
+                originSenderName = "Unknown"
+            }
+            
+            if let originalMessages = value.customParameters[QBChatMessage.Key.originalMessages] as? String {
+                self.originalMessages = originaldMessages(originalMessages, messageId: id,
+                                                          date: dateSent,
+                                                          actionType: actionType,
+                                                          originSenderName: originSenderName)
+            }
         }
         
         let current = String(QBSession.current.currentUserID)

@@ -20,7 +20,7 @@ public struct InboundVideoMessageRow<MessageItem: MessageEntity>: View {
     
     let onTap: (_ action: MessageAttachmentAction, _ url: URL?) -> Void
     
-    private var fileTuple: (type: String, image: Image?, url: URL?)? = nil
+    private var fileTuple: (type: String, image: UIImage?, url: URL?)? = nil
     private var messagesActionState: MessageAction
     private var isSelected = false
     
@@ -29,7 +29,7 @@ public struct InboundVideoMessageRow<MessageItem: MessageEntity>: View {
     @State private var contentSize: CGSize?
     
     public init(message: MessageItem,
-                fileTuple: (type: String, image: Image?, url: URL?)? = nil,
+                fileTuple: (type: String, image: UIImage?, url: URL?)? = nil,
                 messagesActionState: MessageAction,
                 isSelected: Bool,
                 onTap: @escaping (_ action: MessageAttachmentAction, _ url: URL?) -> Void,
@@ -132,11 +132,12 @@ public struct InboundVideoMessageRow<MessageItem: MessageEntity>: View {
     private func messageContent(forPreview: Bool = false) -> some View {
         ZStack(alignment: .center) {
             if let image = fileTuple?.image {
-                image
+                Image(uiImage: image)
                     .resizable()
-                    .scaledToFill()
-                    .frame(width: settings.attachmentSize.width,
-                           height: settings.attachmentSize.height)
+                    .scaledToFit()
+                    .frame(width: settings.attachmentSize(isPortrait: image.size.height > image.size.width).width, height: settings.attachmentSize(isPortrait: image.size.height > image.size.width).height)
+                    .fixedSize()
+                    .clipped()
                     .cornerRadius(settings.attachmentRadius, corners: message.actionType == .reply && message.relatedId.isEmpty == false ?
                                   settings.outboundForwardCorners : settings.inboundCorners)
                 
