@@ -16,8 +16,8 @@ public struct AddMembersDialogView<ViewModel: AddMembersDialogProtocol>: View {
 
     @Environment(\.isSearching) private var isSearching: Bool
     
-    @StateObject public var viewModel: ViewModel
-    
+    @StateObject private var viewModel: ViewModel
+
     @State var isPresented: Bool = false
     
     init(viewModel: ViewModel,
@@ -29,7 +29,7 @@ public struct AddMembersDialogView<ViewModel: AddMembersDialogProtocol>: View {
     
     public var body: some View {
         container()
-            .onAppear {
+            .onViewDidLoad() {
                 viewModel.sync()
             }
             .onDisappear {
@@ -69,37 +69,4 @@ public struct AddMembersDialogView<ViewModel: AddMembersDialogProtocol>: View {
             }
         }
     }
-}
-
-struct AddMembersView_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            AddMembersDialogView(viewModel: AddMembersPreviewModel())
-            .previewDisplayName("Members View Light Add")
-
-            AddMembersDialogView(viewModel: AddMembersPreviewModel())
-            .previewDisplayName("Members View Dark Add")
-            .preferredColorScheme(.dark)
-        }
-    }
-}
-
-import Combine
-private class AddMembersPreviewModel: AddMembersDialogProtocol {
-    var  isSynced: Bool = false
-    var isProcessing: Bool = false
-    
-    var displayed: [QuickBloxData.User] = PreviewModel.users
-    
-    var selected: QuickBloxData.User?
-    
-    var search: String = ""
-    
-    func addSelectedUser() { }
-    
-    var cancellables: Set<AnyCancellable> = []
-    
-    var tasks: Set<Task<Void, Never>> = []
-    
-    func sync() { }
 }

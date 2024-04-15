@@ -115,6 +115,8 @@ public struct DialogNameHeaderSettings: HeaderSettingsProtocol {
     }
     
     public struct CreateButton: ButtonSettingsProtocol {
+        public var hidden: Bool = false
+        
         public var imageSize: CGSize?
         public var frame: CGSize?
         
@@ -149,6 +151,8 @@ public struct DialogNameHeaderSettings: HeaderSettingsProtocol {
     }
     
     public struct CancelButton: ButtonSettingsProtocol {
+        public var hidden: Bool = false
+        
         public var imageSize: CGSize?
         public var frame: CGSize?
         

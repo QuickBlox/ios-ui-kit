@@ -31,6 +31,7 @@ public protocol ButtonSettingsProtocol {
     var padding: EdgeInsets { get set }
     var imageSize: CGSize? { get set }
     var frame: CGSize? { get set }
+    var hidden: Bool { get set }
     
     init(_ theme: ThemeProtocol)
 }

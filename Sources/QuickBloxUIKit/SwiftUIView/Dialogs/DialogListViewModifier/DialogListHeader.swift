@@ -8,9 +8,8 @@
 
 import SwiftUI
 
-struct DialogListViewModifierToolbarContent: ToolbarContent {
-    
-    private var settings = QuickBloxUIKit.settings.dialogsScreen.header
+struct DialogListToolbarContent: ToolbarContent {
+    private var dialogListHeaderSettings = QuickBloxUIKit.settings.dialogsScreen.header
     
     let onDismiss: () -> Void
     let onTapDialogType: () -> Void
@@ -24,48 +23,50 @@ struct DialogListViewModifierToolbarContent: ToolbarContent {
     
     public var body: some ToolbarContent {
         ToolbarItem(placement: .navigationBarLeading) {
-            if settings.leftButton.hidden == false {
+            if dialogListHeaderSettings.leftButton.hidden == false {
                 Button {
                     onDismiss()
                 } label: {
-                    if let title = settings.leftButton.title {
-                        Text(title).foregroundColor(settings.leftButton.color)
+                    if let title = dialogListHeaderSettings.leftButton.title {
+                        Text(title).foregroundColor(dialogListHeaderSettings.leftButton.color)
                     } else {
-                        settings.leftButton.image
+                        dialogListHeaderSettings.leftButton.image
                             .resizable()
                             .scaledToFit()
-                            .scaleEffect(settings.leftButton.scale)
-                            .tint(settings.leftButton.color)
-                            .padding(settings.leftButton.padding)
+                            .scaleEffect(dialogListHeaderSettings.leftButton.scale)
+                            .tint(dialogListHeaderSettings.leftButton.color)
+                            .padding(dialogListHeaderSettings.leftButton.padding)
                     }
                 }.frame(width: 32, height: 44)
             }
         }
         
         ToolbarItem(placement: .principal) {
-            Text(settings.title.text)
-                .font(settings.title.font)
-                .foregroundColor(settings.title.color)
+            Text(dialogListHeaderSettings.title.text)
+                .font(dialogListHeaderSettings.title.font)
+                .foregroundColor(dialogListHeaderSettings.title.color)
         }
         
-        ToolbarItem(placement: .navigationBarTrailing) {
-            Button {
-                onTapDialogType()
-            } label: {
-                if let title = settings.rightButton.title {
-                    Text(title).foregroundColor(settings.rightButton.color)
-                } else {
-                    settings.rightButton.image
-                        .resizable()
-                        .scaledToFit()
-                        .tint(settings.rightButton.color)
+        if dialogListHeaderSettings.rightButton.hidden == false {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    onTapDialogType()
+                } label: {
+                    if let title = dialogListHeaderSettings.rightButton.title {
+                        Text(title).foregroundColor(dialogListHeaderSettings.rightButton.color)
+                    } else {
+                        dialogListHeaderSettings.rightButton.image
+                            .resizable()
+                            .scaledToFit()
+                            .tint(dialogListHeaderSettings.rightButton.color)
+                    }
                 }
             }
         }
     }
 }
 
-public struct DialogListViewModifier: ViewModifier {
+public struct DialogListHeader: ViewModifier {
     
     private var settings = QuickBloxUIKit.settings.dialogsScreen.header
     
@@ -81,7 +82,7 @@ public struct DialogListViewModifier: ViewModifier {
     
     public func body(content: Content) -> some View {
         content.toolbar {
-            DialogListViewModifierToolbarContent(onDismiss: onDismiss,
+            DialogListToolbarContent(onDismiss: onDismiss,
                                                  onTapDialogType: onTapDialogType)
         }
         .navigationTitle("")
@@ -203,23 +204,6 @@ struct EmptyDialogsView: View {
         }
         Spacer()
     }
-}
-
-public struct TabIndex: Hashable {
-    public var title: String
-    public var systemIcon: String
-    
-    public init(title: String, systemIcon: String) {
-        self.title = title
-        self.systemIcon = systemIcon
-    }
-}
-
-public extension TabIndex {
-    static let dialogs = TabIndex(title: "Dialogs",
-                                  systemIcon: "message.fill")
-    static let settings = TabIndex(title: "Settings",
-                                   systemIcon: "gearshape.fill")
 }
 
 struct EmptyDialogView: View {

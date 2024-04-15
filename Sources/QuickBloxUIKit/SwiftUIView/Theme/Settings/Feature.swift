@@ -24,6 +24,9 @@ public class Feature {
     /// An instance of the RegexFeature settings and operations.
     public var regex: RegexFeature = RegexFeature()
     
-    /// An instance of the ReplyFeature settings and operations.
+    /// An instance of the ToolbarFeature settings and operations.
     public var toolbar: ToolbarFeature = ToolbarFeature()
+    
+    /// An instance of the StartScreenFeature settings and operations.
+    public var startScreen: StartScreenFeature = StartScreenFeature()
 }

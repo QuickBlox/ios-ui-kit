@@ -55,6 +55,8 @@ public struct DialogTypeHeaderSettings: HeaderSettingsProtocol {
     }
     
     public struct CloseButton: ButtonSettingsProtocol {
+        public var hidden: Bool = false
+        
         public var imageSize: CGSize?
         
         public var title: String? = nil

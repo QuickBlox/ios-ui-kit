@@ -111,8 +111,8 @@ final class MembersDialogViewModel: MembersDialogProtocol {
                 prettyLog(error)
                 await MainActor.run { [weak self] in
                     self?.isProcessing = false
+                    self?.taskUpdate = nil
                 }
-                self?.taskUpdate = nil
             }
         }
     }

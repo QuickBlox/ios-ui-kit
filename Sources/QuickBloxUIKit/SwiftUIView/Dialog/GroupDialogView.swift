@@ -19,14 +19,16 @@ public struct Attachment: Identifiable {
     let url: URL
 }
 
-public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
+public struct GroupDialogView
+<ViewModel: DialogViewModelProtocol>: View {
     let settings = QuickBloxUIKit.settings.dialogScreen
     let connectStatus = QuickBloxUIKit.settings.dialogsScreen.connectStatus
     let features = QuickBloxUIKit.feature
     
-    @StateObject public var viewModel: ViewModel
+    @Environment(\.dismiss) var dismiss
     
-    @Binding private var infoPresented: Bool
+    @StateObject private var viewModel: ViewModel
+    
     @State private var isInfoPresented: Bool = false
     @State private var isForwardPresented: Bool = false
     @State private var isForwardSuccess: Bool = false
@@ -44,18 +46,23 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
     @State private var attachmentAsset: AttachmentAsset? = nil
     
     @State private var tappedMessage: ViewModel.DialogItem.MessageItem? = nil
+    
+    @State private var tabBarVisibility: Visibility = .visible
 
-    public init(viewModel: ViewModel,
-                isInfoPresented: Binding<Bool>) {
+    public init(viewModel: ViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
-        _infoPresented = isInfoPresented
     }
     
     @ViewBuilder
     private func container() -> some View {
-        ZStack {
+        ZStack(alignment: .center) {
             settings.backgroundColor.ignoresSafeArea()
-            
+                    dialogContentView()
+        }
+    }
+    
+    @ViewBuilder
+    private func dialogContentView() -> some View {
             VStack(spacing: 0) {
                 
                 switch viewModel.syncState {
@@ -170,6 +177,12 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
                     isAiAnswerFailedPresented = failed
                 }
             })
+        
+            .onChange(of: viewModel.aiAnswerFailed.failed, perform: { failed in
+                withAnimation(.easeInOut(duration: failed ? 0.4 : 0.8)) {
+                    isAiAnswerFailedPresented = failed
+                }
+            })
             
             .invalidExtensionAlert(isPresented: $isInvalidExtAlertPresented)
             
@@ -213,106 +226,81 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
                                         ActivityViewController(activityItems: [fileUrl])
                                     }
                                 })
-            
-                                .if(isInfoPresented == true && isIphone == true, transform: { view in
+        
+                                .if(isIphone == true && isInfoPresented == true, transform: { view in
                                     view.navigationDestination(isPresented: $isInfoPresented) {
                                         if let dialog = viewModel.dialog as? Dialog {
-                                            if dialog.isOwnedByCurrentUser == true {
-                                                GroupDialogInfoView(DialogInfoViewModel(dialog))
-                                                    .onAppear {
-                                                        infoPresented = true
+                                            switch dialog.type {
+                                            case .group:
+                                                if dialog.isOwnedByCurrentUser == true {
+                                                    GroupDialogInfoView(DialogInfoViewModel(dialog)).onAppear {
+                                                        isInfoPresented = false
                                                     }
-                                                    .onDisappear {
-                                                        infoPresented = false
+                                                } else {
+                                                    GroupDialogNonEditInfoView(DialogInfoViewModel(dialog)).onAppear {
+                                                        isInfoPresented = false
                                                     }
-                                            } else {
-                                                GroupDialogNonEditInfoView(DialogInfoViewModel(dialog))
-                                                    .onAppear {
-                                                        infoPresented = true
-                                                    }
-                                                    .onDisappear {
-                                                        infoPresented = false
-                                                    }
+                                                }
+                                            default:
+                                                EmptyView()
                                             }
                                         }
                                     }
                                 })
-            
-                                .if(isInfoPresented == true && isIPad == true, transform: { view in
+                                
+                                .if(isIPad == true && isInfoPresented == true, transform: { view in
                                     view.sheet(isPresented: $isInfoPresented, content: {
                                         if let dialog = viewModel.dialog as? Dialog {
-                                            if dialog.isOwnedByCurrentUser == true {
-                                                GroupDialogInfoView(DialogInfoViewModel(dialog))
-                                                    .onAppear {
-                                                        infoPresented = true
-                                                    }
-                                                    .onDisappear {
-                                                        infoPresented = false
-                                                    }
-                                            } else {
-                                                GroupDialogNonEditInfoView(DialogInfoViewModel(dialog))
-                                                    .onAppear {
-                                                        infoPresented = true
-                                                    }
-                                                    .onDisappear {
-                                                        infoPresented = false
-                                                    }
+                                            switch dialog.type {
+                                            case .group:
+                                                if dialog.isOwnedByCurrentUser == true {
+                                                    GroupDialogInfoView(DialogInfoViewModel(dialog))
+                                                } else {
+                                                    GroupDialogNonEditInfoView(DialogInfoViewModel(dialog))
+                                                }
+                                            default:
+                                                EmptyView()
                                             }
                                         }
                                     })
                                 })
-            
-                                    .if(isForwardSuccess == true, transform: { view in
-                                        view.forwardSuccessAlert(isPresented: $isForwardSuccess, name: viewModel.dialog.name)
-                                    })
         
-                                    .if(isForwardPresented == true && isIphone == true, transform: { view in
-                                        view.navigationDestination(isPresented: $isForwardPresented) {
-                                            ForwardView(viewModel: ForwardViewModel(messages: viewModel.selectedMessages as? [Message] ?? [],
-                                                                                    originSenderName: viewModel.dialog.name),
-                                                        onForwardSuccess: {
-                                                viewModel.cancelMessageAction()
-                                                isForwardSuccess = true
-                                            })
-                                            .onAppear {
-                                                infoPresented = true
-                                            }
-                                            .onDisappear {
-                                                infoPresented = false
-                                            }
+                                .if(isForwardSuccess == true, transform: { view in
+                                    view.forwardSuccessAlert(isPresented: $isForwardSuccess, name: viewModel.originSenderName)
+                                })
+        
+                                .if(isIphone == true && isForwardPresented == true, transform: { view in
+                                    view.navigationDestination(isPresented: $isForwardPresented) {
+                                        ForwardView(viewModel: ForwardViewModel(messages: viewModel.selectedMessages as? [Message] ?? [])) {
+                                            viewModel.cancelMessageAction()
+                                            isForwardSuccess = true
+                                        }.onAppear {
+                                            isForwardPresented = false
                                         }
-                                    })
-            
-                                    .if(isForwardPresented == true && isIPad == true, transform: { view in
-                                        view.sheet(isPresented: $isForwardPresented, content: {
-                                            ForwardView(viewModel: ForwardViewModel(messages: viewModel.selectedMessages as? [Message] ?? [],
-                                                                                    originSenderName: viewModel.dialog.name),
-                                                        onForwardSuccess: {
-                                                viewModel.cancelMessageAction()
-                                                isForwardSuccess = true
-                                            })
-                                            .onAppear {
-                                                infoPresented = true
-                                            }
-                                            .onDisappear {
-                                                infoPresented = false
-                                            }
-                                        })
-                                    })
-                
-                                    .modifier(DialogHeader(dialog: viewModel.dialog,
-                                                           isForward: viewModel.messagesActionState == .forward,
-                                                           selectedCount: viewModel.selectedMessages.count,
-                                                           onTapInfo: {
-                                        isInfoPresented = true
-                                    }, onTapCancel: {
-                                        viewModel.cancelMessageAction()
-                                    }))
-                
-                                        .environmentObject(viewModel)
-                
-                                        
-        }
+                                    }
+                                })
+        
+                                .if(isIPad == true && isForwardPresented == true, transform: { view in
+                                    view.sheet(isPresented: $isForwardPresented, content: {
+                                        ForwardView(viewModel: ForwardViewModel(messages: viewModel.selectedMessages as? [Message] ?? [])) {
+                                            viewModel.cancelMessageAction()
+                                            isForwardSuccess = true
+                                        }                                    })
+                                })
+        
+                                .modifier(DialogHeader(dialog: viewModel.dialog,
+                                                       isForward: viewModel.messagesActionState == .forward,
+                                                       selectedCount: viewModel.selectedMessages.count,
+                                                       onDismiss: {
+                                    dismiss()
+                                },
+                                                       onTapInfo: {
+                                    isInfoPresented = true
+                                }, onTapCancel: {
+                                    viewModel.cancelMessageAction()
+                                }))
+        
+                                .environmentObject(viewModel)
     }
     
     @ViewBuilder
@@ -401,6 +389,9 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
                                 }
                             }
                         }, onSelect: { item, actionType in
+                            if viewModel.messagesActionState == actionType {
+                                return
+                            }
                             viewModel.handleOnSelect(item, actionType: actionType)
                         }, aiAnswerWaiting: $viewModel.waitingAnswer)
                         .onAppear {
@@ -431,14 +422,28 @@ public struct GroupDialogView<ViewModel: DialogViewModelProtocol>: View {
     }
     
     public var body: some View {
-        container()
-            .onAppear {
-                viewModel.sync()
+        if isIPad {
+            NavigationStack {
+                container()
+                    .onViewDidLoad {
+                        viewModel.sync()
+                    }
+                    .onDisappear {
+                        viewModel.sendStopTyping()
+                        viewModel.stopPlayng()
+                        viewModel.unsync()
+                    }
             }
-            .onDisappear {
-                viewModel.sendStopTyping()
-                viewModel.stopPlayng()
-                viewModel.unsync()
-            }
+        } else if isIphone {
+            container()
+                .onViewDidLoad {
+                    viewModel.sync()
+                }
+                .onDisappear {
+                    viewModel.sendStopTyping()
+                    viewModel.stopPlayng()
+                    viewModel.unsync()
+                }
+        }
     }
 }

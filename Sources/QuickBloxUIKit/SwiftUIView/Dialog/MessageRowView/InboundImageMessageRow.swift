@@ -20,7 +20,7 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
     
     let onTap: (_ action: MessageAttachmentAction, _ url: URL?) -> Void
     
-    private var fileTuple: (type: String, image: Image?, url: URL?)? = nil
+    private var fileTuple: (type: String, image: UIImage?, url: URL?)? = nil
     private var messagesActionState: MessageAction
     private var isSelected = false
     
@@ -29,7 +29,7 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
     @State private var contentSize: CGSize?
     
     public init(message: MessageItem,
-                fileTuple: (type: String, image: Image?, url: URL?)? = nil,
+                fileTuple: (type: String, image: UIImage?, url: URL?)? = nil,
                 messagesActionState: MessageAction,
                 isSelected: Bool,
                 onTap: @escaping (_ action: MessageAttachmentAction, _ url: URL?) -> Void,
@@ -131,22 +131,20 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
     private func messageContent(forPreview: Bool = false) -> some View {
         ZStack {
             if let image = fileTuple?.image {
-                image
+                Image(uiImage: image)
                     .resizable()
-                    .scaledToFill()
-                    .frame(width: settings.attachmentSize.width, height: settings.attachmentSize.height)
-                    .cornerRadius(settings.attachmentRadius, corners: message.actionType == .reply && message.relatedId.isEmpty == false ?
-                                  settings.outboundForwardCorners : settings.inboundCorners)
+                    .scaledToFit()
+                    .frame(width: settings.attachmentSize(isPortrait: image.size.height > image.size.width).width, height: settings.attachmentSize(isPortrait: image.size.height > image.size.width).height)
+                    .fixedSize()
+                    .clipped()
             } else {
                 settings.progressBarBackground()
-                    .frame(width: settings.attachmentSize.width,
-                           height: settings.attachmentSize.height)
-                    .cornerRadius(settings.attachmentRadius, corners: message.actionType == .reply && message.relatedId.isEmpty == false ?
-                                  settings.outboundForwardCorners : settings.inboundCorners)
-                
+                    .frame(width: settings.attachmentSize(isPortrait: true).width, height: settings.attachmentSize(isPortrait: true).height)
                 SegmentedCircularBar(settings: settings.progressBar)
             }
         }
+        .cornerRadius(settings.attachmentRadius, corners: message.actionType == .reply && message.relatedId.isEmpty == false ?
+                      settings.outboundForwardCorners : settings.inboundCorners)
         .contentSize(onChange: { contentSize in
             self.contentSize = contentSize
         })
@@ -167,33 +165,33 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
     }
 }
 
-import QuickBloxData
-
-struct InboundImageMessageRow_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            InboundImageMessageRow(message: Message(id: UUID().uuidString,
-                                                    dialogId: "1f2f3ds4d5d6d",
-                                                    text: "Test text Message",
-                                                    userId: "2d3d4d5d6d",
-                                                    date: Date()),
-                                   messagesActionState: .none,
-                                   isSelected: false,
-                                   onTap: { (_,_) in},
-                                   onSelect: { (_,_) in})
-            .previewDisplayName("Message")
-            
-            InboundImageMessageRow(message: Message(id: UUID().uuidString,
-                                                    dialogId: "1f2f3ds4d5d6d",
-                                                    text: "Test text Message",
-                                                    userId: "2d3d4d5d6d",
-                                                    date: Date()),
-                                   messagesActionState: .none,
-                                   isSelected: false,
-                                   onTap: { (_,_) in},
-                                   onSelect: { (_,_) in})
-            .previewDisplayName("In Message")
-            .preferredColorScheme(.dark)
-        }
-    }
-}
+//import QuickBloxData
+//
+//struct InboundImageMessageRow_Previews: PreviewProvider {
+//    static var previews: some View {
+//        Group {
+//            InboundImageMessageRow(message: Message(id: UUID().uuidString,
+//                                                    dialogId: "1f2f3ds4d5d6d",
+//                                                    text: "Test text Message",
+//                                                    userId: "2d3d4d5d6d",
+//                                                    date: Date()),
+//                                   messagesActionState: .none,
+//                                   isSelected: false,
+//                                   onTap: { (_,_) in},
+//                                   onSelect: { (_,_) in})
+//            .previewDisplayName("Message")
+//            
+//            InboundImageMessageRow(message: Message(id: UUID().uuidString,
+//                                                    dialogId: "1f2f3ds4d5d6d",
+//                                                    text: "Test text Message",
+//                                                    userId: "2d3d4d5d6d",
+//                                                    date: Date()),
+//                                   messagesActionState: .none,
+//                                   isSelected: false,
+//                                   onTap: { (_,_) in},
+//                                   onSelect: { (_,_) in})
+//            .previewDisplayName("In Message")
+//            .preferredColorScheme(.dark)
+//        }
+//    }
+//}

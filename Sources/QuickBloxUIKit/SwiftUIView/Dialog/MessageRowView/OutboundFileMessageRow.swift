@@ -12,14 +12,14 @@ import QuickBloxDomain
 import QuickBloxLog
 
 public struct OutboundFileMessageRow<MessageItem: MessageEntity>: View {
-    var settings = QuickBloxUIKit.settings.dialogScreen.messageRow
-    var features = QuickBloxUIKit.feature
+    private var settings = QuickBloxUIKit.settings.dialogScreen.messageRow
+    private var features = QuickBloxUIKit.feature
     
-    var message: MessageItem
+    private var message: MessageItem
     
-    let onTap: (_ action: MessageAttachmentAction, _ url: URL?) -> Void
+    private let onTap: (_ action: MessageAttachmentAction, _ url: URL?) -> Void
     
-    @State public var fileTuple: (type: String, image: Image?, url: URL?)? = nil
+    @State private var fileTuple: (type: String, image: UIImage?, url: URL?)? = nil
     
     private var messagesActionState: MessageAction
     private var isSelected = false
@@ -153,7 +153,6 @@ public struct OutboundFileMessageRow<MessageItem: MessageEntity>: View {
                 if forPreview == true {
                     OutboundFilePlaceholder()
                 } else {
-                    
                     if fileTuple?.url != nil {
                         OutboundFilePlaceholder()
                     } else {

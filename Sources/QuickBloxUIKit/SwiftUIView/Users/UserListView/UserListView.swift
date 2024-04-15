@@ -40,7 +40,6 @@ public struct UserListView<ViewModel: CreateDialogProtocol,
 extension UserListView: View {
     public var body: some View {
         container()
-            .onAppear { viewModel.sync() }
     }
     
     

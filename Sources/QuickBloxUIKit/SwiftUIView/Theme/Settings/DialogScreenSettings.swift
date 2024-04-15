@@ -27,14 +27,12 @@ public class DialogScreenSettings {
     public var zoomedImage: ZoomedImageSettings
     public var typing: TypingSettings
     public var permissions: AVPermissionsSettings
+    public var largeFileSizeAlert: LargeFileSizeAlertSettings
     public var stringUtils: StringUtilsConstant
     public var itemsIsEmpty: String
     public var blurRadius: CGFloat = 12.0
     public var maximumMB: Double = 10
     public var dividerToMB: Double = 1048576
-    public var maxSize: String
-    public var maxSizeHint: String
-    public var compressibleMaxSizeHint: String
     public var isHiddenFiles = false
     public var connectForeground: Color
     public var invalidFile: String = "Request failed: bad request (400)"
@@ -46,15 +44,30 @@ public class DialogScreenSettings {
         self.zoomedImage = ZoomedImageSettings(theme)
         self.typing = TypingSettings(theme)
         self.permissions = AVPermissionsSettings(theme)
+        self.largeFileSizeAlert = LargeFileSizeAlertSettings(theme)
         self.stringUtils = StringUtilsConstant(theme)
         self.backgroundColor = theme.color.mainBackground
         self.backgroundImageColor = theme.color.divider
         self.contentBackgroundColor = theme.color.secondaryBackground
         self.itemsIsEmpty = theme.string.messegesEmpty
+        self.connectForeground = theme.color.secondaryText
+    }
+}
+
+public struct LargeFileSizeAlertSettings {
+    public var maxSize: String
+    public var maxSizeHint: String
+    public var compressibleMaxSizeHint: String
+    public var cancel: String
+    public var compress: String
+    public var blurRadius: CGFloat = 12.0
+    
+    public init(_ theme: ThemeProtocol) {
         self.maxSize = theme.string.maxSize
         self.maxSizeHint = theme.string.maxSizeHint
         self.compressibleMaxSizeHint = theme.string.compressibleMaxSizeHint
-        self.connectForeground = theme.color.secondaryText
+        self.cancel = theme.string.cancel
+        self.compress = theme.string.compress
     }
 }
 
@@ -153,7 +166,7 @@ public struct DialogHeaderSettings: HeaderSettingsProtocol {
     public var title: HeaderTitleSettingsProtocol
     public var rightButton: ButtonSettingsProtocol
     public var cancelButton: ButtonSettingsProtocol
-    public var displayMode: NavigationBarItem.TitleDisplayMode = .automatic
+    public var displayMode: NavigationBarItem.TitleDisplayMode = .inline
     public var backgroundColor: Color
     public var opacity: CGFloat = 0.4
     public var isHidden: Bool = false
@@ -177,11 +190,12 @@ public struct DialogHeaderSettings: HeaderSettingsProtocol {
         public var title: String? = nil
         public var image: Image
         public var color: Color
-        public var scale: Double = 0.56
+        public var scale: Double = 0.6
         public var padding: EdgeInsets = EdgeInsets(top: 0.0,
                                                     leading: 16.0,
                                                     bottom: 0.0,
                                                     trailing: 0.0)
+        public var hidden: Bool = false
         
         public init(_ theme: ThemeProtocol) {
             self.image = theme.image.info
@@ -190,6 +204,8 @@ public struct DialogHeaderSettings: HeaderSettingsProtocol {
     }
     
     public struct CancelButton: ButtonSettingsProtocol {
+        public var hidden: Bool = false
+        
         public var imageSize: CGSize?
         public var frame: CGSize?
         
@@ -224,6 +240,8 @@ public struct DialogHeaderSettings: HeaderSettingsProtocol {
     }
     
     public struct BackButton: ButtonSettingsProtocol {
+        public var hidden: Bool = false
+        
         public var imageSize: CGSize?
         public var frame: CGSize?
         
@@ -258,6 +276,8 @@ public struct ZoomedImageSettings {
     }
     
     public struct InfoButton: ButtonSettingsProtocol {
+        public var hidden: Bool = false
+        
         public var frame: CGSize?
         
         public var title: String? = nil
@@ -287,6 +307,8 @@ public struct ZoomedImageSettings {
     }
     
     public struct CancelButton: ButtonSettingsProtocol {
+        public var hidden: Bool = false
+        
         public var frame: CGSize?
         
         public var title: String? = nil
@@ -421,6 +443,14 @@ public struct MessageRowSettings {
     
     public func videoIconSize(isImage: Bool) -> CGSize {
         return isImage ? CGSize(width: 20.0, height: 20.0) : CGSize(width: 26.0, height: 26.0)
+    }
+    
+    public func imageSize(isPortrait: Bool) -> CGSize {
+        return isPortrait ? CGSize(width: 224.0, height: 336.0) : CGSize(width: 336.0, height: 224.0)
+    }
+    
+    public func attachmentSize(isPortrait: Bool) -> CGSize {
+        return isPortrait ? CGSize(width: 160.0, height: 240.0) : CGSize(width: 240.0, height: 160.0)
     }
     
     public var outboundPadding: EdgeInsets = EdgeInsets(top: 0.0,
@@ -759,6 +789,8 @@ public struct MessageTextFieldSettings {
     }
     
     public struct ReplyCancelButton: ButtonSettingsProtocol {
+        public var hidden: Bool = false
+        
         public var imageSize: CGSize? = CGSize(width: 16, height: 20)
         public var frame: CGSize?
         
@@ -780,6 +812,8 @@ public struct MessageTextFieldSettings {
     }
     
     public struct AttachmentButton: ButtonSettingsProtocol {
+        public var hidden: Bool = false
+        
         public var imageSize: CGSize?
         public var frame: CGSize?
         
@@ -804,6 +838,8 @@ public struct MessageTextFieldSettings {
     }
     
     public struct SendButton: ButtonSettingsProtocol {
+        public var hidden: Bool = false
+        
         public var imageSize: CGSize?
         public var frame: CGSize? = CGSize(width: 44, height: 40)
         
@@ -829,6 +865,8 @@ public struct MessageTextFieldSettings {
     }
     
     public struct EmojiButton: ButtonSettingsProtocol {
+        public var hidden: Bool = false
+        
         public var imageSize: CGSize?
         public var frame: CGSize?
         

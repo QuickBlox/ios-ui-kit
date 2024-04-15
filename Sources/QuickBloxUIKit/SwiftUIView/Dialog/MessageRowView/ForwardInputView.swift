@@ -12,21 +12,24 @@ import AVFoundation
 import QBAIRephrase
 import QuickBloxLog
 
-struct ForwardInputView: View  {
+struct ForwardInputView: View {
     let textFieldSettings = QuickBloxUIKit.settings.dialogScreen.textField
     let typingSettings = QuickBloxUIKit.settings.dialogScreen.typing
     
     @EnvironmentObject var viewModel: ForwardViewModel
     
     @State private var text: String = ""
+    @State public var userName: String = ""
     @FocusState var isFocused: Bool
     
     var body: some View {
         
         VStack {
             
-            if viewModel.messages.isEmpty == false, let message = viewModel.messages.first {
-                MessageActionBanner(message: message,
+            if viewModel.messages.isEmpty == false,
+               let message = viewModel.messages.first {
+                MessageActionBanner(userName: $userName,
+                                    message: message,
                                     messageAction: .forward,
                                     onCancelReply: {
                     print("on Cancel Reply Action")
@@ -40,14 +43,14 @@ struct ForwardInputView: View  {
                               text: $text,
                               typing: {})
                 .focused($isFocused)
+                .disabled(viewModel.selectedDialogs.isEmpty)
                 
                 VStack {
                     Spacer()
                     
                     Button(action: {
-                        
                         if viewModel.syncState == .synced {
-                            viewModel.sendMessage(text)
+                            viewModel.sendMessage(text, originName: userName)
                             text = ""
                         }
                     }) {
@@ -56,6 +59,7 @@ struct ForwardInputView: View  {
                             .rotationEffect(Angle(degrees: textFieldSettings.rightButton.degrees))
                         
                     }
+                    .disabled(viewModel.selectedDialogs.isEmpty)
                     .frame(width: textFieldSettings.rightButton.frame?.width,
                            height: textFieldSettings.rightButton.frame?.height)
                     .padding(.bottom, 8)
@@ -127,7 +131,7 @@ struct MessageActionInfo: View {
             
             if forMessage == true {
                 VStack(alignment: .leading, spacing: 0) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 0) {
                         textFieldSettings.messageActionBanner.replyImage
                             .resizable()
                             .scaledToFit()
@@ -138,6 +142,7 @@ struct MessageActionInfo: View {
                             .font(textFieldSettings.messageActionBanner.font)
                             .foregroundColor(textFieldSettings.messageActionBanner.foregroundColor)
                             .lineLimit(1)
+                            .padding(.leading, 4)
                     }
                     
                     HStack(spacing: 0) {
@@ -149,7 +154,7 @@ struct MessageActionInfo: View {
                     }.frame(height: 16)
                 }
             } else {
-                HStack(spacing: 4) {
+                HStack(spacing: 0) {
                     textFieldSettings.messageActionBanner.replyImage
                         .resizable()
                         .scaledToFit()
@@ -160,6 +165,7 @@ struct MessageActionInfo: View {
                         .font(textFieldSettings.messageActionBanner.font)
                         .foregroundColor(textFieldSettings.messageActionBanner.foregroundColor)
                         .lineLimit(1)
+                        .padding(.leading, 4)
                     Text(originSenderName)
                         .font(textFieldSettings.messageActionBanner.font)
                         .foregroundColor(textFieldSettings.messageActionBanner.foregroundColor)
@@ -175,8 +181,8 @@ struct MessageActionInfo: View {
 struct MessageActionBanner<MessageItem: MessageEntity>: View {
     let textFieldSettings = QuickBloxUIKit.settings.dialogScreen.textField
     
-    @State public var fileTuple: (type: String, image: Image?, url: URL?)? = nil
-    @State public var userName: String = ""
+    @State public var fileTuple: (type: String, image: UIImage?, url: URL?)? = nil
+    @Binding var userName: String
     
     let message: MessageItem
     let messageAction: MessageAction
@@ -190,7 +196,7 @@ struct MessageActionBanner<MessageItem: MessageEntity>: View {
             
             if let attachmentPlaceholder = message.attachmentPlaceholder {
                 if message.isAudioMessage == false, let image = fileTuple?.image {
-                    image
+                    Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
                         .frame(width: textFieldSettings.messageActionBanner.attachmentSize.width,

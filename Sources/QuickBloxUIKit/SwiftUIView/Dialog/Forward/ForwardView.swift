@@ -10,13 +10,14 @@ import SwiftUI
 import QuickBloxDomain
 import QuickBloxData
 
-public struct ForwardView<ViewModel: ForwardViewModelProtocol>: View {
+public struct ForwardView<ViewModel: ForwardViewModel>: View {
     @State public var settings
     = QuickBloxUIKit.settings.addMembersScreen
     
     @Environment(\.dismiss) var dismiss
     
-    @StateObject public var viewModel: ViewModel
+    @StateObject var viewModel: ViewModel
+
     @State private var isForwardFailedPresented: Bool = false
     @State var isPresented: Bool = false
     
@@ -25,49 +26,54 @@ public struct ForwardView<ViewModel: ForwardViewModelProtocol>: View {
     init(viewModel: ViewModel,
          onForwardSuccess: @escaping () -> Void) {
         _viewModel = StateObject(wrappedValue: viewModel)
-        self.onForwardSuccess = onForwardSuccess    }
+        self.onForwardSuccess = onForwardSuccess
+    }
     
     public var body: some View {
-        container()
-            .onAppear {
-                viewModel.getDialogs()
-            }
-            .onDisappear {
-                viewModel.unsync()
-            }
+        if isIphone {
+            container()
+        } else if isIPad {
+            NavigationStack {
+                container()
+            }.accentColor(settings.header.leftButton.color)
+        }
     }
     
     @ViewBuilder
     private func container() -> some View {
-        NavigationStack {
-            ZStack {
-                VStack(spacing: 0) {
-                    SelectDialogsListView<ViewModel, ViewModel.DialogItem>(viewModel: viewModel)
-                    
-                    ForwardInputView()
-                        .background(settings.backgroundColor)
-                        .overlay(Divider(), alignment: .top)
-                }
+        ZStack {
+            VStack(spacing: 0) {
+                SelectDialogsListView()
+                
+                ForwardInputView()
+                    .background(settings.backgroundColor)
+                    .overlay(Divider(), alignment: .top)
             }
-            .modifier(ForwardHeader(onDismiss: {
+        }
+        .modifier(ForwardHeader(onDismiss: {
+            dismiss()
+        }))
+        
+        .onChange(of: viewModel.forwardInfo.result, perform: { forwardResult in
+            if forwardResult == .success {
+                onForwardSuccess()
                 dismiss()
-            }))
-            
-            .onChange(of: viewModel.forwardInfo.result, perform: { forwarResult in
-                if forwarResult == .success {
-                    onForwardSuccess()
-                    dismiss()
-                } else {
-                    isForwardFailedPresented = true
-                }
-            })
-            
-            .if(isForwardFailedPresented == true, transform: { view in
-                view.forwardFailureAlert(isPresented: $isForwardFailedPresented)
-            })
-            
-            .environmentObject(viewModel)
-        }.accentColor(settings.header.leftButton.color)
+            } else {
+                isForwardFailedPresented = true
+            }
+        })
+        
+        .if(isForwardFailedPresented == true, transform: { view in
+            view.forwardFailureAlert(isPresented: $isForwardFailedPresented)
+        })
+        
+        .environmentObject(viewModel)
+        .onAppear {
+            viewModel.getDialogs()
+        }
+        .onDisappear {
+            viewModel.unsync()
+        }
     }
 }
 
