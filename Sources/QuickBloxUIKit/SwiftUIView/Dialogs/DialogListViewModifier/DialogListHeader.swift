@@ -113,6 +113,10 @@ public var isIPad: Bool {
     UIDevice.current.userInterfaceIdiom == .pad
 }
 
+public var isMac: Bool {
+    UIDevice.current.userInterfaceIdiom == .mac
+}
+
 public struct DeleteDialogAlert: ViewModifier {
     public var settings = QuickBloxUIKit.settings.membersScreen.removeUser
     
@@ -231,48 +235,45 @@ struct EmptyDialogView: View {
 }
 
 public extension View {
-    func addKeyboardVisibilityToEnvironment() -> some View {
-        modifier(KeyboardVisibility())
+    func addSearchBar(
+        isSearchable: Bool,
+        searchText: Binding<String>,
+        placeholder: String,
+        submittedSearchTerm: Binding<String>
+    ) -> some View {
+        self.modifier(AddSearchBar(
+            isSearchable: isSearchable,
+            searchText: searchText,
+            placeholder: placeholder,
+            submittedSearchTerm: submittedSearchTerm
+        ))
     }
 }
 
-private struct KeyboardShowingEnvironmentKey: EnvironmentKey {
-    static let defaultValue: Bool = false
-}
+public struct AddSearchBar: ViewModifier {
+    let isSearchable: Bool
+    @Binding var searchText: String
+    let placeholder: String
+    @Binding var submittedSearchTerm: String
 
-extension EnvironmentValues {
-    var keyboardShowing: Bool {
-        get { self[KeyboardShowingEnvironmentKey.self] }
-        set { self[KeyboardShowingEnvironmentKey.self] = newValue }
-    }
-}
+    public func body(content: Content) -> some View {
+        guard isSearchable else {
+            return AnyView(content)
+        }
 
-import Combine
-private struct KeyboardVisibility:ViewModifier {
-    
-    @State var isKeyboardShowing:Bool = false
-    
-    private var keyboardPublisher: AnyPublisher<Bool, Never> {
-        Publishers
-            .Merge(
-                NotificationCenter
-                    .default
-                    .publisher(for: UIResponder.keyboardWillShowNotification)
-                    .map { _ in true },
-                NotificationCenter
-                    .default
-                    .publisher(for: UIResponder.keyboardWillHideNotification)
-                    .map { _ in false })
-            .debounce(for: .seconds(0.1), scheduler: RunLoop.main)
-            .eraseToAnyPublisher()
-    }
-    
-    fileprivate func body(content: Content) -> some View {
-        content
-            .environment(\.keyboardShowing, isKeyboardShowing)
-            .onReceive(keyboardPublisher) { value in
-                isKeyboardShowing = value
+        return AnyView(
+            content
+            .searchable(text: $searchText, prompt: placeholder)
+            .onSubmit(of: .search) {
+                submittedSearchTerm = searchText
             }
+            .onChange(of: searchText) { value in
+                if searchText.isEmpty {
+                    submittedSearchTerm = ""
+                }
+            }
+            .autocorrectionDisabled(true)
+        )
     }
-    
 }
+

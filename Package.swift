@@ -1,6 +1,7 @@
 // swift-tools-version: 5.7
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
+
 import PackageDescription
 
 let package = Package(
@@ -16,10 +17,10 @@ let package = Package(
             targets: ["QuickBloxUIKit", "QuickBloxData", "QuickBloxDomain"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/QuickBlox/ios-quickblox-sdk", .upToNextMajor(from: "2.19.0")),
-        .package(url: "https://github.com/QuickBlox/ios-ai-answer-assistant.git", .upToNextMajor(from: "2.0.0")),
-        .package(url: "https://github.com/QuickBlox/ios-ai-translate.git", .upToNextMajor(from: "2.0.0")),
-        .package(url: "https://github.com/QuickBlox/ios-ai-rephrase.git", .upToNextMajor(from: "2.0.0"))
+        .package(url: "https://github.com/QuickBlox/ios-quickblox-sdk", .upToNextMajor(from: "2.21.0")),
+        .package(url: "https://github.com/QuickBlox/ios-ai-answer-assistant.git", .upToNextMajor(from: "2.1.0")),
+        .package(url: "https://github.com/QuickBlox/ios-ai-translate.git", .upToNextMajor(from: "2.1.0")),
+        .package(url: "https://github.com/QuickBlox/ios-ai-rephrase.git", .upToNextMajor(from: "2.1.0"))
     ],
     targets: [
         .target(
@@ -50,6 +51,14 @@ let package = Package(
             dependencies: ["QuickBloxUIKit",
                            "QuickBloxData",
                            "QuickBloxLog"],
+            resources: [.process("Resources")]),
+        .testTarget(
+            name: "QuickBloxUIKitIntegrationTests",
+            dependencies: ["QuickBloxUIKit",
+                           "QuickBloxData",
+                           "QuickBloxLog",
+                           .product(name: "Quickblox",
+                                    package: "ios-quickblox-sdk")],
             resources: [.process("Resources")]),
     ]
 )

@@ -43,4 +43,8 @@ public class RepositoriesFabric {
     static public var permissions: PermissionsRepository {
         PermissionsRepository(repo: Service.permissions)
     }
+    
+    static public var ai: AIRepository {
+        AIRepository(remote: Service.remote)
+    }
 }

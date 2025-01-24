@@ -64,18 +64,6 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
             } else {
                 aiMessageView()
             }
-            
-            if features.forward.enable == true,
-               messagesActionState == .forward {
-                Button {
-                    onSelect(message, .forward)
-                } label: {
-                    EmptyView()
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity)
-                .frame(maxHeight: .infinity)
-            }
         }
     }
     
@@ -85,7 +73,9 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
             
             if features.forward.enable == true,
                messagesActionState == .forward {
-                Checkbox(isSelected: isSelected)
+                Checkbox(isSelected: isSelected) {
+                    onSelect(message, .forward)
+                }
             }
             
             MessageRowAvatar(message: message)
@@ -110,15 +100,15 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                                     preferredContentSize: size
                                 ) {
                                     CustomContextMenuAction(title: settings.reply.title,
-                                                         systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
-                                                         attributes: features.reply.enable == true
-                                                         ? nil : .hidden) {
+                                                            systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
+                                                            attributes: features.reply.enable == true
+                                                            ? nil : .hidden) {
                                         onSelect(message, .reply)
                                     }
                                     CustomContextMenuAction(title: settings.forward.title,
                                                             systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
-                                                         attributes: features.forward.enable == true
-                                                         ? nil : .hidden) {
+                                                            attributes: features.forward.enable == true
+                                                            ? nil : .hidden) {
                                         onSelect(message, .forward)
                                     }
                                 }
@@ -154,7 +144,9 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
             
             if features.forward.enable == true,
                messagesActionState == .forward {
-                Checkbox(isSelected: isSelected)
+                Checkbox(isSelected: isSelected) {
+                    onSelect(message, .forward)
+                }
             }
             
             MessageRowAvatar(message: message)
@@ -180,53 +172,53 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                                     preferredContentSize: size
                                 ) {
                                     CustomContextMenuAction(title: features.ai.ui.answerAssist.title, tintColor: features.ai.ui.answerAssist.color, flipped: nil,
-                                                         attributes: features.ai.ui.robot.hidden == true && features.ai.answerAssist.enable == true
-                                                         ? nil : .hidden) {
-                                        onAIFeature(.answerAssist, message)
+                                                            attributes: features.ai.ui.robot.hidden == true && features.ai.answerAssist.enable == true
+                                                            ? nil : .hidden) {
+                                        applyAIAnswerAssist()
                                     }
                                     CustomContextMenuAction(title: settings.reply.title,
                                                             systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
-                                                         attributes: features.reply.enable == true
-                                                         ? nil : .hidden) {
+                                                            attributes: features.reply.enable == true
+                                                            ? nil : .hidden) {
                                         onSelect(message, .reply)
                                     }
                                     CustomContextMenuAction(title: settings.forward.title,
-                                                        systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
-                                                         attributes: features.forward.enable == true
-                                                         ? nil : .hidden) {
+                                                            systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
+                                                            attributes: features.forward.enable == true
+                                                            ? nil : .hidden) {
                                         onSelect(message, .forward)
                                     }
                                 }
                             })
-                                
-                                if features.ai.translate.enable == true {
-                                if features.forward.enable == true,
-                                   messagesActionState == .forward {
+                        
+                        if features.ai.translate.enable == true {
+                            if features.forward.enable == true,
+                               messagesActionState == .forward {
+                                Text(message.translatedText.isEmpty == false && showOriginal == false ? features.ai.ui.translate.showOriginal : features.ai.ui.translate.showTranslation)
+                                    .lineLimit(1)
+                                    .foregroundColor(settings.infoForeground)
+                                    .font(settings.translateFont)
+                                    .padding(.trailing)
+                            } else {
+                                Button {
+                                    if features.ai.translate.enable == true {
+                                        if showOriginal == true && message.translatedText.isEmpty == false {
+                                            showOriginal = false
+                                        } else if showOriginal == false && message.translatedText.isEmpty == false {
+                                            showOriginal = true
+                                        } else {
+                                            onAIFeature(.translate, message)
+                                        }
+                                    }
+                                } label: {
                                     Text(message.translatedText.isEmpty == false && showOriginal == false ? features.ai.ui.translate.showOriginal : features.ai.ui.translate.showTranslation)
                                         .lineLimit(1)
                                         .foregroundColor(settings.infoForeground)
                                         .font(settings.translateFont)
                                         .padding(.trailing)
-                                } else {
-                                    Button {
-                                        if features.ai.translate.enable == true {
-                                            if showOriginal == true && message.translatedText.isEmpty == false {
-                                                showOriginal = false
-                                            } else if showOriginal == false && message.translatedText.isEmpty == false {
-                                                showOriginal = true
-                                            } else {
-                                                onAIFeature(.translate, message)
-                                            }
-                                        }
-                                    } label: {
-                                        Text(message.translatedText.isEmpty == false && showOriginal == false ? features.ai.ui.translate.showOriginal : features.ai.ui.translate.showTranslation)
-                                            .lineLimit(1)
-                                            .foregroundColor(settings.infoForeground)
-                                            .font(settings.translateFont)
-                                            .padding(.trailing)
-                                    }.buttonStyle(.plain)
-                                }
+                                }.buttonStyle(.plain)
                             }
+                        }
                     }
                     .frame(minWidth: features.ai.translate.enable == true ? features.ai.ui.translate.width : 0)
                     
@@ -252,7 +244,7 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
                             Menu {
                                 if features.ai.answerAssist.enable == true {
                                     Button {
-                                        onAIFeature(.answerAssist, message)
+                                        applyAIAnswerAssist()
                                     } label: {
                                         Label(features.ai.ui.answerAssist.title, systemImage: "")
                                     }.buttonStyle(.plain)
@@ -302,6 +294,16 @@ public struct InboundChatMessageRow<MessageItem: MessageEntity>: View {
             return settings.forwardSpacing
         }
         return settings.spacerBetweenRows
+    }
+    
+    fileprivate func applyAIAnswerAssist() {
+        let text = message.translatedText.isEmpty == false &&
+        showOriginal == false ? message.translatedText : message.text
+        var question = Message(message)
+        question.text = text
+        if let question = question as? MessageItem {
+            onAIFeature(.answerAssist, question)
+        }
     }
 }
 

@@ -57,7 +57,6 @@ public class DialogInfoScreenSettings {
         public var color: Color
         public var font: Font
         public var height: CGFloat = 80.0
-        public var containerHeight: CGFloat = 110.0
         public var isHidden: Bool = false
         public var padding: EdgeInsets = EdgeInsets(top: 24.0,
                                                    leading: 0.0,

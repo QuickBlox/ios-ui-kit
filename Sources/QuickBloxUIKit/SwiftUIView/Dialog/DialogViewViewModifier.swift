@@ -43,29 +43,29 @@ struct DialogHeaderToolbarContent: ToolbarContent {
     
     public var body: some ToolbarContent {
         
-            ToolbarItem(placement: .navigationBarLeading) {
-                
-                if feature.startScreen.screen == .dialog,
-                   dialogHeaderSettings.leftButton.hidden == false,
-                   isForward == false {
-                    Button {
-                        onDismiss()
-                    } label: {
-                        if let title = dialogHeaderSettings.leftButton.title {
-                            Text(title).foregroundColor(dialogHeaderSettings.leftButton.color)
-                        } else {
-                            dialogHeaderSettings.leftButton.image
-                                .resizable()
-                                .scaledToFit()
-                                .scaleEffect(dialogHeaderSettings.leftButton.scale)
-                                .tint(dialogHeaderSettings.leftButton.color)
-                                .padding(dialogHeaderSettings.leftButton.padding)
-                        }
-                    }.frame(width: 32, height: 44)
-                }
-            }
-        
         ToolbarItem(placement: .navigationBarLeading) {
+            
+            if feature.startScreen.screen == .dialog,
+               dialogHeaderSettings.leftButton.hidden == false,
+               isForward == false {
+                Button {
+                    onDismiss()
+                } label: {
+                    if let title = dialogHeaderSettings.leftButton.title {
+                        Text(title).foregroundColor(dialogHeaderSettings.leftButton.color)
+                    } else {
+                        dialogHeaderSettings.leftButton.image
+                            .resizable()
+                            .scaledToFit()
+                            .scaleEffect(dialogHeaderSettings.leftButton.scale)
+                            .tint(dialogHeaderSettings.leftButton.color)
+                            .padding(dialogHeaderSettings.leftButton.padding)
+                    }
+                }.frame(width: 32, height: 44)
+            }
+        }
+        
+        ToolbarItem(placement: .principal) {
             
             if isForward == false {
                 
@@ -78,13 +78,14 @@ struct DialogHeaderToolbarContent: ToolbarContent {
                         do { avatar = try await dialog.avatar(scale: .avatar3x) } catch { prettyLog(error) }
                     }
                     
-                    Text(dialog.validName)
+                    Text(dialog.name)
                         .font(dialogHeaderSettings.title.font)
                         .foregroundColor(dialogHeaderSettings.title.color)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                 }
             }
         }
-        
         
         ToolbarItem(placement: .principal) {
             if isForward {
@@ -104,7 +105,7 @@ struct DialogHeaderToolbarContent: ToolbarContent {
             }
         } else if dialogHeaderSettings.rightButton.hidden == false {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
+                Button() {
                     onTapInfo()
                 } label: {
                     if let title = dialogHeaderSettings.rightButton.title {
@@ -516,7 +517,8 @@ struct PreviewContextViewModifier<Preview: View>: ViewModifier {
                         actions: actions,
                         isActive: $isActive
                     )
-                    .opacity(0.05)
+                    .background(Color.clear)
+                    .blendMode(.destinationOver)
                 )
         }
     }
@@ -564,7 +566,7 @@ struct CustomPreviewContextMenuView<Preview: View>: UIViewRepresentable {
     
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = .clear
         view.addInteraction(
             UIContextMenuInteraction(
                 delegate: context.coordinator
@@ -599,6 +601,7 @@ struct CustomPreviewContextMenuView<Preview: View>: UIViewRepresentable {
                     if let preferredContentSize = self.view.preferredContentSize {
                         hostingController.preferredContentSize = preferredContentSize
                     }
+                    hostingController.view.backgroundColor = .clear
                     return hostingController
                 }, actionProvider: { _ in
                     UIMenu(title: "", children: self.view.actions)
@@ -708,31 +711,31 @@ struct ButtonBuilder {
 }
 
 enum UIImageAxis {
-case none, horizontal, vertical
+    case none, horizontal, vertical
 }
 
 extension UIImage {
-  func flipped(_ axis: UIImageAxis) -> UIImage {
-    let renderer = UIGraphicsImageRenderer(size: size)
-    
-    return renderer.image {
-      let context = $0.cgContext
-      context.translateBy(x: size.width / 2, y: size.height / 2)
-      
-      switch axis {
-      case .horizontal:
-        context.scaleBy(x: -1, y: 1)
-      case .vertical:
-        context.scaleBy(x: 1, y: -1)
-      case .none:
-          context.scaleBy(x: 1, y: 1)
-      }
-      
-      context.translateBy(x: -size.width / 2, y: -size.height / 2)
-      
-      draw(at: .zero)
+    func flipped(_ axis: UIImageAxis) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        
+        return renderer.image {
+            let context = $0.cgContext
+            context.translateBy(x: size.width / 2, y: size.height / 2)
+            
+            switch axis {
+            case .horizontal:
+                context.scaleBy(x: -1, y: 1)
+            case .vertical:
+                context.scaleBy(x: 1, y: -1)
+            case .none:
+                context.scaleBy(x: 1, y: 1)
+            }
+            
+            context.translateBy(x: -size.width / 2, y: -size.height / 2)
+            
+            draw(at: .zero)
+        }
     }
-  }
 }
 
 extension View {
@@ -744,7 +747,7 @@ extension View {
 struct ViewDidLoadModifier: ViewModifier {
     @State private var viewDidLoad = false
     let action: (() -> Void)?
-
+    
     func body(content: Content) -> some View {
         content
             .onAppear {

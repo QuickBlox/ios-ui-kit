@@ -50,4 +50,5 @@ struct API {
     let users = APIUsers()
     let messages = APIMessages()
     let files = APIFiles()
+    let ai = APIAI()
 }

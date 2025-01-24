@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import Quickblox
 import QBAITranslate
 import QBAIRephrase
 import QBAIAnswerAssistant
@@ -14,6 +15,18 @@ import QBAIAnswerAssistant
 public class AIFeature {
     /// Determines if AIfunctionality is enabled.
     public var enable: Bool = true
+    
+    /// The OpenAI API key for [Quickblox Server REST API] (https://docs.quickblox.com/docs/ai-extensions).
+    public var smartChatAssistantId = "" {
+        didSet {
+            if answerAssist.smartChatAssistantId.isEmpty {
+                answerAssist.smartChatAssistantId = smartChatAssistantId
+            }
+            if translate.smartChatAssistantId.isEmpty {
+                translate.smartChatAssistantId = smartChatAssistantId
+            }
+        }
+    }
     
     /// The OpenAI API key for direct API requests (if not using a proxy server).
     public var apiKey = "" {
@@ -49,12 +62,14 @@ public class AIFeature {
     /// Settings for assist answer functionality using the OpenAI API key or QuickBlox token and proxy server.
     public var answerAssist: AIAnswerAssistSettings =
     AIAnswerAssistSettings(enable: true,
+                           smartChatAssistantId: "",
                            apiKey: "",
                            serverPath: "")
     
     /// Settings for translation functionality using the OpenAI API key or QuickBlox token and proxy server.
     public var translate: AITranslateSettings =
     AITranslateSettings(enable: true,
+                        smartChatAssistantId: "",
                         apiKey: "",
                         serverPath: "")
     
@@ -71,6 +86,9 @@ public class AIFeature {
 public class AIAnswerAssistSettings {
     /// Determines if assist answer functionality is enabled.
     public var enable: Bool = true
+    
+    /// The OpenAI API key for [Quickblox Server REST API] (https://docs.quickblox.com/reference/ai-extensions-ai-answer-assist).
+    public var smartChatAssistantId: String = ""
     
     /// The OpenAI API key for direct API requests (if not using a proxy server).
     public var apiKey: String = ""
@@ -97,25 +115,85 @@ public class AIAnswerAssistSettings {
     /// The maximum number of tokens to generate in the response.
     public var maxResponseTokens: Int? = nil
     
-    /// Indicates if the AI settings are valid, i.e., either the OpenAI API key or proxy server URL is provided.
+    /// Indicates if the AI settings are valid, i.e., either the OpenAI API key Quickblox Server REST API .
     public var isValid: Bool {
-        return apiKey.isEmpty == false || serverPath.isEmpty == false
+        return smartChatAssistantId.isEmpty == false ||
+        apiKey.isEmpty == false || serverPath.isEmpty == false
     }
     
     /// Initializes the AIAnswerAssistSettings with the given values.
     /// - Parameters:
     ///   - enable: Determines if assist answer functionality is enabled.
-    ///   - apiKey: The OpenAI API key for direct API requests (if not using a proxy server).
-    ///   - serverPath: The URL path of the proxy server for more secure communication (if not using the API key directly).
-    required public init(enable: Bool, apiKey: String, serverPath: String) {
+    required public init(enable: Bool,
+                         smartChatAssistantId: String,
+                         apiKey: String,
+                         serverPath: String) {
         self.enable = enable
+        self.smartChatAssistantId = smartChatAssistantId
         self.apiKey = apiKey
         self.serverPath = serverPath
     }
 }
 
+public extension Locale {
+    static var defaultLocalizedLanguageName = "English"
+    
+    /// Returns the localized language name for the locale.
+    var localizedLanguageName: String {
+        guard let code = self.language.languageCode?.identifier else {
+            return Locale.defaultLocalizedLanguageName
+        }
+        
+        let english = QBAILanguage.english
+        return english.locale.localizedString(forLanguageCode: code)
+        ?? Locale.defaultLocalizedLanguageName
+    }
+}
+
+extension QBAILanguage: CaseIterable {
+    /// Returns the `Locale` associated with the language.
+    public var locale: Locale {
+        return Locale(identifier: rawValue)
+    }
+    
+    public static var allCases: [QBAILanguage] {
+        [english, spanish, chineseSimplified, chineseTraditional, french, german, japanese, korean,
+         italian, russian, portuguese, arabic, hindi, turkish, dutch, polish, ukrainian, albanian,
+         armenian, azerbaijani, basque, belarusian, bengali, bosnian, bulgarian, catalan, croatian,
+         czech, danish, estonian, finnish, galician, georgian, greek, gujarati, hungarian,
+         indonesian, irish, kannada, kazakh, latvian, lithuanian, macedonian, malay, maltese,
+         mongolian, nepali, norwegian, pashto, persian, punjabi, romanian, sanskrit, serbian,
+         sindhi, sinhala, slovak, slovenian, uzbek, vietnamese, welsh]
+    }
+}
+
 /// Settings for translation functionality.
 public class AITranslateSettings {
+    private var _aiLanguage: QBAILanguage? = nil
+    
+    /// The current `QBAILanguage`.
+    ///
+    /// Default the same as system language or `.english` if `QBAILanguage` is not support system language.
+    public var aiLanguage: QBAILanguage
+    {
+        get {
+            guard let value = _aiLanguage else {
+                let currentName = Locale.current.localizedLanguageName
+                for language in QBAILanguage.allCases {
+                    if language.locale.localizedLanguageName == currentName {
+                        return language
+                    }
+                }
+                
+                return QBAILanguage.english
+            }
+            
+            return value
+        } set {
+            _aiLanguage = newValue
+        }
+    }
+    
     private var _language: QBAITranslate.Language? = nil
     
     /// The current `QBAITranslate.Language`.
@@ -143,6 +221,9 @@ public class AITranslateSettings {
     /// Determines if translation functionality is enabled.
     public var enable: Bool = true
     
+    /// The OpenAI API key for [Quickblox Server REST API] (https://docs.quickblox.com/reference/ai-extensions-ai-translate).
+    public var smartChatAssistantId: String = ""
+    
     /// The OpenAI API key for direct API requests (if not using a proxy server).
     public var apiKey: String = ""
     
@@ -168,18 +249,21 @@ public class AITranslateSettings {
     /// The maximum number of tokens to generate in the response.
     public var maxResponseTokens: Int? = nil
     
-    /// Indicates if the AI settings are valid, i.e., either the OpenAI API key or proxy server URL is provided.
+    /// Indicates if the AI settings are valid, i.e., either the OpenAI API key Quickblox Server REST API .
     public var isValid: Bool {
-        return apiKey.isEmpty == false || serverPath.isEmpty == false
+        return smartChatAssistantId.isEmpty == false ||
+        apiKey.isEmpty == false || serverPath.isEmpty == false
     }
     
     /// Initializes the AITranslateSettings with the given values.
     /// - Parameters:
     ///   - enable: Determines if assist answer functionality is enabled.
-    ///   - apiKey: The OpenAI API key for direct API requests (if not using a proxy server).
-    ///   - serverPath: The URL path of the proxy server for more secure communication (if not using the API key directly).
-    required public init(enable: Bool, apiKey: String, serverPath: String) {
+    required public init(enable: Bool,
+                         smartChatAssistantId: String,
+                         apiKey: String,
+                         serverPath: String) {
         self.enable = enable
+        self.smartChatAssistantId = smartChatAssistantId
         self.apiKey = apiKey
         self.serverPath = serverPath
     }

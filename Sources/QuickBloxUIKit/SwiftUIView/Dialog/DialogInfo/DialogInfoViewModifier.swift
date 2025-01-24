@@ -73,11 +73,12 @@ public struct InfoDialogAvatar: View {
                        height: settings.height,
                        isHidden: settings.isHidden)
             
-            Text(viewModel.dialog.validName)
+            Text(viewModel.dialog.name)
                 .font(settings.font)
                 .foregroundColor(settings.color)
+                .multilineTextAlignment(.center)
+                .padding()
         }
-        .frame(height: settings.containerHeight)
         .padding(settings.padding)
     }
 }
@@ -184,7 +185,7 @@ public struct EditDialogAlert<ViewModel: PermissionProtocol>: ViewModifier {
                     })
                 })
             
-                .if(isIPad == true && isPresented == true, transform: { view in
+                .if((isIPad == true || isMac == true) && isPresented == true, transform: { view in
                     ZStack {
                         view.disabled(true)
                             .overlay(

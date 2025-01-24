@@ -26,6 +26,8 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
     private var relatedStatus: MessageStatus? = nil
     private var isSelected = false
     
+    @State private var contentSize: CGSize?
+    
     private let onSelect: (_ item: MessageItem, _ actionType: MessageAction) -> Void
     
     public init(message: MessageItem,
@@ -52,7 +54,9 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
                 
                 if features.forward.enable == true,
                    messagesActionState == .forward {
-                    Checkbox(isSelected: isSelected)
+                    Checkbox(isSelected: isSelected) {
+                        onSelect(message, .forward)
+                    }
                 }
                 
                 Spacer(minLength: settings.outboundSpacer)
@@ -89,51 +93,38 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
                        messagesActionState == .forward {
                         messageContent()
                     } else {
-                        Button {
-                            if fileTuple?.url != nil {
-                                open()
+                        messageContent()
+                            .if(fileTuple?.image != nil, transform: { view in
+                                view.customContextMenu (
+                                    preview: messageContent(forPreview: true),
+                                    preferredContentSize: CGSize(width: contentSize?.width ?? 0.0,
+                                                                 height: contentSize?.height ?? 0.0)
+                                ) {
+                                    CustomContextMenuAction(title: settings.reply.title,
+                                                            systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
+                                                            attributes: features.reply.enable == true
+                                                            ? nil : .hidden) {
+                                        onSelect(message, .reply)
+                                    }
+                                    CustomContextMenuAction(title: settings.forward.title,
+                                                            systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
+                                                            attributes: features.forward.enable == true
+                                                            ? nil : .hidden) {
+                                        onSelect(message, .forward)
+                                    }
+                                }
+                            })
+                            .onTapGesture {
+                                if fileTuple?.url != nil {
+                                    open()
+                                }
                             }
-                        } label: {
-                            messageContent()
-                        }.buttonStyle(.plain)
                     }
                 }
             }
             .padding(.bottom, message.actionType == .reply && message.relatedId.isEmpty == false ? 2 : settings.spacerBetweenRows)
             .fixedSize(horizontal: false, vertical: true)
             .id(message.id)
-            .if(fileTuple?.image != nil, transform: { view in
-                view.customContextMenu (
-                    preview: messageContent(forPreview: true),
-                    preferredContentSize: CGSize(width: settings.attachmentSize.width,
-                                                 height: settings.attachmentSize.height)
-                ) {
-                    CustomContextMenuAction(title: settings.reply.title,
-                                         systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
-                                         attributes: features.reply.enable == true
-                                         ? nil : .hidden) {
-                        onSelect(message, .reply)
-                    }
-                    CustomContextMenuAction(title: settings.forward.title,
-                                         systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
-                                         attributes: features.forward.enable == true
-                                         ? nil : .hidden) {
-                        onSelect(message, .forward)
-                    }
-                }
-            })
-                
-                if features.forward.enable == true,
-                messagesActionState == .forward {
-                Button {
-                    onSelect(message, .forward)
-                } label: {
-                    EmptyView()
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity)
-                .frame(maxHeight: .infinity)
-            }
         }
     }
     
@@ -142,12 +133,12 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
         ZStack {
             
             if let image = fileTuple?.image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: settings.attachmentSize(isPortrait: image.size.height > image.size.width).width, height: settings.attachmentSize(isPortrait: image.size.height > image.size.width).height)
-                        .fixedSize()
-                        .clipped()
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: settings.attachmentSize(isPortrait: image.size.height > image.size.width).width, height: settings.attachmentSize(isPortrait: image.size.height > image.size.width).height)
+                    .fixedSize()
+                    .clipped()
                     .cornerRadius(settings.attachmentRadius, corners: features.forward.enable == true && message.actionType == .forward ||
                                   message.actionType == .reply && message.relatedId.isEmpty == false ?
                                   settings.outboundForwardCorners : settings.outboundCorners)
@@ -182,6 +173,9 @@ public struct OutboundVideoMessageRow<MessageItem: MessageEntity>: View {
                 SegmentedCircularBar(settings: settings.progressBar)
             }
         }
+        .contentSize(onChange: { contentSize in
+            self.contentSize = contentSize
+        })
     }
     
     private func open() {

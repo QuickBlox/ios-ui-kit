@@ -31,7 +31,7 @@ where DialogItem == ViewModel.DialogItem, UserItem == ViewModel.UserItem {
                 .onViewDidLoad {
                     viewModel.syncUsers()
                 }
-        } else if isIPad {
+        } else {
             NavigationStack {
                 container()
                 .onViewDidLoad {

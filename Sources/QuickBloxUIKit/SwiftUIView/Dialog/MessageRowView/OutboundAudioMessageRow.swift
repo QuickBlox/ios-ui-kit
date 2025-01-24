@@ -30,6 +30,8 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
     private var relatedTime: Date? = nil
     private var relatedStatus: MessageStatus? = nil
     
+    @State private var contentSize: CGSize?
+    
     private let onSelect: (_ item: MessageItem, _ actionType: MessageAction) -> Void
     
     public init(message: MessageItem,
@@ -59,7 +61,9 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
                 
                 if features.forward.enable == true,
                    messagesActionState == .forward {
-                    Checkbox(isSelected: isSelected)
+                    Checkbox(isSelected: isSelected) {
+                        onSelect(message, .forward)
+                    }
                 }
                 
                 Spacer(minLength: settings.outboundSpacer)
@@ -99,13 +103,37 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
                        messagesActionState == .forward {
                         messageContent()
                     } else {
-                        Button {
-                            if fileTuple?.url != nil {
-                                play()
+                        messageContent()
+                            .if(fileTuple?.url != nil, transform: { view in
+                                view.customContextMenu (
+                                    preview: messageContent(forPreview: true),
+                                    preferredContentSize: CGSize(width: contentSize?.width ?? 0.0,
+                                                                 height: contentSize?.height ?? 0.0)
+                                ) {
+                                    CustomContextMenuAction(title: settings.reply.title,
+                                                            systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
+                                                            attributes: features.reply.enable == true
+                                                            ? nil : .hidden) {
+                                        onSelect(message, .reply)
+                                    }
+                                    CustomContextMenuAction(title: settings.forward.title,
+                                                            systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
+                                                            attributes: features.forward.enable == true
+                                                            ? nil : .hidden) {
+                                        onSelect(message, .forward)
+                                    }
+                                    CustomContextMenuAction(title: settings.save.title,
+                                                            systemImage: settings.save.systemImage ?? "", tintColor: settings.save.color, flipped: nil,
+                                                            attributes: nil) {
+                                        save()
+                                    }
+                                }
+                            })
+                            .onTapGesture {
+                                if fileTuple?.url != nil {
+                                    play()
+                                }
                             }
-                        } label: {
-                            messageContent()
-                        }.buttonStyle(.plain)
                     }
                     
                 }
@@ -113,42 +141,6 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
             .padding(.bottom, message.actionType == .reply && message.relatedId.isEmpty == false ? 2 : settings.spacerBetweenRows)
             .fixedSize(horizontal: false, vertical: true)
             .id(message.id)
-            .if(fileTuple?.url != nil, transform: { view in
-                view.customContextMenu (
-                    preview: messageContent(forPreview: true),
-                    preferredContentSize: settings.outboundAudioPreviewSize
-                ) {
-                    CustomContextMenuAction(title: settings.reply.title,
-                                         systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
-                                         attributes: features.reply.enable == true
-                                         ? nil : .hidden) {
-                        onSelect(message, .reply)
-                    }
-                    CustomContextMenuAction(title: settings.forward.title,
-                                         systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
-                                         attributes: features.forward.enable == true
-                                         ? nil : .hidden) {
-                        onSelect(message, .forward)
-                    }
-                    CustomContextMenuAction(title: settings.save.title,
-                                         systemImage: settings.save.systemImage ?? "", tintColor: settings.save.color, flipped: nil,
-                                            attributes: nil) {
-                        save()
-                    }
-                }
-            })
-                
-                if features.forward.enable == true,
-                   messagesActionState == .forward {
-                Button {
-                    onSelect(message, .forward)
-                } label: {
-                    EmptyView()
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity)
-                .frame(maxHeight: .infinity)
-            }
         }
     }
     
@@ -188,6 +180,9 @@ public struct OutboundAudioMessageRow<MessageItem: MessageEntity>: View {
                           corners: features.forward.enable == true && message.actionType == .forward ||
                           message.actionType == .reply && message.relatedId.isEmpty == false ?
                           settings.outboundForwardCorners : settings.outboundCorners)
+            .contentSize(onChange: { contentSize in
+                self.contentSize = contentSize
+            })
             .padding(settings.outboundPadding)
             .padding(.leading, forPreview == true ? 24 : 0)
             

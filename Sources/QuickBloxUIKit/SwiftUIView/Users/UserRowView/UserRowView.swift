@@ -71,7 +71,7 @@ public struct UserRow<Item: UserEntity>: View  {
                                      height: settings.contentHeight,
                                      isHidden: settings.isHiddenAvatar )
             
-            nameView ?? UserRowName(text: user.validName)
+            nameView ?? UserRowName(text: user.name)
             Spacer()
             checkboxView ?? Checkbox(isSelected: isSelected, onTap: {
                 onTap(user)
@@ -126,7 +126,7 @@ public struct RemoveUserRow<Item: UserEntity>: View  {
                                      height: settings.contentHeight,
                                      isHidden: settings.isHiddenAvatar )
             
-            nameView ?? UserRowName(text: user.validName)
+            nameView ?? UserRowName(text: user.name)
             Spacer()
             if user.id == ownerId {
                 RoleUserRowName().padding(.trailing, 60)
@@ -147,19 +147,6 @@ public struct RemoveUserRow<Item: UserEntity>: View  {
         contentView.task {
             do { avatar = try await user.avatar(scale: .avatar3x) } catch { prettyLog(error) }
         }
-    }
-}
-
-private extension UserEntity {
-    var validName: String {
-        let settings = QuickBloxUIKit.settings.createDialogScreen.userRow.name
-        let regex = QuickBloxUIKit.feature.regex
-        
-        var valid = regex.userName.isEmpty ? name : (name.isValid(regexes: [regex.userName]) == true ? name : settings.unknown)
-        if isCurrent {
-            valid = valid + settings.you
-        }
-        return valid
     }
 }
 
@@ -194,7 +181,7 @@ public struct AddUserRow<Item: UserEntity>: View  {
                                      height: settings.contentHeight,
                                      isHidden: settings.isHiddenAvatar )
             
-            nameView ?? UserRowName(text: user.validName)
+            nameView ?? UserRowName(text: user.name)
             Spacer()
             addBoxView ?? AddUserButton(onTap: {
                 onTap(user)

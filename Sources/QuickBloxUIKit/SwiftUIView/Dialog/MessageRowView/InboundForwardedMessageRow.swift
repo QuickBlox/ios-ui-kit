@@ -244,7 +244,7 @@ public struct InboundForwardedMessageRow<MessageItem: MessageEntity>: View {
                                                          attributes: features.ai.ui.robot.hidden == true && features.ai.answerAssist.enable == true
                                                          ? nil : .hidden) {
                                         if let message = message as? DialogViewModel.DialogItem.MessageItem {
-                                            viewModel.applyAIAnswerAssist(message)
+                                            applyAIAnswerAssist(message)
                                         }
                                     }
                                     CustomContextMenuAction(title: settings.reply.title,
@@ -322,7 +322,7 @@ public struct InboundForwardedMessageRow<MessageItem: MessageEntity>: View {
                                 if features.ai.answerAssist.enable == true {
                                     Button {
                                         if let message = message as? DialogViewModel.DialogItem.MessageItem {
-                                            viewModel.applyAIAnswerAssist(message)
+                                            applyAIAnswerAssist(message)
                                         }
                                     } label: {
                                         Label(features.ai.ui.answerAssist.title, systemImage: "")
@@ -358,5 +358,12 @@ public struct InboundForwardedMessageRow<MessageItem: MessageEntity>: View {
         .padding(.bottom, message.actionType == .reply && message.relatedId.isEmpty == false ? 2 : settings.spacerBetweenRows)
         .fixedSize(horizontal: false, vertical: true)
         .id(message.id)
+    }
+    
+    fileprivate func applyAIAnswerAssist(_ message: DialogViewModel.DialogItem.MessageItem) {
+        let text = message.translatedText.isEmpty == false && showOriginal == false ? message.translatedText : message.text
+        var question = Message(message)
+        question.text = text
+        viewModel.applyAIAnswerAssist(question)
     }
 }

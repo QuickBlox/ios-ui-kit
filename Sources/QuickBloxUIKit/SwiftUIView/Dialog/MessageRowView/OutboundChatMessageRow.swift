@@ -54,7 +54,9 @@ public struct OutboundChatMessageRow<MessageItem: MessageEntity>: View {
                 
                 if features.forward.enable == true,
                    messagesActionState == .forward {
-                    Checkbox(isSelected: isSelected)
+                    Checkbox(isSelected: isSelected) {
+                        onSelect(message, .forward)
+                    }
                 }
                 
                 Spacer(minLength: message.actionType == .reply && message.relatedId.isEmpty == false ? 100 : settings.outboundSpacer)
@@ -95,51 +97,37 @@ public struct OutboundChatMessageRow<MessageItem: MessageEntity>: View {
                         .contentSize(onChange: { contentSize in
                             self.contentSize = contentSize
                         })
-                    
+                        .if(contentSize != nil, transform: { view in
+                            view.customContextMenu (
+                                preview: MessageRowText(isOutbound: true, text: message.text)
+                                    .cornerRadius(settings.attachmentRadius, corners: settings.outboundForwardCorners),
+                                preferredContentSize: size
+                            ) {
+                                CustomContextMenuAction(title: settings.reply.title,
+                                                        systemImage: settings.reply.systemImage ?? "",
+                                                        tintColor: settings.reply.color,
+                                                        flipped: UIImageAxis.none,
+                                                        attributes: features.reply.enable == true
+                                                        ? nil : .hidden) {
+                                    onSelect(message, .reply)
+                                }
+                                CustomContextMenuAction(title: settings.forward.title,
+                                                        systemImage: settings.forward.systemImage ?? "",
+                                                        tintColor: settings.forward.color,
+                                                        flipped: .horizontal,
+                                                        attributes: features.forward.enable == true
+                                                        ? nil : .hidden) {
+                                    DispatchQueue.main.async {
+                                        onSelect(message, .forward)
+                                    }
+                                }
+                            }
+                        })
                 }.padding(settings.outboundPadding)
             }
             .padding(.bottom, message.actionType == .reply && message.relatedId.isEmpty == false ? 2 : settings.spacerBetweenRows)
             .fixedSize(horizontal: false, vertical: true)
             .id(message.id)
-            
-            .if(contentSize != nil, transform: { view in
-                view.customContextMenu (
-                    preview: MessageRowText(isOutbound: true, text: message.text)
-                        .cornerRadius(settings.attachmentRadius, corners: settings.outboundForwardCorners),
-                    preferredContentSize: size
-                ) {
-                    CustomContextMenuAction(title: settings.reply.title,
-                                            systemImage: settings.reply.systemImage ?? "",
-                                            tintColor: settings.reply.color,
-                                            flipped: UIImageAxis.none,
-                                            attributes: features.reply.enable == true
-                                            ? nil : .hidden) {
-                        onSelect(message, .reply)
-                    }
-                    CustomContextMenuAction(title: settings.forward.title,
-                                            systemImage: settings.forward.systemImage ?? "",
-                                            tintColor: settings.forward.color,
-                                            flipped: .horizontal,
-                                            attributes: features.forward.enable == true
-                                            ? nil : .hidden) {
-                        DispatchQueue.main.async {
-                            onSelect(message, .forward)
-                        }
-                    }
-                }
-            })
-            
-            if features.forward.enable == true,
-               messagesActionState == .forward {
-                Button {
-                    onSelect(message, .forward)
-                } label: {
-                    EmptyView()
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity)
-                .frame(maxHeight: .infinity)
-            }
         }
     }
 }

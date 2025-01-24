@@ -216,9 +216,7 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
                 if let dialog = viewModel.dialog as? Dialog {
                     switch dialog.type {
                     case .private:
-                        PrivateDialogInfoView(DialogInfoViewModel(dialog)).onAppear {
-                            isInfoPresented = false
-                        }
+                        PrivateDialogInfoView(DialogInfoViewModel(dialog))
                     default:
                         EmptyView()
                     }
@@ -226,7 +224,7 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
             }
         })
         
-        .if(isIPad == true && isInfoPresented == true, transform: { view in
+        .if((isIPad == true || isMac == true) && isInfoPresented == true, transform: { view in
             view.sheet(isPresented: $isInfoPresented, content: {
                 if let dialog = viewModel.dialog as? Dialog {
                     switch dialog.type {
@@ -248,13 +246,11 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
                 ForwardView(viewModel: ForwardViewModel(messages: viewModel.selectedMessages as? [Message] ?? [])) {
                     viewModel.cancelMessageAction()
                     isForwardSuccess = true
-                }.onAppear {
-                    isForwardPresented = false
                 }
             }
         })
 
-        .if(isForwardPresented == true && isIPad == true, transform: { view in
+        .if(isForwardPresented == true && (isIPad == true || isMac == true), transform: { view in
             view.sheet(isPresented: $isForwardPresented, content: {
                 ForwardView(viewModel: ForwardViewModel(messages: viewModel.selectedMessages as? [Message] ?? [])) {
                     viewModel.cancelMessageAction()
@@ -352,9 +348,6 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
                                 }
                             }
                         }, onSelect: { item, actionType in
-                            if viewModel.messagesActionState == actionType {
-                                return
-                            }
                             viewModel.handleOnSelect(item, actionType: actionType)
                         }, aiAnswerWaiting: $viewModel.waitingAnswer)
                         .onAppear {
@@ -385,7 +378,28 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
     }
     
     public var body: some View {
-        if isIPad {
+          if isIphone {
+            container()
+                .modifier(DialogHeader(dialog: viewModel.dialog,
+                                       isForward: viewModel.messagesActionState == .forward,
+                                       selectedCount: viewModel.selectedMessages.count,
+                                       onDismiss: {
+                    dismiss()
+                },
+                                       onTapInfo: {
+                        isInfoPresented = true
+                }, onTapCancel: {
+                    viewModel.cancelMessageAction()
+                }))
+                .onViewDidLoad {
+                    viewModel.sync()
+                }
+                .onDisappear {
+                    viewModel.sendStopTyping()
+                    viewModel.stopPlayng()
+                    viewModel.unsync()
+                }
+        } else {
             NavigationStack {
                 container()
                     .modifier(DialogHeader(dialog: viewModel.dialog,
@@ -409,27 +423,6 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
                     }
                 
             }
-        } else if isIphone {
-            container()
-                .modifier(DialogHeader(dialog: viewModel.dialog,
-                                       isForward: viewModel.messagesActionState == .forward,
-                                       selectedCount: viewModel.selectedMessages.count,
-                                       onDismiss: {
-                    dismiss()
-                },
-                                       onTapInfo: {
-                        isInfoPresented = true
-                }, onTapCancel: {
-                    viewModel.cancelMessageAction()
-                }))
-                .onViewDidLoad {
-                    viewModel.sync()
-                }
-                .onDisappear {
-                    viewModel.sendStopTyping()
-                    viewModel.stopPlayng()
-                    viewModel.unsync()
-                }
         }
     }
 }

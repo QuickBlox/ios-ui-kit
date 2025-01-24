@@ -341,15 +341,14 @@ extension MessageEntity {
                     return (uploaded.info.name, cachedImage, localURL)
                 }
                 var image: UIImage?
-                if let uiImage = await localURL.getThumbnailImage() {
-                    if size != nil {
-                        let imageSize = settings.imageSize(isPortrait: uiImage.size.height > uiImage.size.width)
-                        let resized = uiImage.crop(to: imageSize)
-                        imageCache.store(resized, for: id)
-                        image = resized
-                    } else {
-                        image = uiImage
-                    }
+                let uiImage = try await localURL.getThumbnailImage()
+                if size != nil {
+                    let imageSize = settings.imageSize(isPortrait: uiImage.size.height > uiImage.size.width)
+                    let resized = uiImage.crop(to: imageSize)
+                    imageCache.store(resized, for: id)
+                    image = resized
+                } else {
+                    image = uiImage
                 }
                 return (uploaded.info.name, image, localURL)
             case .image:
@@ -514,16 +513,19 @@ extension File {
 }
 
 extension URL {
-    func getThumbnailImage() async -> UIImage? {
-        return await withCheckedContinuation({
-            (continuation: CheckedContinuation<UIImage?, Never>) in
-            self.getThumbnailImage { image in
+    func getThumbnailImage() async throws -> UIImage {
+        return try await withCheckedThrowingContinuation { continuation in
+            self.getThumbnailImage { image, error in
+                guard let image = image else {
+                    continuation.resume(throwing: error ?? RepositoryException.incorrectData("Thumbnail Image"))
+                    return
+                }
                 continuation.resume(returning: image)
             }
-        })
+        }
     }
                                                          
-    func getThumbnailImage(completion: @escaping ((_ image: UIImage?) -> Void)) {
+    func getThumbnailImage(completion: @escaping ((_ image: UIImage?, _ error: Error?) -> Void)) {
         if let document = CGPDFDocument(self as CFURL),
            let page = document.page(at: 1) {
             let pageRect = page.getBoxRect(.mediaBox)
@@ -536,10 +538,24 @@ extension URL {
                 ctx.cgContext.scaleBy(x: 1.0, y: -1.0)
                 ctx.cgContext.drawPDFPage(page)
             }
-            completion(image)
+            completion(image, nil)
             return
         }
         DispatchQueue.global().async {
+            if self.pathExtension.lowercased() == "gif" {
+                guard let imageData = try? Data(contentsOf: self),
+                      let image = UIImage(data: imageData) else {
+                    DispatchQueue.main.async {
+                        completion(nil, NSError(domain: "InvalidGIF", code: 0, userInfo: [NSLocalizedDescriptionKey: "Unable to load GIF"]))
+                    }
+                    return
+                }
+                DispatchQueue.main.async {
+                    completion(image, nil)
+                }
+                return
+            }
+            
             let avAsset = AVAsset(url: self)
             let avAssetImageGenerator = AVAssetImageGenerator(asset: avAsset)
             avAssetImageGenerator.appliesPreferredTrackTransform = true
@@ -548,12 +564,12 @@ extension URL {
                 let cgThumbImage = try avAssetImageGenerator.copyCGImage(at: thumnailTime, actualTime: nil)
                 let thumbImage = UIImage(cgImage: cgThumbImage)
                 DispatchQueue.main.async {
-                    completion(thumbImage)
+                    completion(thumbImage, nil)
                 }
             } catch {
                 prettyLog(error)
                 DispatchQueue.main.async {
-                    completion(nil)
+                    completion(nil, error)
                 }
             }
         }
@@ -696,5 +712,52 @@ extension UIImage {
         UIGraphicsEndImageContext()
         
         return resizedImage
+    }
+    
+    static func animatedImage(from url: URL) -> UIImage? {
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        
+        var images: [UIImage] = []
+        let count = CGImageSourceGetCount(source)
+        
+        var scaleFactor = 1.0
+
+        for i in 0..<count {
+            if let cgImage = CGImageSourceCreateImageAtIndex(source, i, nil) {
+                // Get the image's original size
+                let imageSize = CGSize(width: CGFloat(cgImage.width),
+                                       height: CGFloat(cgImage.height))
+                
+                // Determine if the image is portrait or landscape
+                let isPortrait = imageSize.height > imageSize.width
+
+                // Define the target size (portrait or landscape)
+                let targetSize = isPortrait ? CGSize(width: 160.0, height: 240.0) : CGSize(width: 240.0, height: 160.0)
+                
+                // Check if the image's size exceeds the target size
+                if imageSize.width > targetSize.width || imageSize.height > targetSize.height {
+                    // Calculate the scaling factor to fit the image within the target size while preserving the aspect ratio
+                    let scaleFactor = min(targetSize.width / imageSize.width, targetSize.height / imageSize.height)
+                    
+                    // Resize using UIGraphicsImageRenderer to control the final dimensions
+                    let renderer = UIGraphicsImageRenderer(size: CGSize(width: imageSize.width * scaleFactor, height: imageSize.height * scaleFactor))
+                    let resizedImage = renderer.image { context in
+                        context.cgContext.translateBy(x: 0, y: imageSize.height * scaleFactor)
+                        context.cgContext.scaleBy(x: 1, y: -1)
+                        context.cgContext.draw(cgImage, in: CGRect(origin: .zero, size: CGSize(width: imageSize.width * scaleFactor, height: imageSize.height * scaleFactor)))
+                    }
+                    
+                    images.append(resizedImage)
+                } else {
+                    // No resizing needed, just append the original image
+                    let originalImage = UIImage(cgImage: cgImage)
+                    images.append(originalImage)
+                }
+            }
+        }
+
+        let duration = Double(count) * 0.1 // Adjust frame duration if needed
+        return UIImage.animatedImage(with: images, duration: duration)
     }
 }

@@ -32,6 +32,8 @@ extension Error {
             return RepositoryException.alreadyExist(description: info)
         case .notFound(description: let info):
             return RepositoryException.notFound(description: info)
+        case .unauthorised(description: let description):
+            return RepositoryException.unauthorised(description)
         }
     }
     

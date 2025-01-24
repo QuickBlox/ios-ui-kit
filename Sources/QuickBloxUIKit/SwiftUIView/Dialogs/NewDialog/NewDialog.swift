@@ -39,7 +39,7 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
     public var body: some View {
         if isIphone {
             container()
-        } else if isIPad {
+        } else {
             NavigationStack {
                 container()
             }.accentColor(settings.header.leftButton.color)
@@ -111,9 +111,6 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
                         CreateDialogView(viewModel: CreateDialogViewModel(modeldDialog: Dialog(type: modelDialog.type,
                                                                                                name: modelDialog.name,
                                                                                                photo: modelDialog.photo)))
-                        .onAppear {
-                            isCreatedDialog = false
-                        }
                     }
                 }
             }

@@ -29,6 +29,43 @@ import Combine
 }
 
 extension ConnectionRepositoryTests {
+    func testConnectionState() async throws {
+        let subject = PassthroughSubject<ConnectionState, Never>()
+        let results: [String: Result<[Any], Error>] =
+        [
+            MockMethod.checkConnection: .success([ AcyncMockVoid {
+                subject.send(.disconnected())
+            }]),
+            MockMethod.connect: .success([ AcyncMockVoid {
+                subject.send(.connecting())
+                subject.send(.connected)
+            }]),
+            MockMethod.disconnect: .success([ AcyncMockVoid {
+                subject.send(.disconnected())
+            }])
+        ]
+        let reposytory = repository(mock: results,
+                                    connection: subject.eraseToAnyPublisher())
+        
+        let expectation = expectation(description: "unauthorized")
+        expectation.expectedFulfillmentCount = 4
+        reposytory.statePublisher.sink { state in
+            switch state {
+            case .unauthorized: XCTFail("unauthorized")
+            case .authorized: XCTFail("authorized")
+            case .disconnected: expectation.fulfill()
+            case .connecting: expectation.fulfill()
+            case .connected: expectation.fulfill()
+            }
+        }.store(in: &cancellables)
+        
+        try await reposytory.checkConnection()
+        try await reposytory.connect()
+        try await reposytory.disconnect()
+        
+        await fulfillment(of: [expectation], timeout: 0.3)
+    }
+    
     func testConnection() async throws {
         let results: [String: Result<[Any], Error>] =
         [MockMethod.connect: .failure(RemoteDataSourceException.unauthorised())]

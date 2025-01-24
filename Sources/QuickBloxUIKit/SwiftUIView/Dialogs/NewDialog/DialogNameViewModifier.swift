@@ -179,7 +179,7 @@ public struct CustomMediaAlert<ViewModel: PermissionProtocol>: ViewModifier {
                     })
                 })
             
-                .if(isIPad == true && isAlertPresented == true, transform: { view in
+                .if((isIPad == true || isMac == true) && isAlertPresented == true, transform: { view in
                     ZStack {
                         view.disabled(true)
                             .overlay(

@@ -63,6 +63,15 @@ final class LocalFileDataSourceTests: XCTestCase {
         )
     }
     
+    func testCreateLocalFileAlreadyExist() async throws {
+       _ = try await source.createFile(LocalFileDTO.default)
+        
+        await XCTAssertThrowsException(
+           _ = try await source.createFile(LocalFileDTO.default),
+            equelTo: DataSourceException.alreadyExist()
+        )
+    }
+    
     func testGetLocalFileNotFound() async throws {
         await XCTAssertThrowsException(
             try await source.getFile(LocalFileDTO.searching),

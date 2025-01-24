@@ -749,3 +749,47 @@ extension RemoteDataSource {
         }
     }
 }
+
+//MARK: AI
+extension RemoteDataSource {
+    // Quickblox Server API
+    func answerAssist(message dto: RemoteAnswerAssistMessageDTO) async throws -> String {
+        do {
+            return try await api.ai.answerAssist(with: QBAIAnswerAssistMessage(dto))
+        } catch let nsError as NSError {
+            throw try nsError.remoteException
+        } catch {
+            throw DataSourceException.unexpected(error.localizedDescription)
+        }
+        
+    }
+    
+    func translate(message dto: RemoteTranslateMessageDTO) async throws -> String {
+        do {
+            return try await api.ai.translate(with: QBAITranslateMessage(dto))
+        } catch let nsError as NSError {
+            throw try nsError.remoteException
+        } catch {
+            throw DataSourceException.unexpected(error.localizedDescription)
+        }
+    }
+}
+
+//MARK: AI Quickblox QBAIAnswerAssistant Library
+import QBAIAnswerAssistant
+extension RemoteDataSource {
+    func answerAssist(with content: [RemoteMessageDTO],
+                      settings: QBAIAnswerAssistant.AISettings) async throws -> String {
+            return try await api.ai.answerAssist(with: content, settings: settings)
+    }
+}
+
+//MARK: AI Quickblox QBAITranslate Library
+import QBAITranslate
+extension RemoteDataSource {
+    func translate(with text: String,
+                   content: [RemoteMessageDTO],
+                   settings: QBAITranslate.AISettings) async throws -> String {
+            return try await api.ai.translate(with: text, content: content, settings: settings)
+    }
+}

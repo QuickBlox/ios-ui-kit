@@ -11,6 +11,26 @@ import XCTest
 @testable import QuickBloxDomain
 @testable import QuickBloxData
 
+//MARK: Save Dialog
+extension LocalDataSourceTest {
+    func testSaveDialogAlreadyExist() async throws {
+        await storage.dialogsPublisher
+            .dropFirst()
+            .sink { dialogs in
+                let dialog = dialogs.first(where: { $0.id == Test.stringId })
+            XCTAssertEqual(dialog, LocalDialogDTO.default)
+        }
+        .store(in: &cancellables)
+        
+        _ = try await storage.save(dialog: LocalDialogDTO.default)
+        
+        await XCTAssertThrowsException(
+            try await storage.save(dialog: LocalDialogDTO.default),
+            equelTo: DataSourceException.alreadyExist()
+        )
+    }
+}
+
 //MARK: Get Dialog
 extension LocalDataSourceTest {
     func testGetDialogNotFound() async throws {

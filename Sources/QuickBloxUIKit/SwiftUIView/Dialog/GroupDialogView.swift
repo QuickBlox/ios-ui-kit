@@ -233,13 +233,9 @@ public struct GroupDialogView
                                             switch dialog.type {
                                             case .group:
                                                 if dialog.isOwnedByCurrentUser == true {
-                                                    GroupDialogInfoView(DialogInfoViewModel(dialog)).onAppear {
-                                                        isInfoPresented = false
-                                                    }
+                                                    GroupDialogInfoView(DialogInfoViewModel(dialog))
                                                 } else {
-                                                    GroupDialogNonEditInfoView(DialogInfoViewModel(dialog)).onAppear {
-                                                        isInfoPresented = false
-                                                    }
+                                                    GroupDialogNonEditInfoView(DialogInfoViewModel(dialog))
                                                 }
                                             default:
                                                 EmptyView()
@@ -248,7 +244,7 @@ public struct GroupDialogView
                                     }
                                 })
                                 
-                                .if(isIPad == true && isInfoPresented == true, transform: { view in
+                                .if((isIPad == true || isMac == true) && isInfoPresented == true, transform: { view in
                                     view.sheet(isPresented: $isInfoPresented, content: {
                                         if let dialog = viewModel.dialog as? Dialog {
                                             switch dialog.type {
@@ -274,18 +270,17 @@ public struct GroupDialogView
                                         ForwardView(viewModel: ForwardViewModel(messages: viewModel.selectedMessages as? [Message] ?? [])) {
                                             viewModel.cancelMessageAction()
                                             isForwardSuccess = true
-                                        }.onAppear {
-                                            isForwardPresented = false
                                         }
                                     }
                                 })
         
-                                .if(isIPad == true && isForwardPresented == true, transform: { view in
+                                .if((isIPad == true || isMac == true) && isForwardPresented == true, transform: { view in
                                     view.sheet(isPresented: $isForwardPresented, content: {
                                         ForwardView(viewModel: ForwardViewModel(messages: viewModel.selectedMessages as? [Message] ?? [])) {
                                             viewModel.cancelMessageAction()
                                             isForwardSuccess = true
-                                        }                                    })
+                                        }
+                                    })
                                 })
         
                                 .modifier(DialogHeader(dialog: viewModel.dialog,
@@ -389,9 +384,6 @@ public struct GroupDialogView
                                 }
                             }
                         }, onSelect: { item, actionType in
-                            if viewModel.messagesActionState == actionType {
-                                return
-                            }
                             viewModel.handleOnSelect(item, actionType: actionType)
                         }, aiAnswerWaiting: $viewModel.waitingAnswer)
                         .onAppear {
@@ -422,7 +414,17 @@ public struct GroupDialogView
     }
     
     public var body: some View {
-        if isIPad {
+         if isIphone {
+            container()
+                .onViewDidLoad {
+                    viewModel.sync()
+                }
+                .onDisappear {
+                    viewModel.sendStopTyping()
+                    viewModel.stopPlayng()
+                    viewModel.unsync()
+                }
+        } else {
             NavigationStack {
                 container()
                     .onViewDidLoad {
@@ -434,16 +436,6 @@ public struct GroupDialogView
                         viewModel.unsync()
                     }
             }
-        } else if isIphone {
-            container()
-                .onViewDidLoad {
-                    viewModel.sync()
-                }
-                .onDisappear {
-                    viewModel.sendStopTyping()
-                    viewModel.stopPlayng()
-                    viewModel.unsync()
-                }
         }
     }
 }
