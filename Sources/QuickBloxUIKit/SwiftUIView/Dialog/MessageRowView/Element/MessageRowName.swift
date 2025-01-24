@@ -35,9 +35,8 @@ public struct MessageRowName<MessageItem: MessageEntity>: View {
                         .font(settings.name.font)
                         .padding(settings.inboundNamePadding)
                         .task {
-                            do { 
-                                let userName = try await message.userName
-                                self.userName = regex.userName.isEmpty ? userName : (userName.isValid(regexes: [regex.userName]) == true ? userName : settings.name.unknown)
+                            do {
+                                self.userName = try await message.userName
                             } catch { prettyLog(error) }
                         }
                 }

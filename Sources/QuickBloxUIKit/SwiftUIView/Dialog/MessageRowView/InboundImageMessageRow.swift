@@ -48,7 +48,9 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
                 
                 if features.forward.enable == true,
                    messagesActionState == .forward {
-                    Checkbox(isSelected: isSelected)
+                    Checkbox(isSelected: isSelected) {
+                        onSelect(message, .forward)
+                    }
                 }
                 
                 MessageRowAvatar(message: message)
@@ -62,13 +64,32 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
                            messagesActionState == .forward {
                             messageContent()
                         } else {
-                            Button {
-                                if fileTuple?.url != nil {
-                                    open()
+                            messageContent()
+                                .if(contentSize != nil && fileTuple?.image != nil, transform: { view in
+                                    view.customContextMenu (
+                                        preview: messageContent(forPreview: true),
+                                        preferredContentSize: CGSize(width: contentSize?.width ?? 0.0,
+                                                                     height: contentSize?.height ?? 0.0)
+                                    ) {
+                                        CustomContextMenuAction(title: settings.reply.title,
+                                                                systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
+                                                                attributes: features.reply.enable == true
+                                                                ? nil : .hidden) {
+                                            onSelect(message, .reply)
+                                        }
+                                        CustomContextMenuAction(title: settings.forward.title,
+                                                                systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
+                                                                attributes: features.forward.enable == true
+                                                                ? nil : .hidden) {
+                                            onSelect(message, .forward)
+                                        }
+                                    }
+                                })
+                                .onTapGesture {
+                                    if fileTuple?.url != nil {
+                                        open()
+                                    }
                                 }
-                            } label: {
-                                messageContent()
-                            }.buttonStyle(.plain)
                         }
                         
                         if message.actionType == .none ||
@@ -92,38 +113,6 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
             .padding(.bottom, actionSpacerBetweenRows())
             .fixedSize(horizontal: false, vertical: true)
             .id(message.id)
-            .if(contentSize != nil && fileTuple?.image != nil, transform: { view in
-                view.customContextMenu (
-                    preview: messageContent(forPreview: true),
-                    preferredContentSize: CGSize(width: contentSize?.width ?? 0.0,
-                                                 height: contentSize?.height ?? 0.0)
-                ) {
-                    CustomContextMenuAction(title: settings.reply.title,
-                                         systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
-                                         attributes: features.reply.enable == true
-                                         ? nil : .hidden) {
-                        onSelect(message, .reply)
-                    }
-                    CustomContextMenuAction(title: settings.forward.title,
-                                         systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
-                                         attributes: features.forward.enable == true
-                                         ? nil : .hidden) {
-                        onSelect(message, .forward)
-                    }
-                }
-            })
-                
-                if features.forward.enable == true,
-               messagesActionState == .forward {
-                Button {
-                    onSelect(message, .forward)
-                } label: {
-                    EmptyView()
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity)
-                .frame(maxHeight: .infinity)
-            }
         }
     }
     
@@ -180,7 +169,7 @@ public struct InboundImageMessageRow<MessageItem: MessageEntity>: View {
 //                                   onTap: { (_,_) in},
 //                                   onSelect: { (_,_) in})
 //            .previewDisplayName("Message")
-//            
+//
 //            InboundImageMessageRow(message: Message(id: UUID().uuidString,
 //                                                    dialogId: "1f2f3ds4d5d6d",
 //                                                    text: "Test text Message",

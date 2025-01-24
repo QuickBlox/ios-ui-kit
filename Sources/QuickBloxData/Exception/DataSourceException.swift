@@ -19,6 +19,9 @@ public enum DataSourceException: Error, Equatable {
     
     /// Would be thrown when an operation is attempted on an record that does not exist in the data source.
     case notFound(description:String = "")
+    
+    /// Would be thrown when attempting to access and without authentication credentials to do so.
+    case unauthorised(description:String = "")
 }
 
 extension DataSourceException: LocalizedError {
@@ -32,6 +35,8 @@ extension DataSourceException: LocalizedError {
             description = ("Already exist.", reason)
         case .notFound(let reason):
             description = ("Not found.", reason)
+        case .unauthorised(let reason):
+            description = ("Unauthorised.", reason)
         }
         
         return description.info + "" + description.reason

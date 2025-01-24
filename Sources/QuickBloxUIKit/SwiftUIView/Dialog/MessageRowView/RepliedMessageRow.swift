@@ -122,7 +122,7 @@ public struct RepliedMessageRow<MessageItem: MessageEntity>: View {
                         if type == .answerAssist {
                             if features.ai.answerAssist.enable == true,
                                features.ai.answerAssist.isValid == true,
-                               let messageItem = repliedMessage as? Message {
+                               let messageItem = item as? Message {
                                     viewModel.applyAIAnswerAssist(messageItem)
                             } else {
                                 aiFeature = .answerAssist

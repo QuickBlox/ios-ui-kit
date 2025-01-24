@@ -26,7 +26,7 @@ public struct PrivateDialogInfoView<ViewModel: DialogInfoProtocol>: View {
     public var body: some View {
         if isIphone {
             container()
-        } else if isIPad {
+        } else {
             NavigationStack {
                 container()
             }.accentColor(settings.header.leftButton.color)

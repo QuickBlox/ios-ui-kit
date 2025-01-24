@@ -30,12 +30,19 @@ public struct OutboundGIFMessageRow<MessageItem: MessageEntity>: View {
     
     @State private var contentSize: CGSize?
     
+    private var preferredContentSize: CGSize {
+        guard let contentSize = contentSize else {
+            return .zero
+        }
+        return contentSize
+    }
+    
     public init(message: MessageItem,
                 fileTuple: (type: String, image: UIImage?, url: URL?)? = nil,
                 messagesActionState: MessageAction,
                 relatedTime: Date?,
                 relatedStatus: MessageStatus?,
-
+                
                 isSelected: Bool,
                 onTap: @escaping (_ action: MessageAttachmentAction, _ url: URL?) -> Void,
                 onSelect: @escaping (_ item: MessageItem, _ actionType: MessageAction) -> Void) {
@@ -55,7 +62,9 @@ public struct OutboundGIFMessageRow<MessageItem: MessageEntity>: View {
                 
                 if features.forward.enable == true,
                    messagesActionState == .forward {
-                    Checkbox(isSelected: isSelected)
+                    Checkbox(isSelected: isSelected) {
+                        onSelect(message, .forward)
+                    }
                 }
                 
                 Spacer(minLength: settings.outboundSpacer)
@@ -91,103 +100,87 @@ public struct OutboundGIFMessageRow<MessageItem: MessageEntity>: View {
                        messagesActionState == .forward {
                         messageContent()
                     } else {
-                        Button {
-                            if features.forward.enable == true,
-                               messagesActionState == .forward { return }
-                            if fileTuple?.url != nil {
-                                open()
+                        messageContent()
+                            .if(contentSize != nil && fileTuple?.image != nil, transform: { view in
+                                view.customContextMenu (
+                                    preview: messageContent(forPreview: true),
+                                    preferredContentSize: preferredContentSize
+                                ) {
+                                    CustomContextMenuAction(title: settings.reply.title,
+                                                            systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
+                                                            attributes: features.reply.enable == true
+                                                            ? nil : .hidden) {
+                                        onSelect(message, .reply)
+                                    }
+                                    CustomContextMenuAction(title: settings.forward.title,
+                                                            systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
+                                                            attributes: features.forward.enable == true
+                                                            ? nil : .hidden) {
+                                        onSelect(message, .forward)
+                                    }
+                                }
+                            })
+                            .onTapGesture {
+                                if fileTuple?.url != nil {
+                                    open()
+                                }
                             }
-                        } label: {
-                            messageContent()
-                        }.buttonStyle(.plain)
                     }
                 }
             }
             .padding(.bottom, message.actionType == .reply && message.relatedId.isEmpty == false ? 2 : settings.spacerBetweenRows)
             .fixedSize(horizontal: false, vertical: true)
             .id(message.id)
-            .if(contentSize != nil && fileTuple?.image != nil, transform: { view in
-                view.customContextMenu (
-                    preview: messageContent(forPreview: true),
-                    preferredContentSize: CGSize(width: contentSize?.width ?? 0.0,
-                                                 height: contentSize?.height ?? 0.0)
-                ) {
-                    CustomContextMenuAction(title: settings.reply.title,
-                                            systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
-                                         attributes: features.reply.enable == true
-                                         ? nil : .hidden) {
-                        onSelect(message, .reply)
-                    }
-                    CustomContextMenuAction(title: settings.forward.title,
-                                            systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
-                                         attributes: features.forward.enable == true
-                                         ? nil : .hidden) {
-                        onSelect(message, .forward)
-                    }
-                }
-            })
-                
-                if features.forward.enable == true,
-                messagesActionState == .forward {
-                Button {
-                    onSelect(message, .forward)
-                } label: {
-                    EmptyView()
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity)
-                .frame(maxHeight: .infinity)
-            }
         }
     }
     
     @ViewBuilder
     private func messageContent(forPreview: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            
-            ZStack(alignment: .center) {
-                if let image = fileTuple?.image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: settings.attachmentSize(isPortrait: image.size.height > image.size.width).width, height: settings.attachmentSize(isPortrait: image.size.height > image.size.width).height)
-                        .fixedSize()
-                        .clipped()
-                        .cornerRadius(settings.attachmentRadius, corners: features.forward.enable == true && message.actionType == .forward ||
-                                      message.actionType == .reply && message.relatedId.isEmpty == false ?
-                                      settings.outboundForwardCorners : settings.outboundCorners)
-                        .contentSize(onChange: { contentSize in
-                            self.contentSize = contentSize
-                        })
-                        .padding(settings.outboundPadding)
-                    
-                    
-                    settings.videoPlayBackground
-                        .frame(width: settings.imageIconSize.width,
-                               height: settings.imageIconSize.height)
-                        .cornerRadius(6)
-                    
-                    Text(settings.gifTitle)
-                        .font(settings.gifFontPlay)
-                        .foregroundColor(settings.videoPlayForeground)
-                    
-                } else {
-                    
-                    settings.progressBarBackground()
-                    
-                        .frame(width: settings.attachmentSize.width,
-                               height: settings.attachmentSize.height)
-                        .cornerRadius(settings.attachmentRadius, corners: features.forward.enable == true && message.actionType == .forward ||
-                                      message.actionType == .reply && message.relatedId.isEmpty == false ?
-                                      settings.outboundForwardCorners : settings.outboundCorners)
-                        .contentSize(onChange: { contentSize in
-                            self.contentSize = contentSize
-                        })
-                        .padding(settings.outboundPadding)
-                    
-                    
-                    SegmentedCircularBar(settings: settings.progressBar)
-                }
+        ZStack {
+            if let url = fileTuple?.url, url.pathExtension.lowercased() == "gif",
+               let image = UIImage.animatedImage(from: url) {
+                
+                MessageRowAnimatedImage(image: image)
+                    .fixedSize()
+                    .clipped()
+                    .cornerRadius(settings.attachmentRadius, corners: features.forward.enable == true && message.actionType == .forward ||
+                                  message.actionType == .reply && message.relatedId.isEmpty == false ?
+                                  settings.outboundForwardCorners : settings.outboundCorners)
+                    .contentSize(onChange: { contentSize in
+                        self.contentSize = contentSize
+                    })
+                    .padding(settings.outboundPadding)
+                    .padding(.leading, forPreview == true ? 8 : 0)
+                
+            } else if let image = fileTuple?.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: settings.attachmentSize(isPortrait: image.size.height > image.size.width).width, height: settings.attachmentSize(isPortrait: image.size.height > image.size.width).height)
+                    .fixedSize()
+                    .clipped()
+                    .padding(settings.outboundPadding)
+                    .padding(.leading, forPreview == true ? 8 : 0)
+                
+                
+                settings.videoPlayBackground
+                    .frame(width: settings.imageIconSize.width,
+                           height: settings.imageIconSize.height)
+                    .cornerRadius(6)
+                
+                Text(settings.gifTitle)
+                    .font(settings.gifFontPlay)
+                    .foregroundColor(settings.videoPlayForeground)
+                
+            } else {
+                
+                settings.progressBarBackground()
+                    .frame(width: settings.attachmentSize.width,
+                           height: settings.attachmentSize.height)
+                    .padding(settings.outboundPadding)
+                    .padding(.leading, forPreview == true ? 8 : 0)
+                
+                SegmentedCircularBar(settings: settings.progressBar)
             }
         }
     }

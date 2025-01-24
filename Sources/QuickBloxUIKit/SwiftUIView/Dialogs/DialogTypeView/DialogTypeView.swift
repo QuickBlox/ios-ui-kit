@@ -29,7 +29,7 @@ struct DialogTypeView: View {
     public var body: some View {
         if isIphone {
             container()
-        } else if isIPad {
+        } else {
             NavigationStack {
                 container()
             }.accentColor(settings.header.leftButton.color)
@@ -62,7 +62,7 @@ struct DialogTypeView: View {
                     }
                 }
             
-                .if(presentCreateDialog == true && isIPad == true) { view in
+                .if(presentCreateDialog == true && (isIPad == true || isMac == true)) { view in
                     view.sheet(isPresented: $presentCreateDialog, content: {
                         if let selectedSegment {
                             if selectedSegment == .private {

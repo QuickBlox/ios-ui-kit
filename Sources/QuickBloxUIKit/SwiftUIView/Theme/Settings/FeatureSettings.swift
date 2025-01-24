@@ -38,8 +38,8 @@ public class RegexFeature {
 }
 
 public class ToolbarFeature {
-    public var enable: Bool = true
-    public var externalIndexes: [TabIndex] = [.settings]
+    public var enable: Bool = false
+    public var externalIndexes: [TabIndex] = []
 }
 
 public struct ToolbarUISettings {

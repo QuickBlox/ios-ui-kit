@@ -46,7 +46,9 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
                 
                 if features.forward.enable == true,
                    messagesActionState == .forward {
-                    Checkbox(isSelected: isSelected)
+                    Checkbox(isSelected: isSelected) {
+                        onSelect(message, .forward)
+                    }
                 }
                 
                 MessageRowAvatar(message: message)
@@ -61,13 +63,32 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
                            messagesActionState == .forward {
                             messageContent()
                         } else {
-                            Button {
-                                if fileTuple?.url != nil {
-                                    open()
+                            messageContent()
+                                .if(contentSize != nil && fileTuple?.image != nil, transform: { view in
+                                    view.customContextMenu (
+                                        preview: messageContent(forPreview: true),
+                                        preferredContentSize: CGSize(width: contentSize?.width ?? 0.0,
+                                                                     height: contentSize?.height ?? 0.0)
+                                    ) {
+                                        CustomContextMenuAction(title: settings.reply.title,
+                                                                systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
+                                                                attributes: features.reply.enable == true
+                                                                ? nil : .hidden) {
+                                            onSelect(message, .reply)
+                                        }
+                                        CustomContextMenuAction(title: settings.forward.title,
+                                                                systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
+                                                                attributes: features.forward.enable == true
+                                                                ? nil : .hidden) {
+                                            onSelect(message, .forward)
+                                        }
+                                    }
+                                })
+                                .onTapGesture {
+                                    if fileTuple?.url != nil {
+                                        open()
+                                    }
                                 }
-                            } label: {
-                                messageContent()
-                            }.buttonStyle(.plain)
                         }
                         
                         if message.actionType == .none ||
@@ -90,45 +111,25 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
             .padding(.bottom, actionSpacerBetweenRows())
             .fixedSize(horizontal: false, vertical: true)
             .id(message.id)
-            .if(contentSize != nil && fileTuple?.image != nil, transform: { view in
-                view.customContextMenu (
-                    preview: messageContent(forPreview: true),
-                    preferredContentSize: CGSize(width: contentSize?.width ?? 0.0,
-                                                 height: contentSize?.height ?? 0.0)
-                ) {
-                    CustomContextMenuAction(title: settings.reply.title,
-                                         systemImage: settings.reply.systemImage ?? "", tintColor: settings.reply.color, flipped: UIImageAxis.none,
-                                         attributes: features.reply.enable == true
-                                         ? nil : .hidden) {
-                        onSelect(message, .reply)
-                    }
-                    CustomContextMenuAction(title: settings.forward.title,
-                                         systemImage: settings.forward.systemImage ?? "", tintColor: settings.forward.color, flipped: .horizontal,
-                                         attributes: features.forward.enable == true
-                                         ? nil : .hidden) {
-                        onSelect(message, .forward)
-                    }
-                }
-            })
-                
-                if features.forward.enable == true,
-               messagesActionState == .forward {
-                Button {
-                    onSelect(message, .forward)
-                } label: {
-                    EmptyView()
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity)
-                .frame(maxHeight: .infinity)
-            }
         }
     }
     
     @ViewBuilder
     private func messageContent(forPreview: Bool = false) -> some View {
         ZStack {
-            if let image = fileTuple?.image {
+            if let url = fileTuple?.url, url.pathExtension.lowercased() == "gif",
+               let animatedImage = UIImage.animatedImage(from: url) {
+                
+                MessageRowAnimatedImage(image: animatedImage)
+                    .fixedSize()
+                    .clipped()
+                    .cornerRadius(settings.attachmentRadius, corners: message.actionType == .reply && message.relatedId.isEmpty == false ?
+                                  settings.outboundForwardCorners : settings.inboundCorners)
+                    .contentSize(onChange: { contentSize in
+                        self.contentSize = contentSize
+                    })
+                
+            } else if let image = fileTuple?.image {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
@@ -158,9 +159,6 @@ public struct InboundGIFMessageRow<MessageItem: MessageEntity>: View {
                 SegmentedCircularBar(settings: settings.progressBar)
             }
         }
-        .contentSize(onChange: { contentSize in
-            self.contentSize = contentSize
-        })
     }
     
     private func open() {

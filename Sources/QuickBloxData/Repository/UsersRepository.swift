@@ -116,7 +116,7 @@ extension UsersRepository: UsersRepositoryProtocol {
     
     public func get(usersFromRemote fullName: String) async throws -> [User] {
         do {
-            let pagination = Pagination(skip: 0, limit: 30)
+            let pagination = Pagination(skip: 0, limit: 100)
             let withFullName = RemoteUsersDTO(name:fullName, pagination: pagination)
             let data = try await remote.get(users: withFullName)
             return data.users.map { User($0) }

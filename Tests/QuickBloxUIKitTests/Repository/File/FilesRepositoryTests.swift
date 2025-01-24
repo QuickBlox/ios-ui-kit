@@ -111,6 +111,20 @@ extension FilesRepositoryTests {
         )
     }
     
+    func testGetFromRemote() async throws {
+        let remoteFileDTO = RemoteFileDTO(id: Test.id,
+                                          ext: .png,
+                                          data: imageData,
+                                          public: false)
+        
+        remoteDataSourceMock.results[RemoteMethod.getFile] =
+            .success([AcyncMockReturn { [remoteFileDTO] }])
+        
+        let result = try await repository.get(fileFromRemote: Test.id)
+        
+        XCTAssertEqual(result.data, imageData)
+    }
+    
     func testGetFromRemoteNotFound() async throws {
         remoteDataSourceMock.results[RemoteMethod.getFile] =
             .success([AcyncMockError {

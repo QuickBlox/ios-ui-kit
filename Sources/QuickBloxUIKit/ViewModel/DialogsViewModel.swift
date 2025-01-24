@@ -54,7 +54,7 @@ final class DialogsViewModel: DialogsListProtocol {
         createDialogObserve.execute()
             .receive(on: RunLoop.main)
             .sink { [weak self] dialog in
-                if isIPad {
+                if (isIPad == true || isMac == true) {
                     self?.selectedItem = nil
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         DispatchQueue.main.async {
@@ -73,7 +73,7 @@ final class DialogsViewModel: DialogsListProtocol {
             .receive(on: RunLoop.main)
             .sink { [weak self] dialogId in
                 if dialogId == self?.selectedItem?.id {
-                    if isIPad {
+                    if (isIPad == true || isMac == true) {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                             self?.selectedItem = nil
                         }

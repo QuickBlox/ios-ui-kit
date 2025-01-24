@@ -213,6 +213,11 @@ extension LocalDataSourceTest {
         )
         
         await XCTAssertThrowsException(
+            try await storage.update(message: message),
+            equelTo: DataSourceException.notFound()
+        )
+        
+        await XCTAssertThrowsException(
             try await storage.get(user: user),
             equelTo: DataSourceException.notFound())
     }

@@ -28,6 +28,10 @@ extension MessagesRepositoryMock: MessagesRepositoryProtocol {
         try await mock().callAcyncVoid()
     }
     
+    func send(forwardMessageToRemote entity: Message) async throws {
+        try await mock().callAcyncVoid()
+    }
+    
     func save(messageToLocal entity: Message) async throws {
         try await mock().callAcyncVoid()
     }

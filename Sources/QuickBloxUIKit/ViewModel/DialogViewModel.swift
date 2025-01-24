@@ -10,6 +10,7 @@ import UIKit
 import SwiftUI
 import QuickBloxDomain
 import QuickBloxData
+import Quickblox
 import Combine
 import Photos
 import QuickBloxLog
@@ -591,9 +592,6 @@ open class DialogViewModel: DialogViewModelProtocol {
     }
     
    private func didSelect(single: Bool, item: DialogItem.MessageItem) {
-        if single, selectedMessages.isEmpty == false {
-            return
-        }
         if selectedMessages.contains(where: { $0.id == item.id && $0.relatedId == item.relatedId}) == true,
            single == false {
             selectedMessages.removeAll(where: { $0.id == item.id && $0.relatedId == item.relatedId })
@@ -615,44 +613,58 @@ open class DialogViewModel: DialogViewModelProtocol {
     
     //MARK: - AI Features
     public func applyAIAnswerAssist(_ message: DialogItem.MessageItem) {
+        guard QuickBloxUIKit.feature.ai.answerAssist.isValid else { return }
         
         waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: true)
         aiAnswer = ""
         
-        let messages = filterTextHistory(from: message.date)
+        var messages = filterTextHistory(from: message)
         
         let answerAssist = QuickBloxUIKit.feature.ai.answerAssist
         
-        var settings: QBAIAnswerAssistant.AISettings?
+        var useCase: AIFeatureUseCaseProtocol!
         
-        if answerAssist.serverPath.isEmpty == false {
+        if answerAssist.smartChatAssistantId.isEmpty == false {
+            useCase = AIAnswerAssist(message: message,
+                                       history: messages,
+                                       smartChatAssistantId: answerAssist.smartChatAssistantId,
+                                       repo: RepositoriesFabric.ai)
+        } else {
+            var settings: QBAIAnswerAssistant.AISettings?
             
-            settings = QBAIAnswerAssistant.AISettings(token: "",
-                                                      serverPath: answerAssist.serverPath,
-                                                      apiVersion: answerAssist.apiVersion,
-                                                      organization: answerAssist.organization,
-                                                      model: answerAssist.model,
-                                                      temperature: answerAssist.temperature,
-                                                      maxRequestTokens: answerAssist.maxRequestTokens,
-                                                      maxResponseTokens: answerAssist.maxResponseTokens)
-        } else if answerAssist.apiKey.isEmpty == false {
+            if answerAssist.serverPath.isEmpty == false {
+                
+                settings = QBAIAnswerAssistant.AISettings(token: "",
+                                                          serverPath: answerAssist.serverPath,
+                                                          apiVersion: answerAssist.apiVersion,
+                                                          organization: answerAssist.organization,
+                                                          model: answerAssist.model,
+                                                          temperature: answerAssist.temperature,
+                                                          maxRequestTokens: answerAssist.maxRequestTokens,
+                                                          maxResponseTokens: answerAssist.maxResponseTokens)
+            } else if answerAssist.apiKey.isEmpty == false {
+                
+                settings = QBAIAnswerAssistant.AISettings(apiKey: answerAssist.apiKey,
+                                                          apiVersion: answerAssist.apiVersion,
+                                                          organization: answerAssist.organization,
+                                                          model: answerAssist.model,
+                                                          temperature: answerAssist.temperature,
+                                                          maxRequestTokens: answerAssist.maxRequestTokens,
+                                                          maxResponseTokens: answerAssist.maxResponseTokens)
+            }
             
-            settings = QBAIAnswerAssistant.AISettings(apiKey: answerAssist.apiKey,
-                                                      apiVersion: answerAssist.apiVersion,
-                                                      organization: answerAssist.organization,
-                                                      model: answerAssist.model,
-                                                      temperature: answerAssist.temperature,
-                                                      maxRequestTokens: answerAssist.maxRequestTokens,
-                                                      maxResponseTokens: answerAssist.maxResponseTokens)
+            guard let settings = settings else {
+                waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: false)
+                self.aiAnswer = message.text
+                return
+            }
+            
+            messages.append(message)
+            
+            print("messages = \(messages)")
+            
+            useCase = AnswerAssist(messages, settings: settings)
         }
-        
-        guard let settings = settings else {
-            waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: false)
-            self.aiAnswer = message.text
-            return
-        }
-        
-        let useCase = AnswerAssist(messages, settings: settings)
         
         Task { [weak self] in
             do {
@@ -676,44 +688,54 @@ open class DialogViewModel: DialogViewModelProtocol {
     }
     
     public func applyAITranslate(_ message: DialogItem.MessageItem) {
-        waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: true)
-        
-        let messages = filterTextHistory(from: message.date)
-        
+        guard QuickBloxUIKit.feature.ai.translate.isValid else { return }
         let translateSettings = QuickBloxUIKit.feature.ai.translate
         
-        var settings: QBAITranslate.AISettings?
+        waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: true)
         
-        if translateSettings.serverPath.isEmpty == false {
+        var useCase: AIFeatureUseCaseProtocol!
+        
+        if translateSettings.smartChatAssistantId.isEmpty == false {
+            useCase = AITranslate(message.text,
+                                    smartChatAssistantId: translateSettings.smartChatAssistantId,
+                                    languageCode: translateSettings.aiLanguage.rawValue,
+                                    repo: RepositoriesFabric.ai)
+        } else {
+            var settings: QBAITranslate.AISettings?
             
-            settings = QBAITranslate.AISettings(token: "",
-                                                serverPath: translateSettings.serverPath,
-                                                language: translateSettings.language,
-                                                apiVersion: translateSettings.apiVersion,
-                                                organization: translateSettings.organization,
-                                                model: translateSettings.model,
-                                                temperature: translateSettings.temperature,
-                                                maxRequestTokens: translateSettings.maxRequestTokens,
-                                                maxResponseTokens: translateSettings.maxResponseTokens)
-        } else if translateSettings.apiKey.isEmpty == false {
+            if translateSettings.serverPath.isEmpty == false {
+                
+                settings = QBAITranslate.AISettings(token: "",
+                                                    serverPath: translateSettings.serverPath,
+                                                    language: translateSettings.language,
+                                                    apiVersion: translateSettings.apiVersion,
+                                                    organization: translateSettings.organization,
+                                                    model: translateSettings.model,
+                                                    temperature: translateSettings.temperature,
+                                                    maxRequestTokens: translateSettings.maxRequestTokens,
+                                                    maxResponseTokens: translateSettings.maxResponseTokens)
+            } else if translateSettings.apiKey.isEmpty == false {
+                
+                settings = QBAITranslate.AISettings(apiKey: translateSettings.apiKey,
+                                                    language: translateSettings.language,
+                                                    apiVersion: translateSettings.apiVersion,
+                                                    organization: translateSettings.organization,
+                                                    model: translateSettings.model,
+                                                    temperature: translateSettings.temperature,
+                                                    maxRequestTokens: translateSettings.maxRequestTokens,
+                                                    maxResponseTokens: translateSettings.maxResponseTokens)
+            }
             
-            settings = QBAITranslate.AISettings(apiKey: translateSettings.apiKey,
-                                                language: translateSettings.language,
-                                                apiVersion: translateSettings.apiVersion,
-                                                organization: translateSettings.organization,
-                                                model: translateSettings.model,
-                                                temperature: translateSettings.temperature,
-                                                maxRequestTokens: translateSettings.maxRequestTokens,
-                                                maxResponseTokens: translateSettings.maxResponseTokens)
+            guard let settings = settings else {
+                waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: false)
+                self.aiAnswer = message.text
+                return
+            }
+            
+            let messages = filterTextHistory(from: message.date)
+            
+            useCase = Translate(message.text, content: messages, settings: settings)
         }
-        
-        guard let settings = settings else {
-            waitingAnswer = AIAnswerInfo(id: message.id, relatedId: message.relatedId, waiting: false)
-            self.aiAnswer = message.text
-            return
-        }
-        
-        let useCase = Translate(message.text, content: messages, settings: settings)
         
         Task { [weak self] in
             do {
@@ -851,13 +873,25 @@ open class DialogViewModel: DialogViewModelProtocol {
     
     private func filterTextHistory(from date: Date) -> [QuickBloxData.Message] {
         let messages = dialog.messages.filter { message in
-            if message.isText == true, message.date <= date {
+            if message.isText == true, message.date < date {
                 return true
             }
             return false
         }
         return messages
     }
+    
+    private func filterTextHistory(from question: QuickBloxData.Message) -> [QuickBloxData.Message] {
+            let messages = dialog.messages.filter { message in
+                if message.isText == true,
+                   message.date < question.date,
+                   message.isOwnedByCurrentUser || message.userId == question.userId {
+                    return true
+                }
+                return false
+            }
+            return messages
+        }
     
     //MARK: - Media Permissions
     public func requestPermission(_ mediaType: AVMediaType, completion: @escaping (_ granted: Bool) -> Void) {

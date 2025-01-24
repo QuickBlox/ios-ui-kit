@@ -7,9 +7,6 @@
 //
 
 import SwiftUI
-import QBAITranslate
-import QBAIRephrase
-import QBAIAnswerAssistant
 
 public class Feature {
     /// An instance of the AI module for AI-related settings and operations.

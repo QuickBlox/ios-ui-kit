@@ -87,7 +87,7 @@ public protocol RemoteDataSourceProtocol {
     /// - Throws: ``DataSourceException``**.notFound**  when an message item is missing from remote storage.
     /// - Throws: ``RemoteDataSourceException``**.restrictedAccess** when appropriate permissions to perform this operation is absent.
     func update(message dto: RemoteMessageDTO) async throws -> RemoteMessageDTO
-//
+
     /// Remove a message from a remote storage.
     /// - Parameter dto: message's dto item.
     ///
@@ -151,6 +151,7 @@ public protocol RemoteDataSourceProtocol {
     //MARK: Events
     
     var eventPublisher: AnyPublisher<RemoteEvent, Never> { get async }
+    
     //MARK: Connection
     
     var connectionPublisher: AnyPublisher<ConnectionState, Never> { get }
@@ -160,4 +161,20 @@ public protocol RemoteDataSourceProtocol {
     func disconnect() async throws
     
     func checkConnection() async throws -> ConnectionState
+    
+    //MARK: AI
+    
+    /// Retrieve an ai answer assist from a remote storage.
+    /// - Parameter message: Message item you want to get answer for.
+    /// - Returns: answer.
+    ///
+    /// - Throws: ``DataSourceException``**.notFound**  when an answer is missing from remote storage.
+    func answerAssist(message dto: RemoteAnswerAssistMessageDTO) async throws -> String
+    
+    /// Retrieve a translate from a remote storage.
+    /// - Parameter message: Message item to translate.
+    /// - Returns: translate.
+    ///
+    /// - Throws: ``DataSourceException``**.notFound**  when a translate is missing from remote storage.
+    func translate(message dto: RemoteTranslateMessageDTO) async throws -> String
 }

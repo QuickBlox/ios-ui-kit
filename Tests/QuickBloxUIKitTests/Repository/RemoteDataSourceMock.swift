@@ -46,7 +46,6 @@ class RemoteDataSourceMock: Mock {
 }
 
 extension RemoteDataSourceMock: RemoteDataSourceProtocol {
-    
     var eventPublisher: AnyPublisher<RemoteEvent, Never> {
         return event
     }
@@ -112,6 +111,10 @@ extension RemoteDataSourceMock: RemoteDataSourceProtocol {
         _ = try mock().get()
     }
     
+    func send(forwardMessageToRemote dto: RemoteMessageDTO) async throws {
+        _ = try mock().get()
+    }
+    
     func update(message dto: RemoteMessageDTO) async throws -> RemoteMessageDTO {
         return try mock().getFirst()
     }
@@ -146,5 +149,13 @@ extension RemoteDataSourceMock: RemoteDataSourceProtocol {
     
     func delete(file dto: RemoteFileDTO) async throws {
         try await mock().callAcyncVoid()
+    }
+    
+    func answerAssist(message dto: RemoteAnswerAssistMessageDTO) async throws -> String {
+        return try mock().getFirst()
+    }
+    
+    func translate(message dto: RemoteTranslateMessageDTO) async throws -> String {
+        return try mock().getFirst()
     }
 }

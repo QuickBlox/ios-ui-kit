@@ -124,10 +124,18 @@ extension MessageEntity {
                 return .inboundImage
             }
         } else if isVideoMessage {
-            if isOwnedByCurrentUser {
-                return .outboundVideo
+            if fileInfo?.ext == .gif {
+                if isOwnedByCurrentUser {
+                    return .outboundGIF
+                } else {
+                    return .inboundGIF
+                }
             } else {
-                return .inboundVideo
+                if isOwnedByCurrentUser {
+                    return .outboundVideo
+                } else {
+                    return .inboundVideo
+                }
             }
         } else if isAudioMessage {
             if isOwnedByCurrentUser {

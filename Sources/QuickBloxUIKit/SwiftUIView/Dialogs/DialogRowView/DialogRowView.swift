@@ -78,7 +78,7 @@ extension DialogRowView {
                                       isHidden: settings.isHiddenAvatar))
             VStack(spacing: settings.infoSpacing) {
                 HStack {
-                    nameView ?? DialogRowName(text: dialog.validName)
+                    nameView ?? DialogRowName(text: dialog.name)
                     settings.infoSpacer
                     timeView ?? DialogRowTime(time: dialog.time,
                                               isHidden: settings.isHiddenTime)
@@ -211,7 +211,7 @@ public struct SelectDialogRowView: View {
                                      height: settings.selectAvatarSize.height,
                                      isHidden: settings.isHiddenAvatar )
             
-            UserRowName(text: dialog.validName)
+            UserRowName(text: dialog.name)
             Spacer()
             
             Checkbox(isSelected: isSelected) {
@@ -259,15 +259,5 @@ extension DialogEntity {
             formatter.dateStyle = .short
         }
         return formatter.string(from: date)
-    }
-    
-    public var validName: String {
-        let settings = QuickBloxUIKit.settings.dialogScreen.messageRow.name
-        let regex = QuickBloxUIKit.feature.regex
-        
-        if type == .private && regex.userName.isEmpty == false {
-            return name.isValid(regexes: [regex.userName]) == true ? name : settings.unknown
-        }
-        return name
     }
 }
