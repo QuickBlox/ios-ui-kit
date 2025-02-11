@@ -109,14 +109,14 @@ class TypingProvider: ObservableObject {
         stopTimer = nil
         
         Task {
-            let sendStopTyping = SendStopTyping(dialogId: dialogId, repo: RepositoriesFabric.dialogs)
+            let sendStopTyping = SendStopTyping(dialogId: dialogId, repo: Repository.dialogs)
             try await sendStopTyping.execute()
         }
     }
     
     public func sendTyping() {
         Task {
-            let sendTyping = SendTyping(dialogId: dialogId, repo: RepositoriesFabric.dialogs)
+            let sendTyping = SendTyping(dialogId: dialogId, repo: Repository.dialogs)
             try await sendTyping.execute()
         }
         stopTimer?.invalidate()

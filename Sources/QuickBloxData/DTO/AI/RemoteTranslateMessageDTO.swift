@@ -9,8 +9,10 @@
 import Foundation
 
 public struct RemoteTranslateMessageDTO {
-    var id = ""
-    var smartChatAssistantId = ""
-    var message = ""
-    var languageCode = ""
+    public var id = ""
+    public var smartChatAssistantId = ""
+    public var message = ""
+    public var languageCode = ""
+    
+    public init () {}
 }

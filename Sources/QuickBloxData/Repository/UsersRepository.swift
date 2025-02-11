@@ -15,7 +15,7 @@ public class UsersRepository {
     private var remote: RemoteDataSourceProtocol!
     private var local:  LocalDataSourceProtocol!
     
-    init(remote: RemoteDataSourceProtocol,
+    public init(remote: RemoteDataSourceProtocol,
          local: LocalDataSourceProtocol) {
         self.remote = remote
         self.local = local

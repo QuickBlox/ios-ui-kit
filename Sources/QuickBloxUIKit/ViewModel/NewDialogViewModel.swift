@@ -68,7 +68,7 @@ final class NewDialogViewModel: NewDialogProtocol {
     
     private var avatarUUID = ""
     
-    private let permissionsRepo: PermissionsRepository = RepositoriesFabric.permissions
+    private let permissionsRepo: PermissionsRepository = Repository.permissions
     
     private var attachmentAsset: AttachmentAsset? = nil
     
@@ -120,7 +120,7 @@ final class NewDialogViewModel: NewDialogProtocol {
                 let uploadAvatar = UploadFile(data: finalImageData,
                                               ext: .png,
                                               name: name,
-                                              repo: RepositoriesFabric.files)
+                                              repo: Repository.files)
                 let fileInfo =  try await uploadAvatar.execute()
                 guard let uuid = fileInfo.info.path.uuid else { return }
                 await MainActor.run { [weak self, uuid] in

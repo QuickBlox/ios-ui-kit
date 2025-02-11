@@ -64,8 +64,8 @@ open class ForwardViewModel: ForwardViewModelProtocol {
     @MainActor
     @Published public var isSynced: Bool = false
     
-    private let dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs
-    private let usersRepo: UsersRepository = RepositoriesFabric.users
+    private let dialogsRepo: DialogsRepository = Repository.dialogs
+    private let usersRepo: UsersRepository = Repository.users
     
     public var cancellables = Set<AnyCancellable>()
     public var tasks = Set<Task<Void, Never>>()
@@ -124,7 +124,7 @@ open class ForwardViewModel: ForwardViewModelProtocol {
                                   originalMessages: messages)
             
             let sendForwardMessage = SendForwardMessage(message: message,
-                                                        messageRepo: RepositoriesFabric.messages)
+                                                        messageRepo: Repository.messages)
             
             Task {
                 do {

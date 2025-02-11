@@ -10,6 +10,8 @@ import QuickBloxDomain
 
 /// This is a DTO model for interactions with  the dialog session or conversation models in local storage.
 public struct LocalDialogsDTO {
-    var dialogs: [LocalDialogDTO] = []
-    var pagination = Pagination()
+    public var dialogs: [LocalDialogDTO] = []
+    public var pagination = Pagination()
+    
+    public init () {}
 }

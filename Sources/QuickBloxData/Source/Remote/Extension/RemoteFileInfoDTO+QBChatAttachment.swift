@@ -11,6 +11,9 @@ import QuickBloxDomain
 
 extension RemoteFileInfoDTO {
     init (_ value: QBChatAttachment) throws {
+        self.id = ""
+        self.uid = ""
+        
         if let id = value.id {
             self.id = id
         } else {
@@ -21,6 +24,7 @@ extension RemoteFileInfoDTO {
                 self.id = uid
             }
             if let contentType = value["content-type"] {
+                // TODO: Ensure the `type` value derived here aligns with the expected type logic in other parts of the code.
                 type = contentType
             }
         }

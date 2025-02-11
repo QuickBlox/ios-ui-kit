@@ -53,8 +53,8 @@ final class DialogInfoViewModel: DialogInfoProtocol {
         return dialog.photo.isEmpty == false
     }
     
-    private let dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs
-    private let permissionsRepo: PermissionsRepository = RepositoriesFabric.permissions
+    private let dialogsRepo: DialogsRepository = Repository.dialogs
+    private let permissionsRepo: PermissionsRepository = Repository.permissions
     
     private var attachmentAsset: AttachmentAsset? = nil
     
@@ -121,7 +121,7 @@ final class DialogInfoViewModel: DialogInfoProtocol {
             do {
                 let update = UpdateDialog(dialog: modeldDialog,
                                           users: [],
-                                          repo: RepositoriesFabric.dialogs)
+                                          repo: Repository.dialogs)
                 try await update.execute()
                 
                 await MainActor.run { [weak self] in
@@ -201,7 +201,7 @@ final class DialogInfoViewModel: DialogInfoProtocol {
                 let uploadAvatar = UploadFile(data: finalImageData,
                                               ext: .png,
                                               name: name,
-                                              repo: RepositoriesFabric.files)
+                                              repo: Repository.files)
                 let fileInfo =  try await uploadAvatar.execute()
                 guard let uuid = fileInfo.info.path.uuid else { return }
                 await MainActor.run { [weak self, uuid] in
@@ -238,7 +238,7 @@ final class DialogInfoViewModel: DialogInfoProtocol {
         taskDelete = Task {
             do {
                 let leave = LeaveDialog(dialog: dialog,
-                                        repo: RepositoriesFabric.dialogs)
+                                        repo: Repository.dialogs)
                 try await leave.execute()
                 self.taskDelete = nil
             } catch {

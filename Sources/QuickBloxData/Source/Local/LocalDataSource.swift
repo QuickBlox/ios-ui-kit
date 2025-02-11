@@ -14,36 +14,29 @@ import QuickBloxLog
 /// This is a class that implements the ``LocalDataSourceProtocol`` protocol and contains methods and properties that allow it to interact with the local data source.
 ///
 /// An object of this class provides access for local storage of ``Entity`` items at the time of the application's life cycle.  Provides access to a single repository object by calling **LocalDataSource.instance** static property.
-actor LocalDataSource: LocalDataSourceProtocol {
+public actor LocalDataSource: LocalDataSourceProtocol {
     //MARK: Properties
     private var dialogs = CurrentValueSubject<[LocalDialogDTO], Never>([])
     private var updatedDialog = CurrentValueSubject<String, Never>("")
     private var users: [String: LocalUserDTO] = [:]
     
-    var dialogsPublisher: AnyPublisher<[LocalDialogDTO], Never> {
+    public var dialogsPublisher: AnyPublisher<[LocalDialogDTO], Never> {
         get async {
             dialogs.eraseToAnyPublisher()
         }
     }
     
-    var dialogUpdatePublisher: AnyPublisher<String, Never> {
+    public var dialogUpdatePublisher: AnyPublisher<String, Never> {
         get async {
             updatedDialog.eraseToAnyPublisher()
         }
     }
-}
-
-//MARK: Clear
-extension LocalDataSource {
-    func cleareAll() async throws {
-        try await removeAllDialogs()
-        users.removeAll()
-    }
-}
-
-//MARK: Dialogs
-extension LocalDataSource {
-    func save(dialog dto: LocalDialogDTO) async throws {
+    
+    public init() {}
+    
+    //MARK: Dialogs
+    
+    public func save(dialog dto: LocalDialogDTO) async throws {
         if dialogs.value.first(where: { $0.id == dto.id } ) != nil {
             try await update(dialog: dto)
             return
@@ -54,21 +47,21 @@ extension LocalDataSource {
         updatedDialog.value = dto.id
     }
     
-    func get(dialog dto: LocalDialogDTO) async throws -> LocalDialogDTO {
+    public func get(dialog dto: LocalDialogDTO) async throws -> LocalDialogDTO {
         guard let dialog = dialogs.value.first(where: { $0.id == dto.id } ) else {
             throw DataSourceException.notFound()
         }
         return dialog
     }
     
-    func delete(dialog dto: LocalDialogDTO) async throws {
+    public func delete(dialog dto: LocalDialogDTO) async throws {
         guard let index = dialogs.value.firstIndex(where: { $0.id == dto.id } ) else {
             throw DataSourceException.notFound()
         }
         dialogs.value.remove(at: index)
     }
     
-    func update(dialog dto: LocalDialogDTO) async throws {
+    public func update(dialog dto: LocalDialogDTO) async throws {
         guard let index = dialogs.value.firstIndex(where: { $0.id == dto.id } ) else {
             throw DataSourceException.notFound()
         }
@@ -154,22 +147,23 @@ extension LocalDataSource {
         }
     }
     
-    func getAllDialogs() async throws -> LocalDialogsDTO {
-        return LocalDialogsDTO(dialogs: Array(dialogs.value))
+    public func getAllDialogs() async throws -> LocalDialogsDTO {
+        var dto = LocalDialogsDTO()
+        dto.dialogs = Array(dialogs.value)
+        return dto
     }
     
-    func getAllUsers() async throws -> [LocalUserDTO] {
+    public func getAllUsers() async throws -> [LocalUserDTO] {
         return Array(users.values)
     }
     
-    func removeAllDialogs() async throws {
+    public func removeAllDialogs() async throws {
         dialogs.value.removeAll()
     }
-}
-
-//MARK: Messages
-extension LocalDataSource {
-    func save(message: LocalMessageDTO) async throws {
+    
+    //MARK: Messages
+    
+    public func save(message: LocalMessageDTO) async throws {
         guard let index = dialogs.value.firstIndex(where: { $0.id == message.dialogId }) else {
             let info = "Dialog not found for message with dialog id: \(message.dialogId)"
             throw DataSourceException.notFound(description: info)
@@ -179,7 +173,7 @@ extension LocalDataSource {
         dialogs.value[index] = dialog
     }
     
-    func get(messages dto: LocalMessagesDTO) async throws -> LocalMessagesDTO {
+    public func get(messages dto: LocalMessagesDTO) async throws -> LocalMessagesDTO {
         guard let dialog = dialogs.value.first(where: { $0.id == dto.dialogId }) else {
             let info = "Dialog not found for messages with dialog id: \(dto.dialogId)"
             throw DataSourceException.notFound(description: info)
@@ -192,7 +186,7 @@ extension LocalDataSource {
         return result
     }
     
-    func delete(message dto: LocalMessageDTO) async throws {
+    public func delete(message dto: LocalMessageDTO) async throws {
         guard let index = dialogs.value.firstIndex(where: { $0.id == dto.dialogId }) else {
             let info = "Dialog not found for messages with dialog id: \(dto.dialogId)"
             throw DataSourceException.notFound(description: info)
@@ -203,7 +197,7 @@ extension LocalDataSource {
         dialogs.value[index] = dialog
     }
     
-    func update(message dto: LocalMessageDTO) async throws {
+    public func update(message dto: LocalMessageDTO) async throws {
         guard let index = dialogs.value.firstIndex(where: { $0.id == dto.dialogId }) else {
             let info = "Dialog not found for messages with dialog id: \(dto.dialogId)"
             throw DataSourceException.notFound(description: info)
@@ -212,19 +206,25 @@ extension LocalDataSource {
         dialog.messages.insertElement(dto, withSorting: .orderedAscending)
         dialogs.value[index] = dialog
     }
-}
-
-//MARK: Users
-extension LocalDataSource {
-    func save(user dto: LocalUserDTO) async throws {
+    
+    //MARK: Users
+    
+    public func save(user dto: LocalUserDTO) async throws {
         users[dto.id] = dto
     }
     
-    func get(user dto: LocalUserDTO) async throws -> LocalUserDTO {
+    public func get(user dto: LocalUserDTO) async throws -> LocalUserDTO {
         guard let user = users[dto.id] else {
             throw DataSourceException.notFound()
         }
         
         return user
+    }
+    
+    //MARK: Clear
+    
+    public func cleareAll() async throws {
+        try await removeAllDialogs()
+        users.removeAll()
     }
 }

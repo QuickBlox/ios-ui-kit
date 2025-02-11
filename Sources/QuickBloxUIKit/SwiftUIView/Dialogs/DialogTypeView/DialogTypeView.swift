@@ -50,33 +50,18 @@ struct DialogTypeView: View {
             
             Spacer().materialModifier()
             
-                .if(presentCreateDialog == true && isIphone == true) { view in
+                .if(isIphone == true) { view in
                     view.navigationDestination(isPresented: $presentCreateDialog) {
-                        if let selectedSegment {
-                            if selectedSegment == .private {
-                                CreateDialogView(viewModel: CreateDialogViewModel(modeldDialog: Dialog(type: .private)))
-                            } else {
-                                NewDialog(NewDialogViewModel(), type: selectedSegment)
-                            }
-                        }
+                        createDialogView()
                     }
                 }
             
-                .if(presentCreateDialog == true && (isIPad == true || isMac == true)) { view in
+                .if((isIPad == true || isMac == true)) { view in
                     view.sheet(isPresented: $presentCreateDialog, content: {
-                        if let selectedSegment {
-                            if selectedSegment == .private {
-                                CreateDialogView(viewModel: CreateDialogViewModel(modeldDialog: Dialog(type: .private)))
-                                    .onDisappear {
-                                        self.selectedSegment = nil
-                                    }
-                            } else {
-                                NewDialog(NewDialogViewModel(), type: selectedSegment)
-                                    .onDisappear {
-                                        self.selectedSegment = nil
-                                    }
+                        createDialogView()
+                            .onDisappear {
+                                self.selectedSegment = nil
                             }
-                        }
                     })
                 }
             
@@ -88,6 +73,22 @@ struct DialogTypeView: View {
             selectedSegment = nil
         }
     }
+    
+    @ViewBuilder
+    private func createDialogView() -> some View {
+        Group {
+            if selectedSegment == .private {
+                let dialog = Dialog(type: .private)
+                let model = CreateDialogViewModel(modeldDialog: dialog)
+                CreateDialogView(viewModel: model, isPresented: $presentCreateDialog)
+            } else if let selectedSegment {
+                NewDialog(NewDialogViewModel(), type: selectedSegment, isPresented: $presentCreateDialog)
+            } else {
+                EmptyView()
+            }
+        }
+    }
+    
 }
 
 public struct DialogTypeHeaderView: View {

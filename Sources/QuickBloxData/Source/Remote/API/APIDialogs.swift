@@ -8,14 +8,14 @@
 
 import Quickblox
 
-struct DialogsPayload {
+public struct DialogsPayload {
     let dialogs:[QBChatDialog]
     let usersIds: Set<NSNumber>
     let page: QBResponsePage
 }
 
-struct APIDialogs {
-    func `get`(`for` page: QBResponsePage) async throws -> DialogsPayload {
+public struct APIDialogs {
+    public func `get`(`for` page: QBResponsePage) async throws -> DialogsPayload {
         return try await withCheckedThrowingContinuation { continuation in
             let extended = ["sort_desc": "updated_at"]
             QBRequest.dialogs(for: page, extendedRequest: extended) {
@@ -30,7 +30,7 @@ struct APIDialogs {
         }
     }
     
-    func `get`(with id: String) async throws -> QBChatDialog {
+    public func `get`(with id: String) async throws -> QBChatDialog {
         return try await withCheckedThrowingContinuation { continuation in
             let extended = ["_id": id]
             let page = QBResponsePage()
@@ -50,7 +50,7 @@ struct APIDialogs {
         }
     }
     
-    func create(new dialog: QBChatDialog) async throws -> QBChatDialog {
+    public func create(new dialog: QBChatDialog) async throws -> QBChatDialog {
         return try await withCheckedThrowingContinuation { continuation in
             QBRequest.createDialog(dialog) { _, dialog in
                 continuation.resume(returning: dialog)
@@ -60,7 +60,7 @@ struct APIDialogs {
         }
     }
     
-    func update(_ dialog: QBChatDialog) async throws -> QBChatDialog {
+    public func update(_ dialog: QBChatDialog) async throws -> QBChatDialog {
         return try await withCheckedThrowingContinuation { continuation in
             QBRequest.update(dialog) { _, dialog in
                 continuation.resume(returning: dialog)
@@ -70,13 +70,13 @@ struct APIDialogs {
         }
     }
     
-    func leave(_ dialog: QBChatDialog) async throws {
+    public func leave(_ dialog: QBChatDialog) async throws {
         let userId = QBSession.current.currentUserID
         dialog.pullOccupantsIDs = [(NSNumber(value: userId)).stringValue]
         _ = try await update(dialog)
     }
     
-    func delete(with id: String, force: Bool) async throws {
+    public func delete(with id: String, force: Bool) async throws {
         return try await withCheckedThrowingContinuation { continuation in
             QBRequest.deleteDialogs(withIDs: Set([id]), forAllUsers: force) {
                 _,_,_,_ in

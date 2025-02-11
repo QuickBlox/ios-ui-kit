@@ -12,22 +12,24 @@ import Foundation
 /// This is a DTO model for interactions with the message model in local storage.
 public struct LocalMessageDTO: Identifiable, Hashable {
     public var id = UUID().uuidString
-    var dialogId = ""
-    var text = ""
-    var senderId = ""
-    var dateSent = Date(timeIntervalSince1970: 0)
-    var isOwnedByCurrentUser = false
-    var fileInfo: LocalFileInfoDTO?
-    var deliveredIds: [String] = []
-    var readIds: [String] = []
-    var isReaded = false
-    var isDelivered = false
-    var eventType: MessageEventType = .message
-    var type: MessageType = .chat
-    var actionType: MessageAction = .none
-    var originSenderName: String?
-    var originalMessages: [LocalMessageDTO] = []
-    var relatedId: String = ""
+    public var dialogId = ""
+    public var text = ""
+    public var senderId = ""
+    public var dateSent = Date(timeIntervalSince1970: 0)
+    public var isOwnedByCurrentUser = false
+    public var fileInfo: LocalFileInfoDTO?
+    public var deliveredIds: [String] = []
+    public var readIds: [String] = []
+    public var isReaded = false
+    public var isDelivered = false
+    public var eventType: MessageEventType = .message
+    public var type: MessageType = .chat
+    public var actionType: MessageAction = .none
+    public var originSenderName: String?
+    public var originalMessages: [LocalMessageDTO] = []
+    public var relatedId: String = ""
+    
+    public init () {}
 }
 
 extension LocalMessageDTO: Equatable {
@@ -37,13 +39,15 @@ extension LocalMessageDTO: Equatable {
 }
 
 extension LocalMessageDTO: Dated {
-    var date: Date { dateSent }
+    public var date: Date { dateSent }
 }
 
 public struct LocalFileInfoDTO: Equatable, Identifiable, Hashable {
     public var id: String = ""
-    var ext: FileExtension = .json
-    var name: String = ""
-    var path: FilePath = FilePath()
+    public var ext: FileExtension = .json
+    public var name: String = ""
+    public var path: FilePath = FilePath()
     public var uid: String = ""
+    
+    public init () {}
 }

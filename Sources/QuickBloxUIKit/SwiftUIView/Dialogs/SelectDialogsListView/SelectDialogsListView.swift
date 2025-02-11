@@ -73,21 +73,20 @@ extension SelectDialogsListView: View {
                     }
                     .listRowInsets(EdgeInsets())
                 }.listStyle(.plain)
+                .if(settings.searchBar.isSearchable,
+                    transform: { view in
+                    view.searchable(text: $searchText,
+                                    prompt: settings.searchBar.searchTextField.placeholderText)
+                    .onSubmit(of: .search) {
+                        submittedSearchTerm = searchText
+                    }.onChange(of: searchText) { value in
+                        if searchText.isEmpty && !isSearching {
+                            submittedSearchTerm = ""
+                        }
+                    }
+                    .autocorrectionDisabled(true)
+                })
             }
         }
-        
-        .if(settings.searchBar.isSearchable,
-            transform: { view in
-            view.searchable(text: $searchText,
-                            prompt: settings.searchBar.searchTextField.placeholderText)
-            .onSubmit(of: .search) {
-                submittedSearchTerm = searchText
-            }.onChange(of: searchText) { value in
-                if searchText.isEmpty && !isSearching {
-                    submittedSearchTerm = ""
-                }
-            }
-            .autocorrectionDisabled(true)
-        })
     }
 }

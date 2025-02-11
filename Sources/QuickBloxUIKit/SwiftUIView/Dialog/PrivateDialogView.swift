@@ -18,10 +18,8 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
     let connectStatus = QuickBloxUIKit.settings.dialogsScreen.connectStatus
     let features = QuickBloxUIKit.feature
     
-    @Environment(\.dismiss) var dismiss
-    
     @StateObject private var viewModel: ViewModel
-
+    
     @State private var isInfoPresented: Bool = false
     @State private var isForwardPresented: Bool = false
     @State private var isForwardSuccess: Bool = false
@@ -49,7 +47,7 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
     private func container() -> some View {
         ZStack(alignment: .center) {
             settings.backgroundColor.ignoresSafeArea()
-                    dialogContentView()
+            dialogContentView()
         }
     }
     
@@ -241,25 +239,38 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
             view.forwardSuccessAlert(isPresented: $isForwardSuccess, name: viewModel.originSenderName)
         })
         
-        .if(isForwardPresented == true && isIphone == true, transform: { view in
+        .if(isIphone == true, transform: { view in
             view.navigationDestination(isPresented: $isForwardPresented) {
-                ForwardView(viewModel: ForwardViewModel(messages: viewModel.selectedMessages as? [Message] ?? [])) {
+                forwardView()
+            }
+            .onChange(of: isForwardPresented) { newValue in
+                if newValue == false {
                     viewModel.cancelMessageAction()
-                    isForwardSuccess = true
                 }
             }
         })
-
-        .if(isForwardPresented == true && (isIPad == true || isMac == true), transform: { view in
-            view.sheet(isPresented: $isForwardPresented, content: {
-                ForwardView(viewModel: ForwardViewModel(messages: viewModel.selectedMessages as? [Message] ?? [])) {
+        
+        .if((isIPad == true || isMac == true), transform: { view in
+            view.navigationDestination(isPresented: $isForwardPresented) {
+                forwardView()
+            }
+            .onChange(of: isForwardPresented) { newValue in
+                if newValue == false {
                     viewModel.cancelMessageAction()
-                    isForwardSuccess = true
                 }
-            })
+            }
         })
         
         .environmentObject(viewModel)
+    }
+    
+    @ViewBuilder
+    private func forwardView() -> some View {
+        let messages = viewModel.selectedMessages as? [Message] ?? []
+        let model = ForwardViewModel(messages: messages)
+        ForwardView(viewModel: model,
+                    isComplete: $isForwardSuccess,
+                    isPresented: $isForwardPresented)
     }
     
     @ViewBuilder
@@ -378,16 +389,16 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
     }
     
     public var body: some View {
-          if isIphone {
+        if isIphone {
             container()
                 .modifier(DialogHeader(dialog: viewModel.dialog,
                                        isForward: viewModel.messagesActionState == .forward,
                                        selectedCount: viewModel.selectedMessages.count,
                                        onDismiss: {
-                    dismiss()
+                    // TODO: Evaluate if refactoring is needed for the onDismiss closure, possibly replacing it with a more efficient approach.
                 },
                                        onTapInfo: {
-                        isInfoPresented = true
+                    isInfoPresented = true
                 }, onTapCancel: {
                     viewModel.cancelMessageAction()
                 }))
@@ -406,7 +417,7 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
                                            isForward: viewModel.messagesActionState == .forward,
                                            selectedCount: viewModel.selectedMessages.count,
                                            onDismiss: {
-                        dismiss()
+                        // TODO: Evaluate if refactoring is needed for the onDismiss closure, possibly replacing it with a more efficient approach.
                     },
                                            onTapInfo: {
                         isInfoPresented = true
@@ -421,7 +432,6 @@ public struct PrivateDialogView<ViewModel: DialogViewModelProtocol>: View  {
                         viewModel.stopPlayng()
                         viewModel.unsync()
                     }
-                
             }
         }
     }

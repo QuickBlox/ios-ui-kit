@@ -8,8 +8,8 @@
 
 import Quickblox
 
-struct APIMessages {
-    func `get`(for id: String, with ids: [String], page pagination: Pagination)
+public struct APIMessages {
+    public func `get`(for id: String, with ids: [String], page pagination: Pagination)
     async throws -> (messages: [QBChatMessage], pagination: Pagination) {
         return try await withCheckedThrowingContinuation { continuation in
             let extended = ids.isEmpty

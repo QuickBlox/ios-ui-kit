@@ -12,7 +12,7 @@ import QuickBloxData
 
 public struct RemoveMembersView<ViewModel: MembersDialogProtocol>: View {
     @State public var settings = QuickBloxUIKit.settings.membersScreen
-
+    
     @Environment(\.isSearching) private var isSearching: Bool
     
     @StateObject private var viewModel: ViewModel

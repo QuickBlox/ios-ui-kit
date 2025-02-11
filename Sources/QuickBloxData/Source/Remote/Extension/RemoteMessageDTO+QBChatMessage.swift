@@ -18,10 +18,13 @@ extension RemoteMessageDTO {
         recipientId = value.recipientID != 0 ? String(value.recipientID) : ""
         senderId = value.senderID != 0 ? String(value.senderID) : ""
         senderResource = value.senderResource ?? ""
+        dateSent = Date(timeIntervalSince1970: 0)
         if let date = value.dateSent {
             self.dateSent = date
         }
         
+        customParameters = [:]
+        saveToHistory = true
         if let params = value.customParameters as? [String: String] {
             customParameters = params
             if let save = params[QBChatMessage.Key.save] {
@@ -32,6 +35,49 @@ extension RemoteMessageDTO {
             }
         }
         
+        delayed = value.delayed
+        markable = value.markable
+        
+        createdAt = value.createdAt ?? dateSent
+        updatedAt = value.updatedAt ?? dateSent
+        
+        eventType = value.type
+        type = eventType == .message ? .chat : .event
+        actionType = value.actionType
+        
+        originSenderName = ""
+        originalMessages = []
+        relatedId = ""
+        
+        let current = String(QBSession.current.currentUserID)
+        
+        deliveredIds = []
+        readIds = []
+        isReaded = false
+        isDelivered = false
+        
+        isOwnedByCurrentUser = senderId == current
+        if isOwnedByCurrentUser {
+            if let ids = value.deliveredIDs {
+                deliveredIds = ids.map { $0.stringValue }
+                isDelivered = deliveredIds.filter { $0 != current }.isEmpty == false
+            }
+            if let ids = value.readIDs {
+                readIds = ids.map { $0.stringValue }
+                isReaded = readIds.filter { $0 != current }.isEmpty == false
+            }
+        } else {
+            if let ids = value.readIDs {
+                readIds = ids.map { $0.stringValue }
+                isReaded = readIds.contains(current) == true
+            }
+            if let ids = value.deliveredIDs {
+                deliveredIds = ids.map { $0.stringValue }
+                isDelivered = deliveredIds.contains(current) == true
+            }
+        }
+        
+        filesInfo = []
         if let attachments = value.attachments {
             self.filesInfo = attachments.compactMap {
                 do {
@@ -53,16 +99,6 @@ extension RemoteMessageDTO {
             }
         }
         
-        delayed = value.delayed
-        markable = value.markable
-        
-        createdAt = value.createdAt ?? dateSent
-        updatedAt = value.updatedAt ?? dateSent
-        
-        eventType = value.type
-        type = eventType == .message ? .chat : .event
-        actionType = value.actionType
-        
         if actionType == .forward || actionType == .reply {
             var originSenderName: String = value.customParameters[QBChatMessage.Key.originSenderName] as? String ?? "Unknown"
             if originSenderName == "undefined" || originSenderName.isEmpty {
@@ -74,24 +110,6 @@ extension RemoteMessageDTO {
                                                           date: dateSent,
                                                           actionType: actionType,
                                                           originSenderName: originSenderName)
-            }
-        }
-        
-        let current = String(QBSession.current.currentUserID)
-        isOwnedByCurrentUser = senderId == current
-        if isOwnedByCurrentUser {
-            if let ids = value.deliveredIDs {
-                isDelivered = ids.map { $0.stringValue }.filter { $0 != current }.isEmpty == false
-            }
-            if let ids = value.readIDs {
-                isReaded = ids.map { $0.stringValue }.filter { $0 != current }.isEmpty == false
-            }
-        } else {
-            if let ids = value.readIDs {
-                isReaded = ids.map { $0.stringValue }.contains(current) == true
-            }
-            if let ids = value.deliveredIDs {
-                isDelivered = ids.map { $0.stringValue }.contains(current) == true
             }
         }
     }
@@ -219,21 +237,39 @@ extension RemoteMessageDTO {
         id = value.id
         dialogId = value.dialogId
         text = value.text
-        senderId = value.senderId != 0 ? String(value.senderId) : ""
         recipientId = value.recipientId != 0 ? String(value.recipientId) : ""
+        senderId = value.senderId != 0 ? String(value.senderId) : ""
+        senderResource = ""
         dateSent = value.dateSent.dateTimeIntervalSince1970
+        customParameters = [:]
         
+        filesInfo = []
         if value.attachments.isEmpty == false {
             self.filesInfo = value.attachments.compactMap{ RemoteFileInfoDTO($0) }
         }
         
+        delayed = false
+        markable = true
+        
         createdAt = dateSent
         updatedAt = dateSent
         
+        deliveredIds = value.deliveredIds.map { String($0) }
+        readIds = value.readIds.map { String($0) }
+        
         let current = String(QBSession.current.currentUserID)
         isOwnedByCurrentUser = senderId == current
-        isDelivered = true
+        
         isReaded = true
+        isDelivered = true
+        
+        eventType = .message
+        type = .chat
+        saveToHistory = true
+        actionType = .none
+        originSenderName = ""
+        originalMessages = []
+        relatedId = ""
     }
 }
 

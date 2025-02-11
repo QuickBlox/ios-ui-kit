@@ -12,7 +12,7 @@ import Combine
 public class ConnectionRepository {
     private var remote: RemoteDataSourceProtocol!
     
-    init(remote: RemoteDataSourceProtocol) {
+    public init(remote: RemoteDataSourceProtocol) {
         self.remote = remote
     }
     

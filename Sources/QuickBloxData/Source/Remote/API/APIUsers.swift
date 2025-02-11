@@ -8,8 +8,8 @@
 
 import Quickblox
 
-struct APIUsers {
-    func `get`(with id: String) async throws -> QBUUser {
+public struct APIUsers {
+    public func `get`(with id: String) async throws -> QBUUser {
         guard let id = UInt(id) else {
             let info = "Incorrect user id: \(id)"
             throw RemoteDataSourceException.incorrectData(info)
@@ -24,7 +24,7 @@ struct APIUsers {
         }
     }
     
-    func `get`(with ids: [String], page pagination: Pagination)
+    public func `get`(with ids: [String], page pagination: Pagination)
     async throws -> (users: [QBUUser], pagination: Pagination) {
         return try await withCheckedThrowingContinuation { continuation in
             let page = QBGeneralResponsePage(pagination)
@@ -36,7 +36,7 @@ struct APIUsers {
         }
     }
     
-    func `get`(for page: Pagination)
+    public func `get`(for page: Pagination)
     async throws -> (users: [QBUUser], pagination: Pagination) {
         let extendedRequest: [String: String] =
         ["order": "desc date last_request_at"]
@@ -52,7 +52,7 @@ struct APIUsers {
         }
     }
     
-    func `get`(with name: String, page pagination: Pagination)
+    public func `get`(with name: String, page pagination: Pagination)
     async throws -> (users: [QBUUser], pagination: Pagination) {
         return try await withCheckedThrowingContinuation { continuation in
             let page = QBGeneralResponsePage(pagination)

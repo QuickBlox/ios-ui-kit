@@ -16,8 +16,8 @@ public class DialogsRepository {
     private let remote: RemoteDataSourceProtocol
     private let local:  LocalDataSourceProtocol
     
-    init(remote: RemoteDataSourceProtocol,
-         local: LocalDataSourceProtocol) {
+    public init(remote: RemoteDataSourceProtocol,
+                local: LocalDataSourceProtocol) {
         self.remote = remote
         self.local = local
     }

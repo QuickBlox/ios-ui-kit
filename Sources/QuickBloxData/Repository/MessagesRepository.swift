@@ -15,7 +15,7 @@ public class MessagesRepository: MessagesRepositoryProtocol {
     private var remote: RemoteDataSourceProtocol!
     private var local:  LocalDataSourceProtocol!
     
-    init(remote: RemoteDataSourceProtocol,
+    public init(remote: RemoteDataSourceProtocol,
          local: LocalDataSourceProtocol) {
         self.remote = remote
         self.local = local
@@ -58,15 +58,12 @@ private extension RemoteMessageDTO {
         id = value.id
         dialogId = value.dialogId
         text = value.text
+        recipientId = ""
         senderId = value.userId
+        senderResource = ""
         dateSent = value.date
-        isOwnedByCurrentUser = value.isOwnedByCurrentUser
-        deliveredIds = value.deliveredIds
-        readIds = value.readIds
-        isReaded = value.isRead
-        isDelivered = value.isDelivered
-        type = value.type
-        eventType = value.eventType
+        customParameters = [:]
+        filesInfo = []
         if let file = value.fileInfo {
             filesInfo.append(
                 RemoteFileInfoDTO(
@@ -77,7 +74,20 @@ private extension RemoteMessageDTO {
                     uid: file.uid
                 ))
         }
+        delayed = false
+        markable = true
+        createdAt = Date(timeIntervalSince1970: 0)
+        updatedAt = Date(timeIntervalSince1970: 0)
+        deliveredIds = value.deliveredIds
+        readIds = value.readIds
+        isOwnedByCurrentUser = value.isOwnedByCurrentUser
+        isReaded = value.isRead
+        isDelivered = value.isDelivered
+        eventType = value.eventType
+        type = value.type
+        saveToHistory = true
         actionType = value.actionType
+        self.originSenderName = ""
         if let originSenderName = value.originSenderName {
             self.originSenderName = originSenderName
         }
@@ -191,7 +201,7 @@ extension MessagesRepository {
     
     public func get(messagesFromLocal dialogId: String) async throws -> [Message] {
         do {
-            let withId = LocalMessagesDTO(dialogId: dialogId)
+            let withId = LocalMessagesDTO()
             return try await local.get(messages: withId).messages.map { Message($0)}
         } catch {
             throw try error.repositoryException

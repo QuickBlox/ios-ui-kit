@@ -154,9 +154,9 @@ open class DialogViewModel: DialogViewModelProtocol {
     @Published public var filesInfo: [MessageIdsInfo: (type: String, image: UIImage?, url: URL?)]  = [:]
     @Published public var isLoading = CurrentValueSubject<Bool, Never>(false)
     
-    private let dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs
-    private let usersRepo: UsersRepository = RepositoriesFabric.users
-    private let permissionsRepo: PermissionsRepository = RepositoriesFabric.permissions
+    private let dialogsRepo: DialogsRepository = Repository.dialogs
+    private let usersRepo: UsersRepository = Repository.users
+    private let permissionsRepo: PermissionsRepository = Repository.permissions
     
     private var syncDialog: SyncDialog<Dialog,
                                        DialogsRepository,
@@ -237,7 +237,7 @@ open class DialogViewModel: DialogViewModelProtocol {
             syncDialog = SyncDialog(dialogId: dialog.id,
                                     dialogsRepo: dialogsRepo,
                                     usersRepo: usersRepo,
-                                    messageRepo: RepositoriesFabric.messages)
+                                    messageRepo: Repository.messages)
         }
         syncDialog?.execute()
             .receive(on: RunLoop.main)
@@ -327,7 +327,7 @@ open class DialogViewModel: DialogViewModelProtocol {
                 let uploadFile = UploadFile(data: data,
                                             ext: ext,
                                             name: name,
-                                            repo: RepositoriesFabric.files)
+                                            repo: Repository.files)
                 let file = try await uploadFile.execute()
                 
                 if messagesActionState == .reply,
@@ -344,7 +344,7 @@ open class DialogViewModel: DialogViewModelProtocol {
                                           originalMessages: selectedMessages)
                     
                     let sendMessage = SendMessage(message: message,
-                                                  messageRepo: RepositoriesFabric.messages)
+                                                  messageRepo: Repository.messages)
                     try await sendMessage.execute()
                     
                     await MainActor.run { [weak self] in
@@ -362,7 +362,7 @@ open class DialogViewModel: DialogViewModelProtocol {
                                           actionType: .none)
                     
                     let sendMessage = SendMessage(message: message,
-                                                  messageRepo: RepositoriesFabric.messages)
+                                                  messageRepo: Repository.messages)
                     try await sendMessage.execute()
                     
                     await MainActor.run { [weak self] in
@@ -420,7 +420,7 @@ open class DialogViewModel: DialogViewModelProtocol {
                                           originalMessages: selectedMessages)
                     
                     let sendMessage = SendMessage(message: message,
-                                                  messageRepo: RepositoriesFabric.messages)
+                                                  messageRepo: Repository.messages)
                     try await sendMessage.execute()
                     
                     await MainActor.run { [weak self] in
@@ -437,7 +437,7 @@ open class DialogViewModel: DialogViewModelProtocol {
                                           type: .chat)
                     
                     let sendMessage = SendMessage(message: message,
-                                                  messageRepo: RepositoriesFabric.messages)
+                                                  messageRepo: Repository.messages)
                     try await sendMessage.execute()
                     
                     await MainActor.run { [weak self] in
@@ -465,7 +465,7 @@ open class DialogViewModel: DialogViewModelProtocol {
                 let uploadFile = UploadFile(data: data,
                                             ext: .m4a,
                                             name: name + ".m4a",
-                                            repo: RepositoriesFabric.files)
+                                            repo: Repository.files)
                 let file = try await uploadFile.execute()
                 
                 if messagesActionState == .reply,
@@ -482,7 +482,7 @@ open class DialogViewModel: DialogViewModelProtocol {
                                           originalMessages: selectedMessages)
                     
                     let sendMessage = SendMessage(message: message,
-                                                  messageRepo: RepositoriesFabric.messages)
+                                                  messageRepo: Repository.messages)
                     try await sendMessage.execute()
                     
                     await MainActor.run { [weak self] in
@@ -500,7 +500,7 @@ open class DialogViewModel: DialogViewModelProtocol {
                                           fileInfo: file.info)
                     
                     let sendMessage = SendMessage(message: message,
-                                                  messageRepo: RepositoriesFabric.messages)
+                                                  messageRepo: Repository.messages)
                     try await sendMessage.execute()
                     
                     await MainActor.run { [weak self] in
@@ -552,7 +552,7 @@ open class DialogViewModel: DialogViewModelProtocol {
         
         
         let readMessage = ReadMessage(message: updatedMessage,
-                                      messageRepo: RepositoriesFabric.messages,
+                                      messageRepo: Repository.messages,
                                       dialogRepo: dialogsRepo,
                                       dialog: updated)
         
@@ -628,7 +628,7 @@ open class DialogViewModel: DialogViewModelProtocol {
             useCase = AIAnswerAssist(message: message,
                                        history: messages,
                                        smartChatAssistantId: answerAssist.smartChatAssistantId,
-                                       repo: RepositoriesFabric.ai)
+                                       repo: Repository.ai)
         } else {
             var settings: QBAIAnswerAssistant.AISettings?
             
@@ -699,7 +699,7 @@ open class DialogViewModel: DialogViewModelProtocol {
             useCase = AITranslate(message.text,
                                     smartChatAssistantId: translateSettings.smartChatAssistantId,
                                     languageCode: translateSettings.aiLanguage.rawValue,
-                                    repo: RepositoriesFabric.ai)
+                                    repo: Repository.ai)
         } else {
             var settings: QBAITranslate.AISettings?
             

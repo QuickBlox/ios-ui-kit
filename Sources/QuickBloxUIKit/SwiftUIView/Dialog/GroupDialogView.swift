@@ -25,8 +25,6 @@ public struct GroupDialogView
     let connectStatus = QuickBloxUIKit.settings.dialogsScreen.connectStatus
     let features = QuickBloxUIKit.feature
     
-    @Environment(\.dismiss) var dismiss
-    
     @StateObject private var viewModel: ViewModel
     
     @State private var isInfoPresented: Bool = false
@@ -48,7 +46,7 @@ public struct GroupDialogView
     @State private var tappedMessage: ViewModel.DialogItem.MessageItem? = nil
     
     @State private var tabBarVisibility: Visibility = .visible
-
+    
     public init(viewModel: ViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
@@ -57,245 +55,245 @@ public struct GroupDialogView
     private func container() -> some View {
         ZStack(alignment: .center) {
             settings.backgroundColor.ignoresSafeArea()
-                    dialogContentView()
+            dialogContentView()
         }
     }
     
     @ViewBuilder
     private func dialogContentView() -> some View {
-            VStack(spacing: 0) {
-                
-                switch viewModel.syncState {
-                case .syncing(stage: let stage, error: _):
-                    VStack {
+        VStack(spacing: 0) {
+            
+            switch viewModel.syncState {
+            case .syncing(stage: let stage, error: _):
+                VStack {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                        Text(" " + connectStatus.connectionText(stage.rawValue) )
+                            .foregroundColor(settings.connectForeground)
+                    }.padding(.top)
+                    if viewModel.dialog.displayedMessages.isEmpty {
+                        Spacer()
+                    } else {
+                        messagesView()
+                    }
+                }
+            case .synced:
+                VStack(spacing: 20) {
+                    
+                    if viewModel.isProcessing {
                         HStack(spacing: 12) {
                             ProgressView()
-                            Text(" " + connectStatus.connectionText(stage.rawValue) )
+                            Text(" " + connectStatus.connectionText(connectStatus.update) )
                                 .foregroundColor(settings.connectForeground)
                         }.padding(.top)
-                        if viewModel.dialog.displayedMessages.isEmpty {
-                            Spacer()
-                        } else {
-                            messagesView()
-                        }
                     }
-                case .synced:
-                    VStack(spacing: 20) {
-                        
-                        if viewModel.isProcessing {
-                            HStack(spacing: 12) {
-                                ProgressView()
-                                Text(" " + connectStatus.connectionText(connectStatus.update) )
-                                    .foregroundColor(settings.connectForeground)
-                            }.padding(.top)
-                        }
-                        
-                        aiAnswerFiled(viewModel.aiAnswerFailed.feature)
-                        if viewModel.dialog.displayedMessages.isEmpty {
-                            Spacer()
-                        } else {
-                            messagesView()
-                        }
-                        if settings.typing.enable == true && viewModel.typing.isEmpty == false {
-                            TypingView(typing: viewModel.typing)
-                                .animation(.easeInOut, value: viewModel.typing.isEmpty)
-                        }
+                    
+                    aiAnswerFiled(viewModel.aiAnswerFailed.feature)
+                    if viewModel.dialog.displayedMessages.isEmpty {
+                        Spacer()
+                    } else {
+                        messagesView()
+                    }
+                    if settings.typing.enable == true && viewModel.typing.isEmpty == false {
+                        TypingView(typing: viewModel.typing)
+                            .animation(.easeInOut, value: viewModel.typing.isEmpty)
                     }
                 }
-                
-                if features.forward.enable == true, viewModel.messagesActionState == .forward {
-                    Button {
-                        isForwardPresented = true
-                    } label: {
-                        Text(settings.messageRow.forward.title)
-                    }
-                    .frame(height: 56)
-                    .frame(maxWidth: .infinity)
-                    .background(settings.textField.backgroundColor)
-                    .overlay(Divider(), alignment: .top)
-                } else {
-                    InputView(onAttachment: {
-                        isAttachmentAlertPresented = true
-                    }, onApplyTone: { tone, content, needToUpdate in
-                        if content.isEmpty == false,
-                           features.ai.rephrase.enable == true,
-                           features.ai.rephrase.isValid == true {
-                            viewModel.applyAIRephrase(tone,
-                                                      text: content,
-                                                      needToUpdate: needToUpdate)
-                        } else {
-                            aiFeature = .rephrase
-                            isAIAlertPresented = true
-                        }
-                    })
-                    .background(settings.backgroundColor)
-                }
-                
-               
-            }
-            .background {
-                ZStack {
-                    settings.contentBackgroundColor
-                    if settings.backgroundImage != nil {
-                        settings.backgroundImage?
-                            .renderingMode(.template)
-                            .resizable()
-                            .scaledToFill()
-                            .foregroundColor(settings.backgroundImageColor)
-                            .opacity(0.8)
-                            .edgesIgnoringSafeArea(.all)
-                    }
-                }.ignoresSafeArea()
             }
             
-            .mediaAlert(isAlertPresented: $isAttachmentAlertPresented,
-                        isExistingImage: false,
-                        isHiddenFiles: settings.isHiddenFiles,
-                        mediaTypes: [.videos, .images],
-                        viewModel: viewModel,
-                        onRemoveImage: {
-            }, onGetAttachment: { attachmentAsset in
-                let sizeMB = attachmentAsset.size
-                if sizeMB.truncate(to: 2) > settings.maximumMB {
-                    if attachmentAsset.image != nil {
-                        self.attachmentAsset = attachmentAsset
+            if features.forward.enable == true, viewModel.messagesActionState == .forward {
+                Button {
+                    isForwardPresented = true
+                } label: {
+                    Text(settings.messageRow.forward.title)
+                }
+                .frame(height: 56)
+                .frame(maxWidth: .infinity)
+                .background(settings.textField.backgroundColor)
+                .overlay(Divider(), alignment: .top)
+            } else {
+                InputView(onAttachment: {
+                    isAttachmentAlertPresented = true
+                }, onApplyTone: { tone, content, needToUpdate in
+                    if content.isEmpty == false,
+                       features.ai.rephrase.enable == true,
+                       features.ai.rephrase.isValid == true {
+                        viewModel.applyAIRephrase(tone,
+                                                  text: content,
+                                                  needToUpdate: needToUpdate)
+                    } else {
+                        aiFeature = .rephrase
+                        isAIAlertPresented = true
                     }
-                    isSizeAlertPresented = true
-                } else {
-                    viewModel.handleOnSelect(attachment: attachmentAsset)
-                }
-            })
-            
-            .onChange(of: viewModel.error, perform: { error in
-                if error == settings.invalidFile {
-                    isInvalidExtAlertPresented = true
-                }
-            })
-            
-            .onChange(of: viewModel.aiAnswerFailed.failed, perform: { failed in
-                withAnimation(.easeInOut(duration: failed ? 0.4 : 0.8)) {
-                    isAiAnswerFailedPresented = failed
-                }
-            })
-        
-            .onChange(of: viewModel.aiAnswerFailed.failed, perform: { failed in
-                withAnimation(.easeInOut(duration: failed ? 0.4 : 0.8)) {
-                    isAiAnswerFailedPresented = failed
-                }
-            })
-            
-            .invalidExtensionAlert(isPresented: $isInvalidExtAlertPresented)
-            
-            .if(attachmentAsset == nil && isSizeAlertPresented == true, transform: { view in
-                view.largeFileSizeAlert(isPresented: $isSizeAlertPresented)
-            })
-                
-                .if(attachmentAsset != nil && isSizeAlertPresented == true, transform: { view in
-                    view.largeImageSizeAlert(isPresented: $isSizeAlertPresented,
-                                             onUseAttachment: {
-                        if let attachmentAsset {
-                            viewModel.handleOnSelect(attachment: attachmentAsset)
-                            self.attachmentAsset = nil
-                        }
-                    }, onCancel: {
-                        self.attachmentAsset = nil
-                    })
                 })
-                
-                    .if(isAIAlertPresented == true && aiFeature != nil, transform: { view in
-                        view.aiFailAlert(isPresented: $isAIAlertPresented,
-                                         feature: aiFeature ?? AIFeatureType.answerAssist,
-                                         onDismiss: {
-                            aiFeature = nil
-                        })
-                    })
-                
-                        .permissionAlert(isPresented: $viewModel.permissionNotGranted.notGranted,
-                                         viewModel: viewModel)
-                
-                            .fullScreenCover(item: $attachment, content: { attachment in
-                                FilePreviewController(url: attachment.url, onDismiss: {
-                                    self.attachment = nil
-                                })
-                            })
-                
-                                .sheet(isPresented: $isFileExporterPresented, onDismiss: {
-                                    attachment = nil
-                                }, content: {
-                                    if let fileUrl {
-                                        ActivityViewController(activityItems: [fileUrl])
-                                    }
-                                })
+                .background(settings.backgroundColor)
+            }
+            
+            
+        }
+        .background {
+            ZStack {
+                settings.contentBackgroundColor
+                if settings.backgroundImage != nil {
+                    settings.backgroundImage?
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFill()
+                        .foregroundColor(settings.backgroundImageColor)
+                        .opacity(0.8)
+                        .edgesIgnoringSafeArea(.all)
+                }
+            }.ignoresSafeArea()
+        }
         
-                                .if(isIphone == true && isInfoPresented == true, transform: { view in
-                                    view.navigationDestination(isPresented: $isInfoPresented) {
-                                        if let dialog = viewModel.dialog as? Dialog {
-                                            switch dialog.type {
-                                            case .group:
-                                                if dialog.isOwnedByCurrentUser == true {
-                                                    GroupDialogInfoView(DialogInfoViewModel(dialog))
-                                                } else {
-                                                    GroupDialogNonEditInfoView(DialogInfoViewModel(dialog))
-                                                }
-                                            default:
-                                                EmptyView()
-                                            }
-                                        }
-                                    }
-                                })
-                                
-                                .if((isIPad == true || isMac == true) && isInfoPresented == true, transform: { view in
-                                    view.sheet(isPresented: $isInfoPresented, content: {
-                                        if let dialog = viewModel.dialog as? Dialog {
-                                            switch dialog.type {
-                                            case .group:
-                                                if dialog.isOwnedByCurrentUser == true {
-                                                    GroupDialogInfoView(DialogInfoViewModel(dialog))
-                                                } else {
-                                                    GroupDialogNonEditInfoView(DialogInfoViewModel(dialog))
-                                                }
-                                            default:
-                                                EmptyView()
-                                            }
-                                        }
-                                    })
-                                })
+        .mediaAlert(isAlertPresented: $isAttachmentAlertPresented,
+                    isExistingImage: false,
+                    isHiddenFiles: settings.isHiddenFiles,
+                    mediaTypes: [.videos, .images],
+                    viewModel: viewModel,
+                    onRemoveImage: {
+        }, onGetAttachment: { attachmentAsset in
+            let sizeMB = attachmentAsset.size
+            if sizeMB.truncate(to: 2) > settings.maximumMB {
+                if attachmentAsset.image != nil {
+                    self.attachmentAsset = attachmentAsset
+                }
+                isSizeAlertPresented = true
+            } else {
+                viewModel.handleOnSelect(attachment: attachmentAsset)
+            }
+        })
         
-                                .if(isForwardSuccess == true, transform: { view in
-                                    view.forwardSuccessAlert(isPresented: $isForwardSuccess, name: viewModel.originSenderName)
-                                })
+        .onChange(of: viewModel.error, perform: { error in
+            if error == settings.invalidFile {
+                isInvalidExtAlertPresented = true
+            }
+        })
         
-                                .if(isIphone == true && isForwardPresented == true, transform: { view in
-                                    view.navigationDestination(isPresented: $isForwardPresented) {
-                                        ForwardView(viewModel: ForwardViewModel(messages: viewModel.selectedMessages as? [Message] ?? [])) {
-                                            viewModel.cancelMessageAction()
-                                            isForwardSuccess = true
-                                        }
-                                    }
-                                })
+        .onChange(of: viewModel.aiAnswerFailed.failed, perform: { failed in
+            withAnimation(.easeInOut(duration: failed ? 0.4 : 0.8)) {
+                isAiAnswerFailedPresented = failed
+            }
+        })
         
-                                .if((isIPad == true || isMac == true) && isForwardPresented == true, transform: { view in
-                                    view.sheet(isPresented: $isForwardPresented, content: {
-                                        ForwardView(viewModel: ForwardViewModel(messages: viewModel.selectedMessages as? [Message] ?? [])) {
-                                            viewModel.cancelMessageAction()
-                                            isForwardSuccess = true
-                                        }
-                                    })
-                                })
+        .onChange(of: viewModel.aiAnswerFailed.failed, perform: { failed in
+            withAnimation(.easeInOut(duration: failed ? 0.4 : 0.8)) {
+                isAiAnswerFailedPresented = failed
+            }
+        })
         
-                                .modifier(DialogHeader(dialog: viewModel.dialog,
-                                                       isForward: viewModel.messagesActionState == .forward,
-                                                       selectedCount: viewModel.selectedMessages.count,
-                                                       onDismiss: {
-                                    dismiss()
-                                },
-                                                       onTapInfo: {
-                                    isInfoPresented = true
-                                }, onTapCancel: {
-                                    viewModel.cancelMessageAction()
-                                }))
+        .invalidExtensionAlert(isPresented: $isInvalidExtAlertPresented)
         
-                                .environmentObject(viewModel)
+        .if(attachmentAsset == nil && isSizeAlertPresented == true, transform: { view in
+            view.largeFileSizeAlert(isPresented: $isSizeAlertPresented)
+        })
+        
+        .if(attachmentAsset != nil && isSizeAlertPresented == true, transform: { view in
+            view.largeImageSizeAlert(isPresented: $isSizeAlertPresented,
+                                     onUseAttachment: {
+                if let attachmentAsset {
+                    viewModel.handleOnSelect(attachment: attachmentAsset)
+                    self.attachmentAsset = nil
+                }
+            }, onCancel: {
+                self.attachmentAsset = nil
+            })
+        })
+        
+        .if(isAIAlertPresented == true && aiFeature != nil, transform: { view in
+            view.aiFailAlert(isPresented: $isAIAlertPresented,
+                             feature: aiFeature ?? AIFeatureType.answerAssist,
+                             onDismiss: {
+                aiFeature = nil
+            })
+        })
+        
+        .permissionAlert(isPresented: $viewModel.permissionNotGranted.notGranted,
+                         viewModel: viewModel)
+        
+        .fullScreenCover(item: $attachment, content: { attachment in
+            FilePreviewController(url: attachment.url, onDismiss: {
+                self.attachment = nil
+            })
+        })
+        
+        .sheet(isPresented: $isFileExporterPresented, onDismiss: {
+            attachment = nil
+        }, content: {
+            if let fileUrl {
+                ActivityViewController(activityItems: [fileUrl])
+            }
+        })
+        
+        .if(isIphone == true && isInfoPresented == true, transform: { view in
+            view.navigationDestination(isPresented: $isInfoPresented) {
+                if let dialog = viewModel.dialog as? Dialog {
+                    switch dialog.type {
+                    case .group:
+                        if dialog.isOwnedByCurrentUser == true {
+                            GroupDialogInfoView(DialogInfoViewModel(dialog))
+                        } else {
+                            GroupDialogNonEditInfoView(DialogInfoViewModel(dialog))
+                        }
+                    default:
+                        EmptyView()
+                    }
+                }
+            }
+        })
+        
+        .if((isIPad == true || isMac == true) && isInfoPresented == true, transform: { view in
+            view.sheet(isPresented: $isInfoPresented, content: {
+                if let dialog = viewModel.dialog as? Dialog {
+                    switch dialog.type {
+                    case .group:
+                        if dialog.isOwnedByCurrentUser == true {
+                            GroupDialogInfoView(DialogInfoViewModel(dialog))
+                        } else {
+                            GroupDialogNonEditInfoView(DialogInfoViewModel(dialog))
+                        }
+                    default:
+                        EmptyView()
+                    }
+                }
+            })
+        })
+        
+        .if(isForwardSuccess == true, transform: { view in
+            view.forwardSuccessAlert(isPresented: $isForwardSuccess, name: viewModel.originSenderName)
+        })
+        
+        .if(isIphone == true, transform: { view in
+            view.navigationDestination(isPresented: $isForwardPresented) {
+                forwardView()
+            }
+            .onChange(of: isForwardPresented) { newValue in
+                if newValue == false {
+                    viewModel.cancelMessageAction()
+                }
+            }
+        })
+        
+        .if((isIPad == true || isMac == true), transform: { view in
+            view.sheet(isPresented: $isForwardPresented, content: {
+                forwardView()
+            })
+            .onChange(of: isForwardPresented) { newValue in
+                if newValue == false {
+                    viewModel.cancelMessageAction()
+                }
+            }
+        })
+        .environmentObject(viewModel)
+    }
+    
+    @ViewBuilder
+    private func forwardView() -> some View {
+        let messages = viewModel.selectedMessages as? [Message] ?? []
+        let model = ForwardViewModel(messages: messages)
+        ForwardView(viewModel: model,
+                    isComplete: $isForwardSuccess,
+                    isPresented: $isForwardPresented)
     }
     
     @ViewBuilder
@@ -328,14 +326,14 @@ public struct GroupDialogView
                             }
                         }
                     } else if features.reply.enable == true && message.actionType == .reply,
-                       message.originalMessages.isEmpty == false {
+                              message.originalMessages.isEmpty == false {
                         RepliedMessageRow(message: message,
-                                                   isAIAlertPresented: $isAIAlertPresented,
-                                                   fileUrl: $fileUrl,
-                                                   aiFeature: $aiFeature,
-                                                   isFileExporterPresented: $isFileExporterPresented,
-                                                   tappedMessage: $tappedMessage,
-                                                   attachment: $attachment)
+                                          isAIAlertPresented: $isAIAlertPresented,
+                                          fileUrl: $fileUrl,
+                                          aiFeature: $aiFeature,
+                                          isFileExporterPresented: $isFileExporterPresented,
+                                          tappedMessage: $tappedMessage,
+                                          attachment: $attachment)
                         .onAppear {
                             viewModel.handleOnAppear(message)
                         }
@@ -414,8 +412,19 @@ public struct GroupDialogView
     }
     
     public var body: some View {
-         if isIphone {
+        if isIphone {
             container()
+                .modifier(DialogHeader(dialog: viewModel.dialog,
+                                       isForward: viewModel.messagesActionState == .forward,
+                                       selectedCount: viewModel.selectedMessages.count,
+                                       onDismiss: {
+                    // TODO: Evaluate if refactoring is needed for the onDismiss closure, possibly replacing it with a more efficient approach.
+                },
+                                       onTapInfo: {
+                    isInfoPresented = true
+                }, onTapCancel: {
+                    viewModel.cancelMessageAction()
+                }))
                 .onViewDidLoad {
                     viewModel.sync()
                 }
@@ -427,6 +436,17 @@ public struct GroupDialogView
         } else {
             NavigationStack {
                 container()
+                    .modifier(DialogHeader(dialog: viewModel.dialog,
+                                           isForward: viewModel.messagesActionState == .forward,
+                                           selectedCount: viewModel.selectedMessages.count,
+                                           onDismiss: {
+                        // TODO: Evaluate if refactoring is needed for the onDismiss closure, possibly replacing it with a more efficient approach.
+                    },
+                                           onTapInfo: {
+                        isInfoPresented = true
+                    }, onTapCancel: {
+                        viewModel.cancelMessageAction()
+                    }))
                     .onViewDidLoad {
                         viewModel.sync()
                     }

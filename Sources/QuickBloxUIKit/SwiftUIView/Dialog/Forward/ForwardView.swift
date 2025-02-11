@@ -14,19 +14,19 @@ public struct ForwardView<ViewModel: ForwardViewModel>: View {
     @State public var settings
     = QuickBloxUIKit.settings.addMembersScreen
     
-    @Environment(\.dismiss) var dismiss
-    
     @StateObject var viewModel: ViewModel
 
     @State private var isForwardFailedPresented: Bool = false
-    @State var isPresented: Bool = false
     
-    let onForwardSuccess: () -> Void
+    @Binding var isComplete: Bool
+    @Binding var isPresented: Bool
     
     init(viewModel: ViewModel,
-         onForwardSuccess: @escaping () -> Void) {
+         isComplete: Binding<Bool>,
+         isPresented: Binding<Bool>) {
         _viewModel = StateObject(wrappedValue: viewModel)
-        self.onForwardSuccess = onForwardSuccess
+        _isComplete = isComplete
+        _isPresented = isPresented
     }
     
     public var body: some View {
@@ -51,13 +51,13 @@ public struct ForwardView<ViewModel: ForwardViewModel>: View {
             }
         }
         .modifier(ForwardHeader(onDismiss: {
-            dismiss()
+            isPresented = false
         }))
         
         .onChange(of: viewModel.forwardInfo.result, perform: { forwardResult in
             if forwardResult == .success {
-                onForwardSuccess()
-                dismiss()
+                isComplete = true
+                isPresented = false
             } else {
                 isForwardFailedPresented = true
             }
