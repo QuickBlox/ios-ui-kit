@@ -37,11 +37,13 @@ public class RegexFeature {
     public var dialogName = "^(?=.{3,60}$)(?!.*([\\s])\\1{2})[\\w\\s]+$"
 }
 
+@available(*, deprecated, message: "The ToolbarFeature class is deprecated and will be removed in future versions.")
 public class ToolbarFeature {
     public var enable: Bool = false
     public var externalIndexes: [TabIndex] = []
 }
 
+@available(*, deprecated, message: "Toolbar UI settings are deprecated and will be removed in future versions.")
 public struct ToolbarUISettings {
     public var backgroundColor: Color
     public init(_ theme: ThemeProtocol) {
@@ -49,6 +51,7 @@ public struct ToolbarUISettings {
     }
 }
 
+@available(*, deprecated, message: "TabIndex is deprecated and will be removed in future versions.")
 public struct TabIndex: Hashable {
     public var title: String
     public var systemIcon: String
@@ -60,17 +63,22 @@ public struct TabIndex: Hashable {
 }
 
 public extension TabIndex {
+    @available(*, deprecated, message: "TabIndex.dialogs is deprecated and will be removed in future versions.")
     static let dialogs = TabIndex(title: "Dialogs",
                                   systemIcon: "message.fill")
+
+    @available(*, deprecated, message: "TabIndex.settings is deprecated and will be removed in future versions.")
     static let settings = TabIndex(title: "Settings",
                                    systemIcon: "gearshape.fill")
 }
 
+@available(*, deprecated, message: "StartScreens is deprecated and will be removed in future versions.")
 public enum StartScreens {
     case dialogs
     case dialog
 }
 
+@available(*, deprecated, message: "StartScreenFeature is deprecated and will be removed in future versions.")
 public class StartScreenFeature {
     public var screen: StartScreens = .dialogs
 }

@@ -42,29 +42,6 @@ struct DialogHeaderToolbarContent: ToolbarContent {
     }
     
     public var body: some ToolbarContent {
-        
-        ToolbarItem(placement: .navigationBarLeading) {
-            
-            if feature.startScreen.screen == .dialog,
-               dialogHeaderSettings.leftButton.hidden == false,
-               isForward == false {
-                Button {
-                    onDismiss()
-                } label: {
-                    if let title = dialogHeaderSettings.leftButton.title {
-                        Text(title).foregroundColor(dialogHeaderSettings.leftButton.color)
-                    } else {
-                        dialogHeaderSettings.leftButton.image
-                            .resizable()
-                            .scaledToFit()
-                            .scaleEffect(dialogHeaderSettings.leftButton.scale)
-                            .tint(dialogHeaderSettings.leftButton.color)
-                            .padding(dialogHeaderSettings.leftButton.padding)
-                    }
-                }.frame(width: 32, height: 44)
-            }
-        }
-        
         ToolbarItem(placement: .principal) {
             
             if isForward == false {

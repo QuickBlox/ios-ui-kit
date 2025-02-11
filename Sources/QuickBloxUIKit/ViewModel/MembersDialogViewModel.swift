@@ -31,8 +31,8 @@ final class MembersDialogViewModel: MembersDialogProtocol {
     @Published public var dialog: Dialog
     @Published public var isProcessing: Bool = false
     
-    public private(set) var usersRepo: UsersRepository = RepositoriesFabric.users
-    public private(set) var dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs
+    public private(set) var usersRepo: UsersRepository = Repository.users
+    public private(set) var dialogsRepo: DialogsRepository = Repository.dialogs
     
     private var updateDialogLocalObserve: DialogUpdateObserver<DialogsRepository>!
     
@@ -41,8 +41,8 @@ final class MembersDialogViewModel: MembersDialogProtocol {
     private var taskUpdate: Task<Void, Never>?
     
     init(dialog: Dialog,
-         usersRepo: UsersRepository = RepositoriesFabric.users,
-         dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs) {
+         usersRepo: UsersRepository = Repository.users,
+         dialogsRepo: DialogsRepository = Repository.dialogs) {
         self.dialog = dialog
         self.usersRepo = usersRepo
         self.dialogsRepo = dialogsRepo
@@ -105,7 +105,7 @@ final class MembersDialogViewModel: MembersDialogProtocol {
                 guard let dialog = self?.dialog else { return }
                 let updateDialog = UpdateDialog(dialog: dialog,
                                                 users: [user],
-                                                repo: RepositoriesFabric.dialogs)
+                                                repo: Repository.dialogs)
                 try await updateDialog.execute()
             }  catch {
                 prettyLog(error)

@@ -22,8 +22,9 @@ public class Feature {
     public var regex: RegexFeature = RegexFeature()
     
     /// An instance of the ToolbarFeature settings and operations.
+    @available(*, deprecated, message: "The toolbar feature is deprecated and will be removed in future versions.")
     public var toolbar: ToolbarFeature = ToolbarFeature()
     
     /// An instance of the StartScreenFeature settings and operations.
-    public var startScreen: StartScreenFeature = StartScreenFeature()
-}
+    @available(*, deprecated, message: "The StartScreenFeature is deprecated and will be removed in future versions.")
+    public var startScreen: StartScreenFeature = StartScreenFeature()}

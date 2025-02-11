@@ -8,16 +8,16 @@
 
 import Quickblox
 
-struct APIAI {
+public struct APIAI {
     // Quickblox Server API
-    func answerAssist(with message: QBAIAnswerAssistMessage) async throws -> String {
+    public func answerAssist(with message: QBAIAnswerAssistMessage) async throws -> String {
         let result = try await QB.ai.answerAssist(withSmartChatAssistantId: message.smartChatAssistantId,
                                                   messageToAssist: message.message,
                                                   history: message.history)
         return result.answer
     }
     
-    func translate(with message: QBAITranslateMessage) async throws -> String {
+    public func translate(with message: QBAITranslateMessage) async throws -> String {
         let result = try await QB.ai.translate(withSmartChatAssistantId: message.smartChatAssistantId,
                                                textToTranslate: message.message,
                                                languageCode: message.languageCode)
@@ -30,7 +30,7 @@ import QBAIAnswerAssistant
 
 extension APIAI {
     // Quickblox QBAIAnswerAssistant Library
-    func answerAssist(with content: [RemoteMessageDTO], settings: QBAIAnswerAssistant.AISettings) async throws -> String {
+    public func answerAssist(with content: [RemoteMessageDTO], settings: QBAIAnswerAssistant.AISettings) async throws -> String {
         
         var aiSettings = settings
         
@@ -59,7 +59,7 @@ import QBAITranslate
 
 extension APIAI {
     // Quickblox QBAITranslate Library
-    func translate(with text: String, content: [RemoteMessageDTO], settings: QBAITranslate.AISettings) async throws -> String {
+    public func translate(with text: String, content: [RemoteMessageDTO], settings: QBAITranslate.AISettings) async throws -> String {
         
         var aiSettings = settings
         

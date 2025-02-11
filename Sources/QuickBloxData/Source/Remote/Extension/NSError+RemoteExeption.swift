@@ -9,7 +9,7 @@
 import Foundation
 
 extension NSError {
-    var remoteException: Error {
+    public var remoteException: Error {
         get throws {
             var info = "Status code: \(self.code). "
             

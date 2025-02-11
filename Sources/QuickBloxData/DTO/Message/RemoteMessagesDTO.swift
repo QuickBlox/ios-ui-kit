@@ -10,8 +10,18 @@ import QuickBloxDomain
 
 /// This is a DTO model for interactions with messages models in remote storage.
 public struct RemoteMessagesDTO {
-    var dialogId = ""
-    var ids: [String] = []
-    var messages: [RemoteMessageDTO] = []
-    var pagination = Pagination()
+    public var dialogId = ""
+    public var ids: [String] = []
+    public var messages: [RemoteMessageDTO] = []
+    public var pagination = Pagination()
+    
+    public init(dialogId: String = "",
+                ids: [String] = [],
+                messages: [RemoteMessageDTO] = [],
+                pagination: Pagination = Pagination()) {
+        self.dialogId = dialogId
+        self.ids = ids
+        self.messages = messages
+        self.pagination = pagination
+    }
 }

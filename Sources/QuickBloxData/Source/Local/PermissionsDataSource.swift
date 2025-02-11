@@ -10,28 +10,25 @@ import QuickBloxDomain
 import AVFoundation
 import UIKit
 
-class PermissionsSource {
+open class PermissionsDataSource: PermissionsDataSourceProtocol {
+    public init() {}
     
-}
-
-//MARK: PermissionsRepositoryProtocol
-extension PermissionsSource: PermissionsRepositoryProtocol {
-    func openSettings() async throws {
+    open func openSettings() async throws {
         if let url = await URL(string: UIApplication.openSettingsURLString) {
             await UIApplication.shared.open(url, options: [:])
         }
     }
     
-    func get(permissionTo mediaType: AVMediaType) async throws -> Bool {
+    open func get(permissionTo mediaType: AVMediaType) async throws -> Bool {
         switch mediaType {
-        case .audio: return try await PermissionsSource.requestPermissionTo(.audio)
-        case .video: return try await PermissionsSource.requestPermissionTo(.video)
+        case .audio: return try await PermissionsDataSource.requestPermissionTo(.audio)
+        case .video: return try await PermissionsDataSource.requestPermissionTo(.video)
         default: return false
         }
     }
 }
 
-private extension PermissionsSource {
+private extension PermissionsDataSource {
     
     static func requestPermissionTo(_ mediaType: AVMediaType) async throws -> Bool {
         switch mediaType {

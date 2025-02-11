@@ -8,11 +8,11 @@
 
 import Foundation
 
-protocol Dated {
+public protocol Dated {
     var date: Date { get }
 }
 
-extension ComparisonResult {
+public extension ComparisonResult {
     func inverted() -> ComparisonResult {
         switch self {
         case .orderedAscending:
@@ -25,8 +25,8 @@ extension ComparisonResult {
     }
 }
 
-extension Array where Element: Dated, Element: Identifiable, Element: Hashable {
-    mutating func insertElement(_ new: Element, withSorting order: ComparisonResult) {
+extension Array where Element: QuickBloxData.Dated, Element: Identifiable, Element: Hashable {
+    public mutating func insertElement(_ new: Element, withSorting order: ComparisonResult) {
         if isEmpty {
             append(new)
         } else {

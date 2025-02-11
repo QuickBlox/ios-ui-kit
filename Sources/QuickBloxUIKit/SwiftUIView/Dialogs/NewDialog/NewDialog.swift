@@ -16,10 +16,8 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
     
     private var settings = QuickBloxUIKit.settings.dialogNameScreen
     
-    @Environment(\.dismiss) var dismiss
-    
     @StateObject private var viewModel: ViewModel
-
+    
     private var type: DialogType
     
     @State private var isAlertPresented: Bool = false
@@ -30,9 +28,13 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
     
     @State private var attachmentAsset: AttachmentAsset? = nil
     
+    @Binding var isPresented: Bool
+    
     init(_ viewModel: ViewModel,
-         type: DialogType) {
+         type: DialogType,
+         isPresented: Binding<Bool>) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        _isPresented = isPresented
         self.type = type
     }
     
@@ -59,9 +61,9 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
                     DialogNameTextField(dialogName: $dialogName,
                                         isValidDialogName: viewModel.isValidDialogName,
                                         isFocused: isCreatedDialog)
-                        .onChange(of: dialogName, perform: { newValue in
-                            viewModel.update(newValue)
-                        })
+                    .onChange(of: dialogName, perform: { newValue in
+                        viewModel.update(newValue)
+                    })
                 }.padding([.leading, .trailing])
                 
                 Spacer()
@@ -99,26 +101,27 @@ struct NewDialog<ViewModel: NewDialogProtocol>: View {
             .permissionAlert(isPresented: $viewModel.permissionNotGranted.notGranted,
                              viewModel: viewModel)
             
-            .onChange(of: viewModel.modelDialog, perform: { newModelDialog in
-                if newModelDialog != nil {
-                    isCreatedDialog = true
-                }
-            })
-            
-            .if(isCreatedDialog == true) { view in
-                view.navigationDestination(isPresented: $isCreatedDialog) {
-                    if let modelDialog = viewModel.modelDialog {
-                        CreateDialogView(viewModel: CreateDialogViewModel(modeldDialog: Dialog(type: modelDialog.type,
-                                                                                               name: modelDialog.name,
-                                                                                               photo: modelDialog.photo)))
-                    }
+            .navigationDestination(isPresented: $isCreatedDialog) {
+                if let dialogInfo = viewModel.modelDialog {
+                    let dialog = Dialog(type: dialogInfo.type,
+                                        name: dialogInfo.name,
+                                        photo: dialogInfo.photo)
+                    let viewModel = CreateDialogViewModel(modeldDialog: dialog)
+                    
+                    CreateDialogView(viewModel: viewModel, isPresented: $isPresented)
+                } else {
+                    EmptyView()
                 }
             }
-
+            
+            .onChange(of: viewModel.modelDialog, perform: { newModelDialog in
+                isCreatedDialog = newModelDialog != nil
+            })
+            
             .modifier(DialogNameHeader(type: type, disabled: !viewModel.isValidDialogName,
                                        onDismiss: {
-                    dismiss()
-                }, onNext: {
+                isPresented = false
+            }, onNext: {
                 if type == .public {
                     //TODO: createPublicDialog method
                     viewModel.createPublicDialog()

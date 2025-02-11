@@ -12,7 +12,7 @@ import QuickBloxDomain
 
 public struct GroupDialogNonEditInfoView<ViewModel: DialogInfoProtocol>: View {
     let settings = QuickBloxUIKit.settings.dialogInfoScreen
-
+    
     @StateObject private var viewModel: ViewModel
     @State private var isMembersPresented: Bool = false
     @State private var searchPresented: Bool = false
@@ -35,59 +35,59 @@ public struct GroupDialogNonEditInfoView<ViewModel: DialogInfoProtocol>: View {
     
     @ViewBuilder
     private func container() -> some View {
-            ZStack {
-                settings.backgroundColor.ignoresSafeArea()
-                VStack {
-                    
-                    InfoDialogAvatar()
-                    
-                    ForEach(settings.groupActionSegments, id:\.self) { action in
-                        InfoSegment(dialog: viewModel.dialog, action: action) { action in
-                            switch action {
-                            case .members: isMembersPresented = true
-                            case .searchInDialog: searchPresented = true
-                            case .leaveDialog: isDeleteAlertPresented = true
-                            case .notification: break
-                            }
+        ZStack {
+            settings.backgroundColor.ignoresSafeArea()
+            VStack {
+                
+                InfoDialogAvatar()
+                
+                ForEach(settings.groupActionSegments, id:\.self) { action in
+                    InfoSegment(dialog: viewModel.dialog, action: action) { action in
+                        switch action {
+                        case .members: isMembersPresented = true
+                        case .searchInDialog: searchPresented = true
+                        case .leaveDialog: isDeleteAlertPresented = true
+                        case .notification: break
                         }
                     }
-                    
-                    SegmentDivider()
                 }
                 
-                .onChange(of: viewModel.error, perform: { error in
-                    if error.isEmpty { return }
-                    errorPresented.toggle()
-                })
-                
-                .errorAlert($viewModel.error, isPresented: $errorPresented)
-                
-                .deleteDialogAlert(isPresented: $isDeleteAlertPresented,
-                                   name: viewModel.dialog.name,
-                                   onCancel: {
-                    isDeleteAlertPresented = false
-                }, onTap: {
-                    viewModel.deleteDialog()
-                })
-                
-                .if(isMembersPresented == true, transform: { view in
-                    view.navigationDestination(isPresented: $isMembersPresented) {
-                        Fabric.screen.members(to: viewModel.dialog)
-                    }
-                })
-                
-                .modifier(GroupDialogNonEditInfoHeader())
-                
-                .disabled(viewModel.isProcessing == true)
-                .if(viewModel.isProcessing == true) { view in
-                    view.overlay() {
-                        CustomProgressView()
-                    }
+                SegmentDivider()
+            }
+            
+            .onChange(of: viewModel.error, perform: { error in
+                if error.isEmpty { return }
+                errorPresented.toggle()
+            })
+            
+            .errorAlert($viewModel.error, isPresented: $errorPresented)
+            
+            .deleteDialogAlert(isPresented: $isDeleteAlertPresented,
+                               name: viewModel.dialog.name,
+                               onCancel: {
+                isDeleteAlertPresented = false
+            }, onTap: {
+                viewModel.deleteDialog()
+            })
+            
+            .if(isMembersPresented == true, transform: { view in
+                view.navigationDestination(isPresented: $isMembersPresented) {
+                    Fabric.screen.members(to: viewModel.dialog)
                 }
-                .environmentObject(viewModel)
+            })
+            
+            .modifier(GroupDialogNonEditInfoHeader())
+            
+            .disabled(viewModel.isProcessing == true)
+            .if(viewModel.isProcessing == true) { view in
+                view.overlay() {
+                    CustomProgressView()
+                }
             }
-            .onAppear {
-                viewModel.sync()
-            }
+            .environmentObject(viewModel)
         }
+        .onAppear {
+            viewModel.sync()
+        }
+    }
 }

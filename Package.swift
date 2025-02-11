@@ -14,7 +14,7 @@ let package = Package(
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
             name: "QuickBloxUIKit",
-            targets: ["QuickBloxUIKit", "QuickBloxData", "QuickBloxDomain"]),
+            targets: ["QuickBloxUIKit", "QuickBloxData", "QuickBloxDomain", "QuickBloxLog"]),
     ],
     dependencies: [
         .package(url: "https://github.com/QuickBlox/ios-quickblox-sdk", .upToNextMajor(from: "2.21.0")),

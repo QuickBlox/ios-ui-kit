@@ -10,10 +10,6 @@ import SwiftUI
 import QuickBloxData
 import QuickBloxDomain
 
-public class Fabric {
-    public static var screen: ScreenFabric = ScreenFabric()
-}
-
 public class ScreenFabric { }
 
 // Creating the screen for adding participants to a dialogue.

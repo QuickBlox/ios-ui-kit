@@ -33,7 +33,7 @@ final class AddMembersDialogViewModel: AddMembersDialogProtocol {
     
     private var dialog: Dialog
     
-    public private(set) var dialogsRepo: DialogsRepository = RepositoriesFabric.dialogs
+    public private(set) var dialogsRepo: DialogsRepository = Repository.dialogs
     private var updateDialogLocalObserve: DialogUpdateObserver<DialogsRepository>!
     
     public var cancellables = Set<AnyCancellable>()
@@ -65,6 +65,7 @@ final class AddMembersDialogViewModel: AddMembersDialogProtocol {
         
         $search.eraseToAnyPublisher()
             .receive(on: RunLoop.main)
+            .removeDuplicates()
             .sink { [weak self] text in
                 self?.displayDialogMembers(by: text)
             }
@@ -92,11 +93,10 @@ final class AddMembersDialogViewModel: AddMembersDialogProtocol {
         if text.isEmpty || text.count > 2 {
             isSynced = false
             
-            let getUsers = GetUsers(name: text, repo: RepositoriesFabric.users)
+            let getUsers = GetUsers(name: text, repo: Repository.users)
             let ids = dialog.participantsIds
             
             taskUsers?.cancel()
-            taskUsers = nil
             taskUsers = Task { [weak self] in
                 do {
                     let users = try await getUsers.execute()
@@ -120,6 +120,7 @@ final class AddMembersDialogViewModel: AddMembersDialogProtocol {
                         }
                     }
                 }
+                self?.taskUsers = nil
             }
         }
     }
@@ -140,7 +141,7 @@ final class AddMembersDialogViewModel: AddMembersDialogProtocol {
         dialog.pushIDs = [user.id]
         let updateDialog = UpdateDialog(dialog: dialog,
                                         users: [user],
-                                        repo: RepositoriesFabric.dialogs)
+                                        repo: Repository.dialogs)
         
         taskUpdate?.cancel()
         taskUpdate = nil

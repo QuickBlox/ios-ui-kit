@@ -9,8 +9,8 @@
 import Quickblox
 import QuickBloxDomain
 
-struct APIFiles {
-    func `get`(with url: URL) async throws -> RemoteFileDTO {
+public struct APIFiles {
+    public func `get`(with url: URL) async throws -> RemoteFileDTO {
         let (data, response) = try await URLSession.shared.data(from: url)
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
@@ -48,7 +48,7 @@ struct APIFiles {
                              uid: uuid ?? "")
     }
     
-    func `get`(blob id: UInt) async throws -> QBCBlob {
+    public func `get`(blob id: UInt) async throws -> QBCBlob {
         return try await withCheckedThrowingContinuation { continuation in
             QBRequest.blob(withID: id) {  _, blob in
                 continuation.resume(returning: blob)
@@ -59,7 +59,7 @@ struct APIFiles {
         }
     }
     
-    func upload(file content: RemoteFileDTO) async throws -> QBCBlob {
+    public func upload(file content: RemoteFileDTO) async throws -> QBCBlob {
         return try await withCheckedThrowingContinuation { continuation in
             QBRequest.tUploadFile(content.data,
                                   fileName: content.name,
@@ -75,7 +75,7 @@ struct APIFiles {
         }
     }
     
-    func delete(with id: UInt) async throws {
+    public func delete(with id: UInt) async throws {
         return try await withCheckedThrowingContinuation { continuation in
             QBRequest.deleteBlob(withID: id) { _ in
                 continuation.resume()

@@ -10,8 +10,18 @@ import QuickBloxDomain
 
 /// This is a DTO model for interactions with users models in remote storage.
 public struct RemoteUsersDTO {
-    var ids: [String] = []
-    var name: String = ""
-    var users: [RemoteUserDTO] = []
-    var pagination = Pagination()
+    public var ids: [String]
+    public var name: String
+    public var users: [RemoteUserDTO]
+    public var pagination: Pagination
+    
+    public init(ids: [String] = [],
+                name: String = "",
+                users: [RemoteUserDTO] = [],
+                pagination: Pagination = Pagination()) {
+        self.ids = ids
+        self.name = name
+        self.users = users
+        self.pagination = pagination
+    }
 }

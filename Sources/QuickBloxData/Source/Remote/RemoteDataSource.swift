@@ -11,29 +11,32 @@ import QuickBloxLog
 import Quickblox
 import Combine
 
+import QBAIAnswerAssistant
+import QBAITranslate
+
 /// This is a class that implements the ``RemoteDataSourceProtocol`` protocol and contains methods and properties that allow it to interact with the remote data source.
 ///
-/// An object of this class provides access for remote storage of items at the time of the application's life cycle.  Provides access to a single repository object by calling **RemoteDataSource.instance** static property.
-class RemoteDataSource: NSObject, RemoteDataSourceProtocol {
-    var eventPublisher: AnyPublisher<RemoteEvent, Never> {
+/// An object of this class provides access for remote storage of items at the time of the application's life cycle.
+open class RemoteDataSource: NSObject, RemoteDataSourceProtocol, QBChatDelegate {
+    public var eventPublisher: AnyPublisher<RemoteEvent, Never> {
         get async { await stream.eventPublisher.eraseToAnyPublisher() }
     }
     
     private let connectionSubject = PassthroughSubject<ConnectionState, Never>()
     
-    var connectionPublisher: AnyPublisher<ConnectionState, Never> {
+    public var connectionPublisher: AnyPublisher<ConnectionState, Never> {
         return connectionSubject.eraseToAnyPublisher()
     }
     
     private var cancellables: Set<AnyCancellable> = Set<AnyCancellable>()
     
-    private var api = API()
+    public var api = API()
     
     private var stream = ChatStream()
     
     private var user: QBUUser?
     
-    override init() {
+    public override init() {
         super.init()
         //FIXME: Must be set QBSettings.applicationID before using QBSession.currentSession
         QBChat.instance.addDelegate(self)
@@ -62,11 +65,10 @@ class RemoteDataSource: NSObject, RemoteDataSourceProtocol {
             })
             .store(in: &cancellables)
     }
-}
-
-//MARK: Connection
-extension RemoteDataSource {
-    func connect() async throws {
+    
+    //MARK: Connection
+    
+    public func connect() async throws {
         guard let details = QBSession.current.sessionDetails,
               let token = details.token,
               QBSession.current.tokenHasExpired == false else {
@@ -84,7 +86,7 @@ extension RemoteDataSource {
         }
     }
     
-    func disconnect() async throws {
+    public func disconnect() async throws {
         if QBSession.current.tokenHasExpired || QBSession.current.sessionDetails?.token == nil {
             connectionSubject.send(.unauthorized)
             return
@@ -110,7 +112,7 @@ extension RemoteDataSource {
         }
     }
     
-    func checkConnection() async throws -> ConnectionState {
+    public func checkConnection() async throws -> ConnectionState {
         guard let token = QBSession.current.sessionDetails?.token else {
             connectionSubject.send(.unauthorized)
             return .unauthorized
@@ -142,14 +144,10 @@ extension RemoteDataSource {
             return .disconnected()
         }
     }
-}
-
-//MARK: QBChatDelegate
-extension RemoteDataSource: QBChatDelegate { }
-
-//MARK: QBChatConnectionProtocol
-extension RemoteDataSource: QBChatConnectionProtocol {
-    func chatDidNotConnectWithError(_ error: Error) {
+    
+    //MARK: QBChatConnectionProtocol
+    
+    public func chatDidNotConnectWithError(_ error: Error) {
         if let exeption = try? error.repositoryException {
             connectionSubject.send(.connecting(exeption))
         } else {
@@ -157,11 +155,11 @@ extension RemoteDataSource: QBChatConnectionProtocol {
         }
     }
     
-    func chatDidConnect() {
+    public func chatDidConnect() {
         connectionSubject.send(.connected)
     }
     
-    func chatDidDisconnectWithError(_ error: Error?) {
+    public func chatDidDisconnectWithError(_ error: Error?) {
         if let exeption = try? error?.repositoryException {
             connectionSubject.send(.disconnected(exeption))
         } else {
@@ -169,14 +167,13 @@ extension RemoteDataSource: QBChatConnectionProtocol {
         }
     }
     
-    func chatDidReconnect() {
+    public func chatDidReconnect() {
         connectionSubject.send(.connected)
     }
-}
-
-//MARK: Dialogs
-extension RemoteDataSource {
-    func create(dialog dto: RemoteDialogDTO) async throws -> RemoteDialogDTO {
+    
+    //MARK: Dialogs
+    
+    public func create(dialog dto: RemoteDialogDTO) async throws -> RemoteDialogDTO {
         let dialog = QBChatDialog(dialogID: nil,
                                   type: dto.type.qbDialogType)
         let pIds = dto.participantsIds.map{ NSNumber(value: Int($0) ?? 0) }
@@ -240,7 +237,7 @@ extension RemoteDataSource {
         return "\(current.fullName ?? "\(current.id)") \(actionMessage) \"\(chatName)\""
     }
     
-    func update(dialog dto: RemoteDialogDTO,
+    public func update(dialog dto: RemoteDialogDTO,
                 users: [RemoteUserDTO]) async throws -> RemoteDialogDTO {
         let dialog = try await stream.qbChat(with: dto.id)
         
@@ -358,7 +355,7 @@ extension RemoteDataSource {
         return RemoteDialogDTO(updated)
     }
     
-    func get(dialog dto: RemoteDialogDTO) async throws -> RemoteDialogDTO {
+    public func get(dialog dto: RemoteDialogDTO) async throws -> RemoteDialogDTO {
         do {
             let dialog = try await api.dialogs.get(with: dto.id)
             await stream.update(with: dialog)
@@ -374,7 +371,7 @@ extension RemoteDataSource {
         }
     }
     
-    func get(dialogs dto: RemoteDialogsDTO) async throws -> RemoteDialogsDTO {
+    public func get(dialogs dto: RemoteDialogsDTO) async throws -> RemoteDialogsDTO {
         do {
             let page = QBResponsePage(limit: dto.pagination.limit,
                                       skip: dto.pagination.skip)
@@ -411,7 +408,7 @@ extension RemoteDataSource {
         }
     }
     
-    func getAllDialogs() async throws -> RemoteDialogsDTO {
+    public func getAllDialogs() async throws -> RemoteDialogsDTO {
         do {
             let page = QBResponsePage(limit: 1, skip: 0, totalEntries: 1)
             
@@ -444,7 +441,7 @@ extension RemoteDataSource {
         }
     }
     
-    func delete(dialog dto: RemoteDialogDTO) async throws {
+    public func delete(dialog dto: RemoteDialogDTO) async throws {
         if dto.id.isEmpty {
             let info = "Internal. Empty dialog id"
             throw RepositoryException.incorrectData(info)
@@ -477,22 +474,23 @@ extension RemoteDataSource {
         await stream.process(.leave(dto.id))
     }
     
-    func subscribeToObserveTyping(dialog dialogId: String) async throws {
+    //MARK: Typing
+    
+    public func subscribeToObserveTyping(dialog dialogId: String) async throws {
         await stream.subscribeToTyping(chat: dialogId)
     }
     
-    func sendTyping(dialog dialogId: String) async throws {
+    public func sendTyping(dialog dialogId: String) async throws {
         await stream.sendTyping(chat: dialogId)
     }
     
-    func sendStopTyping(dialog dialogId: String) async throws {
+    public func sendStopTyping(dialog dialogId: String) async throws {
         await stream.sendStopTyping(chat: dialogId)
     }
-}
-
-//MARK: Messages
-extension RemoteDataSource {
-    func get(messages dto: RemoteMessagesDTO) async throws -> RemoteMessagesDTO {
+    
+    //MARK: Messages
+    
+    public func get(messages dto: RemoteMessagesDTO) async throws -> RemoteMessagesDTO {
         do {
             let result = try await api.messages.get(for: dto.dialogId,
                                                     with: dto.ids,
@@ -510,38 +508,37 @@ extension RemoteDataSource {
         }
     }
     
-    func send(message dto: RemoteMessageDTO) async throws {
+    public func send(message dto: RemoteMessageDTO) async throws {
         let message = QBChatMessage(dto, toSend: true)
         await stream.send(message)
         await stream.process(message)
     }
     
-    func update(message dto: RemoteMessageDTO) async throws -> RemoteMessageDTO {
+    public func update(message dto: RemoteMessageDTO) async throws -> RemoteMessageDTO {
         throw DataSourceException.unexpected()
     }
     
-    func delete(message dto: RemoteMessageDTO) async throws {
+    public func delete(message dto: RemoteMessageDTO) async throws {
         throw DataSourceException.unexpected()
     }
     
-    func read(message dto: RemoteMessageDTO) async throws {
+    public func read(message dto: RemoteMessageDTO) async throws {
         let userId = QBSession.current.currentUserID
         if dto.readIds.contains(String(userId)) == true { return }
         let message = QBChatMessage(dto, toSend: false)
         try await stream.read(message)
     }
     
-    func delivered(message dto: RemoteMessageDTO) async throws {
+    public func delivered(message dto: RemoteMessageDTO) async throws {
         let userId = QBSession.current.currentUserID
         if dto.deliveredIds.contains(String(userId)) == true { return }
         let message = QBChatMessage(dto, toSend: false)
         try await stream.delivered(message)
     }
-}
-
-//MARK: Users
-extension RemoteDataSource {
-    func get(user dto: RemoteUserDTO) async throws -> RemoteUserDTO {
+    
+    //MARK: Users
+    
+    public func get(user dto: RemoteUserDTO) async throws -> RemoteUserDTO {
         do {
             let user = try await api.users.get(with: dto.id)
             return RemoteUserDTO(user)
@@ -550,7 +547,7 @@ extension RemoteDataSource {
         }
     }
     
-    func get(users dto: RemoteUsersDTO) async throws -> RemoteUsersDTO {
+    open func get(users dto: RemoteUsersDTO) async throws -> RemoteUsersDTO {
         do {
             var tuple: (users: [QBUUser], pagination: Pagination)
             if dto.ids.isEmpty == false {
@@ -571,17 +568,16 @@ extension RemoteDataSource {
             if nsError.code == 404 {
                 return RemoteUsersDTO(users: [],
                                       pagination: dto.pagination)
-            } 
+            }
             throw try nsError.remoteException
         } catch {
             throw DataSourceException.unexpected(error.localizedDescription)
         }
     }
-}
-
-//MARK: Files
-extension RemoteDataSource {
-    func create(file dto: RemoteFileDTO) async throws -> RemoteFileDTO {
+    
+    //MARK: Files
+    
+    public func create(file dto: RemoteFileDTO) async throws -> RemoteFileDTO {
         do {
             let blob = try await api.files.upload(file: dto)
             guard let uuid = blob.uid,
@@ -625,7 +621,7 @@ extension RemoteDataSource {
         }
     }
     
-    func get(file dto: RemoteFileDTO) async throws -> RemoteFileDTO {
+    public func get(file dto: RemoteFileDTO) async throws -> RemoteFileDTO {
         if dto.id.isNumber {
             if dto.id == "0" {
                 let info = "Internal. Incorrect file path: \(dto.id)"
@@ -734,7 +730,7 @@ extension RemoteDataSource {
         return try await api.files.get(with: url)
     }
     
-    func delete(file dto: RemoteFileDTO) async throws {
+    public func delete(file dto: RemoteFileDTO) async throws {
         do {
             guard let intId = UInt(dto.id) else {
                 let info = "Internal. Incorrect id: \(dto.id)"
@@ -748,12 +744,12 @@ extension RemoteDataSource {
             throw DataSourceException.unexpected(error.localizedDescription)
         }
     }
-}
-
-//MARK: AI
-extension RemoteDataSource {
-    // Quickblox Server API
-    func answerAssist(message dto: RemoteAnswerAssistMessageDTO) async throws -> String {
+    
+    //MARK: AI
+    
+    //MARK: Quickblox Server API
+    
+    public func answerAssist(message dto: RemoteAnswerAssistMessageDTO) async throws -> String {
         do {
             return try await api.ai.answerAssist(with: QBAIAnswerAssistMessage(dto))
         } catch let nsError as NSError {
@@ -764,7 +760,7 @@ extension RemoteDataSource {
         
     }
     
-    func translate(message dto: RemoteTranslateMessageDTO) async throws -> String {
+    public func translate(message dto: RemoteTranslateMessageDTO) async throws -> String {
         do {
             return try await api.ai.translate(with: QBAITranslateMessage(dto))
         } catch let nsError as NSError {
@@ -773,20 +769,16 @@ extension RemoteDataSource {
             throw DataSourceException.unexpected(error.localizedDescription)
         }
     }
-}
-
-//MARK: AI Quickblox QBAIAnswerAssistant Library
-import QBAIAnswerAssistant
-extension RemoteDataSource {
+    
+    //MARK: AI Quickblox QBAIAnswerAssistant Library
+    
     func answerAssist(with content: [RemoteMessageDTO],
                       settings: QBAIAnswerAssistant.AISettings) async throws -> String {
             return try await api.ai.answerAssist(with: content, settings: settings)
     }
-}
-
-//MARK: AI Quickblox QBAITranslate Library
-import QBAITranslate
-extension RemoteDataSource {
+    
+    //MARK: AI Quickblox QBAITranslate Library
+    
     func translate(with text: String,
                    content: [RemoteMessageDTO],
                    settings: QBAITranslate.AISettings) async throws -> String {

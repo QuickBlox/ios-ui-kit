@@ -12,9 +12,9 @@ import QuickBloxDomain
 
 public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
     let settings = QuickBloxUIKit.settings.dialogInfoScreen
-
+    
     @StateObject private var viewModel: ViewModel
-
+    
     @State private var isEditDialogAlertPresented: Bool = false
     @State private var isSizeAlertPresented: Bool = false
     @State private var isMembersPresented: Bool = false
@@ -40,96 +40,96 @@ public struct GroupDialogInfoView<ViewModel: DialogInfoProtocol>: View {
     
     @ViewBuilder
     private func container() -> some View {
-            ZStack {
-                settings.backgroundColor.ignoresSafeArea()
-                VStack {
-                    
-                    InfoDialogAvatar()
-                    
-                    ForEach(settings.groupActionSegments, id:\.self) { action in
-                        InfoSegment(dialog: viewModel.dialog, action: action) { action in
-                            switch action {
-                            case .members: isMembersPresented = true
-                            case .searchInDialog: searchPresented.toggle()
-                            case .leaveDialog: isDeleteAlertPresented = true
-                            case .notification: break
-                            }
+        ZStack {
+            settings.backgroundColor.ignoresSafeArea()
+            VStack {
+                
+                InfoDialogAvatar()
+                
+                ForEach(settings.groupActionSegments, id:\.self) { action in
+                    InfoSegment(dialog: viewModel.dialog, action: action) { action in
+                        switch action {
+                        case .members: isMembersPresented = true
+                        case .searchInDialog: searchPresented.toggle()
+                        case .leaveDialog: isDeleteAlertPresented = true
+                        case .notification: break
                         }
                     }
-                    
-                    SegmentDivider()
                 }
                 
-                .deleteDialogAlert(isPresented: $isDeleteAlertPresented,
-                                   name: viewModel.dialog.name,
-                                   onCancel: {
-                    isDeleteAlertPresented = false
-                }, onTap: {
-                    viewModel.deleteDialog()
-                })
-                
-                .editDialogAlert(isPresented: $isEditDialogAlertPresented, viewModel: viewModel,
-                                 dialogName: viewModel.dialogName,
-                                 isExistingImage: viewModel.isExistingImage,
-                                 isHiddenFiles: settings.editDialogAlert.isHiddenFiles,
-                                 onRemoveImage: {
-                    viewModel.removeExistingImage()
-                }, onGetAttachment: { attachmentAsset in
-                    let sizeMB = attachmentAsset.size
-                    if sizeMB.truncate(to: 2) > settings.maximumMB {
-                        if attachmentAsset.image != nil {
-                            self.attachmentAsset = attachmentAsset
-                        }
-                        isSizeAlertPresented = true
-                    } else {
-                        viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
+                SegmentDivider()
+            }
+            
+            .deleteDialogAlert(isPresented: $isDeleteAlertPresented,
+                               name: viewModel.dialog.name,
+                               onCancel: {
+                isDeleteAlertPresented = false
+            }, onTap: {
+                viewModel.deleteDialog()
+            })
+            
+            .editDialogAlert(isPresented: $isEditDialogAlertPresented, viewModel: viewModel,
+                             dialogName: viewModel.dialogName,
+                             isExistingImage: viewModel.isExistingImage,
+                             isHiddenFiles: settings.editDialogAlert.isHiddenFiles,
+                             onRemoveImage: {
+                viewModel.removeExistingImage()
+            }, onGetAttachment: { attachmentAsset in
+                let sizeMB = attachmentAsset.size
+                if sizeMB.truncate(to: 2) > settings.maximumMB {
+                    if attachmentAsset.image != nil {
+                        self.attachmentAsset = attachmentAsset
                     }
-                }, onGetName: { name in
-                    viewModel.handleOnSelect(newName: name)
-                }, onCancelName: {
-                    viewModel.setDefaultName()
-                })
-                
-                .onChange(of: viewModel.error, perform: { error in
-                    if error.isEmpty { return }
-                    errorPresented.toggle()
-                })
-                
-                .largeImageSizeAlert(isPresented: $isSizeAlertPresented,
-                                     onUseAttachment: {
-                    if let attachmentAsset {
-                        viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
-                        self.attachmentAsset = nil
-                    }
-                }, onCancel: {
+                    isSizeAlertPresented = true
+                } else {
+                    viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
+                }
+            }, onGetName: { name in
+                viewModel.handleOnSelect(newName: name)
+            }, onCancelName: {
+                viewModel.setDefaultName()
+            })
+            
+            .onChange(of: viewModel.error, perform: { error in
+                if error.isEmpty { return }
+                errorPresented.toggle()
+            })
+            
+            .largeImageSizeAlert(isPresented: $isSizeAlertPresented,
+                                 onUseAttachment: {
+                if let attachmentAsset {
+                    viewModel.handleOnSelect(attachmentAsset: attachmentAsset)
                     self.attachmentAsset = nil
-                })
-                
-                .errorAlert($viewModel.error, isPresented: $errorPresented)
-                .permissionAlert(isPresented: $viewModel.permissionNotGranted.notGranted,
-                                 viewModel: viewModel)
-                
-                .if(isMembersPresented == true, transform: { view in
-                    view.navigationDestination(isPresented: $isMembersPresented) {
-                        Fabric.screen.members(to: viewModel.dialog)
-                    }
-                })
-                
-                .modifier(DialogInfoHeader(onTapEdit: {
-                    isEditDialogAlertPresented = true
-                }))
-                
-                .disabled(viewModel.isProcessing == true)
-                .if(viewModel.isProcessing == true) { view in
-                    view.overlay() {
-                        CustomProgressView()
-                    }
                 }
-                .environmentObject(viewModel)
+            }, onCancel: {
+                self.attachmentAsset = nil
+            })
+            
+            .errorAlert($viewModel.error, isPresented: $errorPresented)
+            .permissionAlert(isPresented: $viewModel.permissionNotGranted.notGranted,
+                             viewModel: viewModel)
+            
+            .if(isMembersPresented == true, transform: { view in
+                view.navigationDestination(isPresented: $isMembersPresented) {
+                    Fabric.screen.members(to: viewModel.dialog)
+                }
+            })
+            
+            .modifier(DialogInfoHeader(onTapEdit: {
+                isEditDialogAlertPresented = true
+            }))
+            
+            .disabled(viewModel.isProcessing == true)
+            .if(viewModel.isProcessing == true) { view in
+                view.overlay() {
+                    CustomProgressView()
+                }
             }
-            .onAppear {
-                viewModel.sync()
-            }
+            .environmentObject(viewModel)
+        }
+        .onAppear {
+            viewModel.sync()
+        }
     }
 }
 

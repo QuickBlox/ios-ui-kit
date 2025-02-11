@@ -45,10 +45,10 @@ extension QBResponsePage {
     }
 }
 
-struct API {
-    let dialogs = APIDialogs()
-    let users = APIUsers()
-    let messages = APIMessages()
-    let files = APIFiles()
-    let ai = APIAI()
+public struct API {
+    public let dialogs = APIDialogs()
+    public let users = APIUsers()
+    public let messages = APIMessages()
+    public let files = APIFiles()
+    public let ai = APIAI()
 }

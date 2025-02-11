@@ -11,7 +11,9 @@ import QuickBloxDomain
 
 /// This is a DTO model for interactions with messages models in local storage.
 public struct LocalMessagesDTO {
-    var dialogId = ""
-    var messages: [LocalMessageDTO] = []
-    var pagination = Pagination()
+    public var dialogId = ""
+    public var messages: [LocalMessageDTO] = []
+    public var pagination = Pagination()
+    
+    public init () {}
 }

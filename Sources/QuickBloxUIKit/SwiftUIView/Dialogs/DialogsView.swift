@@ -11,38 +11,38 @@ import QuickBloxData
 import QuickBloxDomain
 
 public struct DialogsView<ViewModel: DialogsListProtocol>: View {
-    
     let settings = QuickBloxUIKit.settings.dialogsScreen
     let feature = QuickBloxUIKit.feature
-    
-    @Environment(\.dismiss) var dismiss
     
     let connectStatus = QuickBloxUIKit.settings.dialogsScreen.connectStatus
     
     @StateObject private var dialogsList: ViewModel
     
+    var onModifyContent: ((AnyView, Binding<Bool>) -> AnyView)?
+    
     public init(dialogsList: ViewModel,
-                onBack: @escaping () -> Void,
-                onSelect: @escaping (_ tabIndex: TabIndex) -> Void) {
+                modifyContent: ((AnyView, Binding<Bool>) -> AnyView)? = nil,
+                onBack: @escaping () -> Void) {
         _dialogsList = StateObject(wrappedValue: dialogsList)
+        self.onModifyContent = modifyContent
         self.onBack = onBack
-        self.onSelect = onSelect
     }
     
     private var onBack: () -> Void
-    public var onSelect: (_ tabIndex: TabIndex) -> Void
     
-    @State private var isDialogTypePresented: Bool = false
+    @State private var isDialogTypePresented: Bool = false {
+        didSet {
+            isNavigationBarPresented = !isDialogTypePresented
+        }
+    }
     @State private var isDeleteAlertPresented: Bool = false
     @State private var dialogForDeleting: ViewModel.Item? = nil
     
     @State private var searchText = ""
     @State private var submittedSearchTerm = ""
     
+    @State var isNavigationBarPresented: Bool = true
     @State public var isPresentedItem: Bool = false
-    @State private var selectedSegment: TabIndex = .dialogs
-    
-    @State private var tabBarVisibility: Visibility = .visible
     
     private var items: [ViewModel.Item] {
         if settings.searchBar.isSearchable == false || submittedSearchTerm.isEmpty {
@@ -55,41 +55,31 @@ public struct DialogsView<ViewModel: DialogsListProtocol>: View {
     
     @ViewBuilder
     private func container() -> some View {
+        var defaultView: AnyView = AnyView(EmptyView())
         if isDialogTypePresented == true {
-            DialogTypeView(onClose: {
+            defaultView = AnyView(DialogTypeView(onClose: {
                 // action onDismiss
                 isDialogTypePresented = false
-            })
-        } else if feature.toolbar.enable {
-            TabView(selection: $selectedSegment) {
-                if (isIPad == true || isMac == true) {
-                    Spacer()
-                }
-                dialogsContentView().blur(radius: isDialogTypePresented ? settings.blurRadius : 0)
-                    .toolbarBackground(settings.backgroundColor, for: .tabBar)
-                    .toolbarBackground(tabBarVisibility, for: .tabBar)
-                    .tabItem {
-                        Label(TabIndex.dialogs.title, systemImage: TabIndex.dialogs.systemIcon)
-                    }
-                    .tag(TabIndex.dialogs)
-                
-                ForEach(feature.toolbar.externalIndexes, id:\.self) { tabIndex in
-                    settings.backgroundColor.ignoresSafeArea()
-                        .toolbarBackground(settings.backgroundColor, for: .tabBar)
-                        .toolbarBackground(tabBarVisibility, for: .tabBar)
-                        .tabItem {
-                            Label(tabIndex.title, systemImage: tabIndex.systemIcon)
-                        }
-                        .tag(tabIndex)
-                }
-            }
-            .onChange(of: selectedSegment, perform: { newSelectedSegment in
-                onSelect(newSelectedSegment)
-            })
-            .accentColor(settings.header.rightButton.color)
+            }))
         } else {
-            dialogsContentView().blur(radius: isDialogTypePresented ? settings.blurRadius : 0)
+            defaultView = AnyView(dialogsContentView().blur(radius: isDialogTypePresented ? settings.blurRadius : 0))
         }
+        
+        if let modify = onModifyContent {
+            defaultView = modify(defaultView, $isNavigationBarPresented)
+        }
+        
+        return  defaultView
+            .onChange(of: dialogsList.selectedItem, perform: { newSelectedItem in
+                isDialogTypePresented = false
+                isPresentedItem = newSelectedItem != nil
+            })
+            .modifier(DialogListHeader(onDismiss: {
+                onBack()
+            }, onTapDialogType: {
+                isDialogTypePresented = true
+            }))
+            .navigationBarHidden(!isNavigationBarPresented)
     }
     
     @ViewBuilder
@@ -187,10 +177,6 @@ public struct DialogsView<ViewModel: DialogsListProtocol>: View {
         if isIphone {
             NavigationStack {
                 container()
-                    .onChange(of: dialogsList.selectedItem, perform: { newSelectedItem in
-                        isDialogTypePresented = false
-                        isPresentedItem = newSelectedItem != nil
-                    })
                     .navigationDestination(isPresented: $isPresentedItem) {
                         if let dialog = dialogsList.selectedItem as? Dialog {
                             switch dialog.type {
@@ -203,30 +189,12 @@ public struct DialogsView<ViewModel: DialogsListProtocol>: View {
                             }
                         }
                     }
-                    .modifier(DialogListHeader(onDismiss: {
-                        onBack()
-                        dismiss()
-                    }, onTapDialogType: {
-                        isDialogTypePresented = true
-                    }))
-                    .navigationBarHidden(isDialogTypePresented)
             }
             .accentColor(settings.header.leftButton.color)
         }
         else {
             NavigationSplitView(columnVisibility: Binding.constant(.all)) {
                 container()
-                    .onChange(of: dialogsList.selectedItem, perform: { newSelectedItem in
-                        isDialogTypePresented = false
-                        isPresentedItem = newSelectedItem != nil
-                    })
-                    .modifier(DialogListHeader(onDismiss: {
-                        onBack()
-                        dismiss()
-                    }, onTapDialogType: {
-                        isDialogTypePresented = true
-                    }))
-                    .navigationBarHidden(isDialogTypePresented)
             } detail: {
                 if let dialog = dialogsList.selectedItem as? Dialog {
                     switch dialog.type {
@@ -235,7 +203,7 @@ public struct DialogsView<ViewModel: DialogsListProtocol>: View {
                     case .private:
                         PrivateDialogView(viewModel: DialogViewModel(dialog: dialog))
                     default:
-                        EmptyView()
+                        EmptyDialogView()
                     }
                 } else {
                     EmptyDialogView()

@@ -1,5 +1,5 @@
 //
-//  SyncDialogsTests.swift
+//  Log.swift
 //  QuickBloxUIKit
 //
 //  Created by Injoit on 09.04.2023.
@@ -8,13 +8,13 @@
 
 import Foundation
 
-enum LogType {
+public enum LogType {
     case nothing
     case details
 }
 
-struct LogSettings {
-    static var type: LogType = .details
+public struct LogSettings {
+    public static var type: LogType = .details
 }
 
 public struct LogSeparator {

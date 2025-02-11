@@ -30,7 +30,7 @@ public struct Pagination: PaginationProtocol {
         self.total = total
     }
     
-    init(page: Int = 1, perPage: Int = 10, total: Int = 0) {
+    public init(page: Int = 1, perPage: Int = 10, total: Int = 0) {
         self.skip = (page - 1) * perPage
         self.limit = perPage
         self.total = total

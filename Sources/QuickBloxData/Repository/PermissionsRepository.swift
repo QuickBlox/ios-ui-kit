@@ -10,19 +10,17 @@ import QuickBloxDomain
 import AVFoundation
 
 public class PermissionsRepository {
-    private var repo: PermissionsRepositoryProtocol!
+    private let source: PermissionsDataSourceProtocol
     
-    init(repo: PermissionsRepositoryProtocol) {
-        self.repo = repo
+    public init(source: PermissionsDataSourceProtocol) {
+        self.source = source
     }
-    
-    private init() { }
 }
 
 extension PermissionsRepository: PermissionsRepositoryProtocol {
     public func openSettings() async throws {
         do {
-            try await repo.openSettings()
+            try await source.openSettings()
         } catch {
             throw try error.repositoryException
         }
@@ -30,7 +28,7 @@ extension PermissionsRepository: PermissionsRepositoryProtocol {
     
     public func get(permissionTo mediaType: AVMediaType) async throws -> Bool {
         do {
-            return try await repo.get(permissionTo: mediaType)
+            return try await source.get(permissionTo: mediaType)
         } catch {
             throw try error.repositoryException
         }

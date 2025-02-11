@@ -10,17 +10,17 @@ import Foundation
 
 /// This is a DTO model for interactions with the original message model in remote storage.
 public struct RemoteOriginalMessageDTO: Codable {
-    var id: String
-    var dialogId: String
-    var text: String
-    var recipientId: UInt
-    var senderId: UInt
-    var dateSent: Int64
-    var attachments: [RemoteOriginalFileInfoDTO]
-    var createdAt: Date
-    var updatedAt: Date
-    var deliveredIds: [UInt]
-    var readIds: [UInt]
+    public var id: String
+    public var dialogId: String
+    public var text: String
+    public var recipientId: UInt
+    public var senderId: UInt
+    public var dateSent: Int64
+    public var attachments: [RemoteOriginalFileInfoDTO]
+    public var createdAt: Date
+    public var updatedAt: Date
+    public var deliveredIds: [UInt]
+    public var readIds: [UInt]
     
     public init(id: String,
                 dialogId: String = "",
@@ -67,10 +67,12 @@ public struct RemoteOriginalFileInfoDTO: Codable {
     var type: String = ""
     var url: String = ""
     var uid: String = ""
+    
+    public init () {}
 }
 
 extension RemoteOriginalFileInfoDTO {
-    init(_ value: RemoteFileInfoDTO) {
+    public init(_ value: RemoteFileInfoDTO) {
         id = value.id
         name = value.name
         type = value.type
@@ -80,7 +82,7 @@ extension RemoteOriginalFileInfoDTO {
 }
 
 extension RemoteOriginalMessageDTO {
-    init(_ value: RemoteMessageDTO) {
+    public init(_ value: RemoteMessageDTO) {
         id = value.id
         dialogId = value.dialogId
         text = value.text
@@ -98,7 +100,7 @@ extension RemoteOriginalMessageDTO {
 }
 
 private extension Date {
-    var timeStampInt: Int64 {
+    public var timeStampInt: Int64 {
         return Int64(self.timeIntervalSince1970 * 1000)
     }
 }

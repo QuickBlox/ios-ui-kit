@@ -11,18 +11,21 @@ import QuickBloxDomain
 import QuickBloxData
 
 struct CreateDialogView<ViewModel: CreateDialogProtocol,
-                    DialogItem: DialogEntity,
-                    UserItem: UserEntity>: View
+                        DialogItem: DialogEntity,
+                        UserItem: UserEntity>: View
 where DialogItem == ViewModel.DialogItem, UserItem == ViewModel.UserItem {
     let settings = QuickBloxUIKit.settings.createDialogScreen
-
-    @Environment(\.dismiss) var dismiss
+    
     @Environment(\.isSearching) private var isSearching: Bool
     
     @StateObject private var viewModel: ViewModel
-
-    init(viewModel: ViewModel) {
+    
+    @Binding var isPresented: Bool
+    
+    init(viewModel: ViewModel,
+         isPresented: Binding<Bool>) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        _isPresented = isPresented
     }
     
     public var body: some View {
@@ -34,9 +37,9 @@ where DialogItem == ViewModel.DialogItem, UserItem == ViewModel.UserItem {
         } else {
             NavigationStack {
                 container()
-                .onViewDidLoad {
-                    viewModel.syncUsers()
-                }
+                    .onViewDidLoad {
+                        viewModel.syncUsers()
+                    }
             }.accentColor(settings.header.leftButton.color)
         }
     }
@@ -59,7 +62,7 @@ where DialogItem == ViewModel.DialogItem, UserItem == ViewModel.UserItem {
         }
         
         .modifier(CreateDialogHeader(onDismiss: {
-            dismiss()
+            isPresented = false
         }, onTapCreate: {
             viewModel.createDialog()
         }, disabled: viewModel.isProcessing == true))

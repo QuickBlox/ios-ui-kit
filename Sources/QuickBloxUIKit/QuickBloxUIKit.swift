@@ -34,6 +34,10 @@ var previewAware: Bool {
     return ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
 }
 
+public class Fabric {
+    public static var screen: ScreenFabric = ScreenFabric()
+}
+
 public var settings: ScreensProtocol = ScreenSettings(Theme())
 public var feature: Feature = Feature()
 
@@ -54,10 +58,10 @@ class Sync {
     private var cancellables: Set<AnyCancellable> = Set<AnyCancellable>()
     
     init() {
-        useCase = SyncData(dialogsRepo: RepositoriesFabric.dialogs,
-                           usersRepo: RepositoriesFabric.users,
-                           messagesRepo: RepositoriesFabric.messages,
-                           connectRepo: RepositoriesFabric.connection)
+        useCase = SyncData(dialogsRepo: Repository.dialogs,
+                           usersRepo: Repository.users,
+                           messagesRepo: Repository.messages,
+                           connectRepo: Repository.connection)
         useCase.execute()
             .receive(on: RunLoop.main)
             .sink(receiveCompletion: { _ in },
@@ -81,15 +85,47 @@ private func syncData() {
     }
 }
 
-//FIXME: add dialogsView screen
 @MainActor @ViewBuilder
+@available(*, deprecated, message: "Use dialogsView(onExit:) instead, as onSelect is no longer needed.")
 public func dialogsView(onExit: (() -> Void)? = nil,
                         onSelect: @escaping (_ tabIndex: TabIndex) -> Void) -> some View {
-    DialogsView(dialogsList: DialogsViewModel(dialogsRepo: RepositoriesFabric.dialogs),
+    DialogsView(dialogsList: DialogsViewModel(dialogsRepo: Repository.dialogs),
                 onBack: {
         onExit?()
-    }, onSelect: { tabIndex in
-        onSelect(tabIndex)
+    })
+    .onAppear {
+        syncData()
+    }
+}
+
+/// Displays a list of dialogs with an optional exit handler.
+///
+/// - Parameter onExit: A closure that is executed when the user exits the `DialogsView`.
+/// - Returns: A SwiftUI `View` displaying the dialogs.
+@MainActor @ViewBuilder
+public func dialogsView(onExit: (() -> Void)? = nil) -> some View {
+    DialogsView(dialogsList: DialogsViewModel(dialogsRepo: Repository.dialogs),
+                onBack: {
+        onExit?()
+    })
+    .onAppear {
+        syncData()
+    }
+}
+
+/// Displays a list of dialogs with optional content modification and exit handling.
+///
+/// - Parameters:
+///   - onModifyContent: A closure that modifies the view's content, taking an `AnyView` and a `Binding<Bool>`.
+///   - onExit: A closure that is executed when the user exits the `DialogsView`.
+/// - Returns: A SwiftUI `View` displaying the dialogs with customizable content.
+@MainActor @ViewBuilder
+public func dialogsView(onModifyContent: ((AnyView, Binding<Bool>) -> AnyView)? = nil,
+                        onExit: (() -> Void)? = nil) -> some View {
+    DialogsView(dialogsList: DialogsViewModel(dialogsRepo: Repository.dialogs),
+                modifyContent: onModifyContent,
+                onBack: {
+        onExit?()
     })
     .onAppear {
         syncData()

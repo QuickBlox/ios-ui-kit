@@ -122,7 +122,7 @@ extension DialogsViewModel {
         }
         
         let leaveDialogCase = LeaveDialog(dialog: dialogToBeDeleted,
-                                          repo: RepositoriesFabric.dialogs)
+                                          repo: Repository.dialogs)
         deleteDialog = Task { [weak self] in
             do {
                 try await leaveDialogCase.execute()

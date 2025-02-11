@@ -56,6 +56,7 @@ final class CreateDialogViewModel: CreateDialogProtocol {
         
         $search.eraseToAnyPublisher()
             .receive(on: RunLoop.main)
+            .removeDuplicates()
             .sink { [weak self] text in
                 self?.displayMembers(by: text)
             }
@@ -70,10 +71,9 @@ final class CreateDialogViewModel: CreateDialogProtocol {
         if text.isEmpty || text.count > 2 {
             isSynced = false
             
-            let getUsers = GetUsers(name: text, repo: RepositoriesFabric.users)
+            let getUsers = GetUsers(name: text, repo: Repository.users)
             
             taskUsers?.cancel()
-            taskUsers = nil
             taskUsers = Task { [weak self] in
                 do {
                     let users = try await getUsers.execute()
@@ -93,7 +93,6 @@ final class CreateDialogViewModel: CreateDialogProtocol {
                         self.displayed = toDisplay
                         self.isSynced = true
                     }
-                    
                 } catch {
                     prettyLog(error)
                     if error is RepositoryException {
@@ -102,6 +101,7 @@ final class CreateDialogViewModel: CreateDialogProtocol {
                         }
                     }
                 }
+                self?.taskUsers = nil
             }
         }
     }
@@ -143,7 +143,7 @@ final class CreateDialogViewModel: CreateDialogProtocol {
             do {
                 guard let dialog = self?.modeldDialog else { return }
                 let create = CreateDialog(dialog: dialog,
-                                          repo: RepositoriesFabric.dialogs)
+                                          repo: Repository.dialogs)
                 try await create.execute()
                 
                 await MainActor.run { [weak self] in

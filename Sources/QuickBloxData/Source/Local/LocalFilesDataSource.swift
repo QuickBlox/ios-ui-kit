@@ -11,7 +11,7 @@ import Foundation
 /// This is a class that implements the ``LocalFileDataSourceProtocol`` protocol and contains methods and properties that allow it to interact with the local file storage.
 ///
 /// Stores data cache files in the Library/Caches/ directory. Cache data can be used for any information that needs to persist for longer than temporary data, but not as long as a support file. While the application does not necessarily need the cache data to function properly, it can use it to enhance performance. The system will automatically clear the Caches/ directory to free up disk space.
-class LocalFilesDataSource {
+open class LocalFilesDataSource: LocalFilesDataSourceProtocol {
     private let manager = FileManager.default
     private var fileURL: URL {
         get throws {
@@ -49,11 +49,12 @@ class LocalFilesDataSource {
         
         return try fileURL.appendingPathComponent(id)
     }
-}
-
-//MARK: LocalFileDataSourceProtocol
-extension LocalFilesDataSource: LocalFilesDataSourceProtocol {
-    func createFile(_ dto: LocalFileDTO) async throws -> LocalFileDTO {
+    
+    public init() {}
+    
+    //MARK: LocalFileDataSourceProtocol
+    
+    open func createFile(_ dto: LocalFileDTO) async throws -> LocalFileDTO {
         var url = try fileURL(for: dto)
         url = url.appendingPathExtension(dto.ext.rawValue)
         let encoder = JSONEncoder()
@@ -71,7 +72,7 @@ extension LocalFilesDataSource: LocalFilesDataSourceProtocol {
         return newDTO
     }
     
-    func getFile(_ dto: LocalFileDTO) async throws -> LocalFileDTO {
+    open func getFile(_ dto: LocalFileDTO) async throws -> LocalFileDTO {
         let url = try searchURL(for: dto)
         
         if manager.fileExists(atPath: url.path) == false {
@@ -87,7 +88,7 @@ extension LocalFilesDataSource: LocalFilesDataSourceProtocol {
         return result
     }
     
-    func deleteFile(_ dto: LocalFileDTO) async throws {
+    open func deleteFile(_ dto: LocalFileDTO) async throws {
         let url = try searchURL(for: dto)
         if manager.fileExists(atPath: url.path) == false {
             throw DataSourceException.notFound()
@@ -96,14 +97,14 @@ extension LocalFilesDataSource: LocalFilesDataSourceProtocol {
         try manager.removeItem(at: url)
     }
     
-    func cleareAll() async throws {
+    open func cleareAll() async throws {
         if manager.fileExists(atPath: try fileURL.path) == false {
             return
         }
         try manager.removeItem(at: try fileURL)
     }
     
-    private func searchURL(for dto: LocalFileDTO) throws -> URL {
+    open func searchURL(for dto: LocalFileDTO) throws -> URL {
         let url = try fileURL(for: dto)
         
         guard let id = url.pathComponents.last,
@@ -115,7 +116,7 @@ extension LocalFilesDataSource: LocalFilesDataSourceProtocol {
         return try getFirstURL(forFileName: uuid)
     }
     
-    private func getFirstURL(forFileName fileName: String) throws -> URL {
+    open func getFirstURL(forFileName fileName: String) throws -> URL {
         let keys: [URLResourceKey] = [.isRegularFileKey, .nameKey]
         let dictionaryUrl = try fileURL
         let enumerator = manager.enumerator(at: dictionaryUrl,

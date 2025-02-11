@@ -43,13 +43,13 @@ extension DialogEntity {
     func privateAvatar(scale: DialogThumbnailSize) async throws -> Image {
         if QuickBloxUIKit.previewAware {  return placeholder }
 
-        let filesRepo = RepositoriesFabric.files
+        let filesRepo = Repository.files
         
         let imageCache = ThumbnailImageCache.shared
         
         var path: String
         
-        let usersRepo = RepositoriesFabric.users
+        let usersRepo = Repository.users
         guard let userId = participantsIds.filter({ isOwnedByCurrentUser == true ? $0 != ownerId : $0 == ownerId}).first else {
             return placeholder
         }
@@ -84,7 +84,7 @@ extension DialogEntity {
         
         var thumbnailKey: String = ""
         
-        let filesRepo = RepositoriesFabric.files
+        let filesRepo = Repository.files
         
         let imageCache = ThumbnailImageCache.shared
         
@@ -106,7 +106,7 @@ extension DialogEntity {
                 return Image(uiImage: uiImage)
             }
         case .private, .unknown:
-            let usersRepo = RepositoriesFabric.users
+            let usersRepo = Repository.users
             guard let userId = participantsIds.filter({ isOwnedByCurrentUser == true ? $0 != ownerId : $0 == ownerId}).first else {
                 return placeholder
             }
@@ -140,7 +140,7 @@ extension DialogEntity {
         do {
             if QuickBloxUIKit.previewAware, id.isEmpty {  return nil }
             
-            let repo = RepositoriesFabric.messages
+            let repo = Repository.messages
             
             if lastMessage.id.isEmpty { return nil }
 
@@ -159,7 +159,7 @@ extension DialogEntity {
                 } else { return nil }
             }
             
-            let filesRepo = RepositoriesFabric.files
+            let filesRepo = Repository.files
             
             let useCase = GetFile<File, FilesRepository>(id: attachmentId, repo: filesRepo)
             try Task.checkCancellation()
@@ -270,7 +270,7 @@ extension MessageEntity {
         get async throws {
             if QuickBloxUIKit.previewAware {  return "Name" }
             
-            let usersRepo = RepositoriesFabric.users
+            let usersRepo = Repository.users
             let getUser = GetUser(id: userId, repo: usersRepo)
             let user = try await getUser.execute()
             if user.name.isEmpty { return user.id }
@@ -282,7 +282,7 @@ extension MessageEntity {
     func avatar(scale: UserThumbnailScale) async throws -> Image {
         if QuickBloxUIKit.previewAware {  return placeholder }
         
-        let usersRepo = RepositoriesFabric.users
+        let usersRepo = Repository.users
         let getUser = GetUser(id: userId, repo: usersRepo)
         let user = try await getUser.execute()
         
@@ -295,7 +295,7 @@ extension MessageEntity {
             return Image(uiImage: uiImage)
         }
     
-        let filesRepo = RepositoriesFabric.files
+        let filesRepo = Repository.files
         let useCase = GetFile<File, FilesRepository>(id: user.avatarPath,
                                                      repo: filesRepo)
         try Task.checkCancellation()
@@ -321,7 +321,7 @@ extension MessageEntity {
             
             guard let file = fileInfo else { return nil }
             
-            let filesRepo = RepositoriesFabric.files
+            let filesRepo = Repository.files
             
             let useCase = GetFile<File, FilesRepository>(id: file.id,
                                                          repo: filesRepo)
@@ -382,7 +382,7 @@ extension MessageEntity {
                 
                 guard let file = fileInfo else { return nil }
                 
-                let filesRepo = RepositoriesFabric.files
+                let filesRepo = Repository.files
                 
                 let useCase = GetFile<File, FilesRepository>(id: file.id,
                                                              repo: filesRepo)
@@ -429,7 +429,7 @@ extension UserEntity {
             return Image(uiImage: uiImage)
         }
         
-        let filesRepo = RepositoriesFabric.files
+        let filesRepo = Repository.files
         let useCase = GetFile<File, FilesRepository>(id: avatarPath,
                                                      repo: filesRepo)
         try Task.checkCancellation()
