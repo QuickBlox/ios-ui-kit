@@ -9,6 +9,14 @@
 /// Provides a set of methods for getting, saving and manipulating with ``UserEntity`` items.
 public protocol UsersRepositoryProtocol {
     associatedtype UserEntityItem: UserEntity
+    associatedtype PaginationItem: PaginationProtocol
+    
+    /// The initial pagination state used when fetching messages.
+    ///
+    /// This property provides the default pagination settings, typically starting from the first page
+    /// (e.g., `skip = 0`) with a predefined `limit`. It serves as a reference for loading the first set
+    /// of items in a paginated request.
+    var initialPagination: PaginationItem { get }
     
     /// Save a new user item in the local storage
     /// - Parameter entity: ``UserEntity`` item.
@@ -37,18 +45,26 @@ public protocol UsersRepositoryProtocol {
     func get(userFromLocal userId: String) async throws -> UserEntityItem
     
     /// Retrieve users from the remote server.
-    /// - Parameter usersIds: An array of string unique identifiers that is used to identify specific user items.
-    /// - Returns: Array of ``UserEntity`` items.
+    /// - Parameters:
+    ///     - usersIds: An array of string unique identifiers that is used to identify specific user items.
+    ///     - pagination: An optional ``PaginationItem`` to control paging through results.
+    /// - Returns: A tuple containing:
+    ///   - `users`: An array of ``UserEntityItem`` objects that match the given name.
+    ///   - `pagination`: A ``PaginationItem`` with updated pagination details.
     ///
     /// - Throws: ``RepositoryException``**.notFound**  when ``UserEntity`` item is missing from remote storage.
-    func get(usersFromRemote usersIds: [String]) async throws -> [UserEntityItem]
+    func get(usersFromRemote usersIds: [String], pagination: PaginationItem?) async throws -> (users: [UserEntityItem], pagination: PaginationItem)
     
     /// Retrieve users from the remote server.
-    /// - Parameter usersIds: An array of string unique identifiers that is used to identify specific user items.
-    /// - Returns: Array of ``UserEntity`` items.
+    /// - Parameters:
+    ///   - fullName: The full name used to search for user items.
+    ///   - pagination: An optional ``PaginationItem`` to control paging through results.
+    /// - Returns: A tuple containing:
+    ///   - `users`: An array of ``UserEntityItem`` objects that match the given name.
+    ///   - `pagination`: A ``PaginationItem`` with updated pagination details.
     ///
-    /// - Throws: ``RepositoryException``**.notFound**  when ``UserEntity`` item is missing from remote storage.
-    func get(usersFromRemote fullName: String) async throws -> [UserEntityItem]
+    /// - Throws: ``RepositoryException``**.notFound** if no matching ``UserEntityItem`` is found in remote storage.
+    func get(usersFromRemote fullName: String, pagination: PaginationItem?) async throws -> (users: [UserEntityItem], pagination: PaginationItem)
     
     /// Retrieve users from the local storage.
     /// - Parameter usersIds: An array of string unique identifiers that is used to identify specific user items.

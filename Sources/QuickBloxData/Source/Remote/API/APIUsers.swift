@@ -43,6 +43,7 @@ public struct APIUsers {
         
         return try await withCheckedThrowingContinuation { continuation in
             let page = QBGeneralResponsePage(page)
+            
             QBRequest.users(withExtendedRequest: extendedRequest, page: page) {
                 _, page, users in
                 continuation.resume(returning: (users, Pagination(page)))

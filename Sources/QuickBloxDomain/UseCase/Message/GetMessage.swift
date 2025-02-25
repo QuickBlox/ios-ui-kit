@@ -33,7 +33,7 @@ where Message == Repo.MessageEntityItem, Pagination == Repo.PaginationItem {
         } catch RepositoryException.notFound(_) {
             let result = try await repo.get(messagesFromRemote: dialogId,
                                           messagesIds: [id],
-                                              page: Pagination(skip: 0))
+                                            page: repo.initialPagination)
             for message in result.messages {
                 if message.id == id {
                     try await repo.save(messageToLocal: message)

@@ -17,7 +17,8 @@ public class SyncDialog<Dialog: DialogEntity,
                         Pagination: PaginationProtocol>
 where Dialog == DialogsRepo.DialogEntityItem,
       Pagination == MessageRepo.PaginationItem,
-      Pagination == DialogsRepo.PaginationItem {
+      Pagination == DialogsRepo.PaginationItem,
+      Pagination == UsersRepo.PaginationItem {
     private let dialogId: String
     private let dialogsRepo: DialogsRepo
     private let usersRepo: UsersRepo
@@ -51,37 +52,50 @@ where Dialog == DialogsRepo.DialogEntityItem,
     private func syncUsers() {
         taskSyncUsers = Task { [weak self] in
             do {
-                guard let dialogId = self?.dialogId else { return }
-                guard let dialogsRepo = self?.dialogsRepo  else { return }
-                let dialog = try await dialogsRepo.get(dialogFromRemote: dialogId)
+                guard let self = self else { return }
+                
+                let dialog = try await self.dialogsRepo.get(dialogFromRemote: dialogId)
                 let ids = dialog.participantsIds
                 
-                if let usersRepo = self?.usersRepo,
-                   let users = try? await usersRepo.get(usersFromRemote: ids),
-                   users.isEmpty == false {
-                    try? await usersRepo.save(usersToLocal: users)
-                }
-                try await dialogsRepo.save(dialogToLocal: dialog)
-            } catch { prettyLog(error) } }
-        taskSyncUsers = nil
+                var page = self.usersRepo.initialPagination
+                
+                repeat {
+                    try Task.checkCancellation()
+                    
+                    if let result = try? await self.usersRepo.get(usersFromRemote: ids,
+                                                                  pagination: page) {
+                        if result.users.isEmpty == false {
+                            try? await self.usersRepo.save(usersToLocal: result.users)
+                        }
+                        page = result.pagination
+                        page.next()
+                    }
+                    
+                } while page.hasNext
+                
+                try await self.dialogsRepo.save(dialogToLocal: dialog)
+            } catch { prettyLog(error) }
+            taskSyncUsers = nil
+        }
     }
     
     private func syncMessages() {
         //TODO: Update Pagination logic
         taskSyncMessages = Task { [weak self] in
+            guard let self = self else { return }
             do {
-                var page = Pagination(skip: 100, limit: 100, total: 0)
+                var page = messageRepo.initialPagination
+                page.next()
                 repeat {
                     try Task.checkCancellation()
-                    guard let newPage = try await self?.syncMessages(with: page) else {
-                        return
-                    }
-                    page = newPage
-                } while page.hasNextPage
-                page = Pagination(skip: 0, limit: 100, total: 0)
-                _ = try await self?.syncMessages(with: page)
+
+                    page = try await self.syncMessages(with: page)
+                    page.next()
+                } while page.hasNext
+                page = messageRepo.initialPagination
+                _ = try await self.syncMessages(with: page)
             } catch { prettyLog(error) }
-            self?.taskSyncMessages = nil
+            self.taskSyncMessages = nil
         }
     }
     
@@ -95,9 +109,6 @@ where Dialog == DialogsRepo.DialogEntityItem,
             try await messageRepo.save(messageToLocal: message)
         }
         
-        var next = result.page
-        next.skip += result.messages.count
-        next.hasNextPage = result.messages.count == page.limit
         return result.page
     }
     

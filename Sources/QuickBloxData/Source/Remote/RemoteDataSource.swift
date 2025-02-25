@@ -394,9 +394,7 @@ open class RemoteDataSource: NSObject, RemoteDataSourceProtocol, QBChatDelegate 
             }
             let dialogs = result.dialogs.map { RemoteDialogDTO($0) }
             let usersIds = result.usersIds.map { $0.stringValue }
-            let pagination = Pagination(skip: result.page.skip,
-                                        limit: result.page.limit,
-                                        total: Int(result.page.totalEntries))
+            let pagination = Pagination(result.page)
             let dialogsDTO = RemoteDialogsDTO(dialogs: dialogs,
                                               usersIds: usersIds,
                                               pagination: pagination)
@@ -551,8 +549,18 @@ open class RemoteDataSource: NSObject, RemoteDataSourceProtocol, QBChatDelegate 
         do {
             var tuple: (users: [QBUUser], pagination: Pagination)
             if dto.ids.isEmpty == false {
-                tuple = try await api.users.get(with: dto.ids,
-                                                page: dto.pagination)
+                let limit = 100
+                let requestPage = Pagination(skip: 0, limit: limit)
+                let offset = dto.pagination.skip
+                let count = dto.ids.count
+                let requestIds = Array(dto.ids[offset..<min(offset + limit, count)])
+                tuple = try await api.users.get(with: requestIds,
+                                                page: requestPage)
+                var responsePage = Pagination(skip: dto.pagination.skip,
+                                              limit: limit,
+                                              total: dto.ids.count)
+                responsePage.hasNext = responsePage.total > (responsePage.skip + responsePage.limit)
+                tuple.pagination = responsePage
             } else if dto.name.isEmpty == false {
                 tuple = try await api.users.get(with: dto.name,
                                                 page: dto.pagination)

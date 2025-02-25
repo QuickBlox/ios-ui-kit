@@ -24,6 +24,10 @@ public class DialogsRepository {
 }
 
 extension DialogsRepository: DialogsRepositoryProtocol {
+    public var initialPagination: Pagination {
+        Pagination()
+    }
+    
     public var remoteEventPublisher: AnyPublisher<RemoteDialogEvent<Message>, Never> {
         get async {
             await remote.eventPublisher

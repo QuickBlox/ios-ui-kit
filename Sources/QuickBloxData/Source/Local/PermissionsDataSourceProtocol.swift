@@ -2,8 +2,8 @@
 //  PermissionsDataSourceProtocol.swift
 //  QuickBloxUIKit
 //
-//  Created by Injoit on Illia Chemolosov on 28.01.2025.
-//  Copyright © 2023 QuickBlox. All rights reserved.
+//  Created by Injoit on 28.01.2025.
+//  Copyright © 2025 QuickBlox. All rights reserved.
 //
 
 import QuickBloxDomain

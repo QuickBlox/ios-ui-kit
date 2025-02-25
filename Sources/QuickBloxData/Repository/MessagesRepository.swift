@@ -168,6 +168,10 @@ extension Message {
 }
 
 extension MessagesRepository {
+    public var initialPagination: Pagination {
+        Pagination()
+    }
+    
     public func send(messageToRemote entity: Message) async throws {
         do {
             _ = try await remote.send(message: RemoteMessageDTO(entity))

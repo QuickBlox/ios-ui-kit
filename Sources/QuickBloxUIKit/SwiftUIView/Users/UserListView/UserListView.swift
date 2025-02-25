@@ -23,6 +23,7 @@ public struct UserListView<ViewModel: CreateDialogProtocol,
     private var content: (_ item: UserItem,
                           _ isSelected: Bool,
                           _ onSelect: @escaping (_ user: UserItem) -> Void) -> UserView
+    private var onNext: () -> Void
     
     @State private var visibleRows: Set<String> = []
     
@@ -31,9 +32,11 @@ public struct UserListView<ViewModel: CreateDialogProtocol,
     public init(viewModel: ViewModel,
                 @ViewBuilder content: @escaping (_ item: UserItem,
                                                  _ isSelected: Bool,
-                                                 _ onSelect: @escaping (_ user: UserItem) -> Void) -> UserView) {
+                                                 _ onSelect: @escaping (_ user: UserItem) -> Void) -> UserView,
+                onNext: @escaping () -> Void) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.content = content
+        self.onNext = onNext
     }
 }
 
@@ -70,16 +73,32 @@ extension UserListView: View {
                     Spacer()
                 }
             } else {
-                List(viewModel.displayed) { item in
-                    ZStack {
-                        content(item, viewModel.selected.contains(item), { user in
-                            viewModel.handleOnSelect(user)
-                        })
-                        Separator(isLastRow: viewModel.displayed.last?.id == item.id)
+                List {
+                    ForEach(viewModel.displayed) { item in
+                        ZStack {
+                            content(item, viewModel.selected.contains(item), { user in
+                                viewModel.handleOnSelect(user)
+                            })
+                            Separator(isLastRow: viewModel.displayed.last?.id == item.id)
+                        }
+                        .onAppear {
+                            if viewModel.displayed.last?.id == item.id {
+                                onNext()
+                            }
+                        }
+                        .listRowBackground(settings.backgroundColor)
+                        .listRowInsets(EdgeInsets())
+                        .listRowSeparator(.hidden)
                     }
-                    .listRowBackground(settings.backgroundColor)
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
+                    
+                    if viewModel.isAdding {
+                        VStack {
+                            ProgressView()
+                                .padding(.vertical, 12)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .listRowBackground(Color.clear)
+                    }
                 }
                 .listStyle(.plain)
             }

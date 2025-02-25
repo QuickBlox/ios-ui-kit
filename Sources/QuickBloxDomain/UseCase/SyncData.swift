@@ -39,7 +39,8 @@ public class SyncData<DialogsRepo: DialogsRepositoryProtocol,
                       MessagesRepo: MessagesRepositoryProtocol,
                       ConnectRepo: ConnectionRepositoryProtocol,
                       Pagination: PaginationProtocol>
-where Pagination == DialogsRepo.PaginationItem {
+where Pagination == DialogsRepo.PaginationItem,
+      Pagination == UsersRepo.PaginationItem {
     private let dialogsRepo: DialogsRepo
     private let usersRepo: UsersRepo
     private let messagesRepo: MessagesRepo
@@ -219,29 +220,30 @@ where Pagination == DialogsRepo.PaginationItem {
     //MARK: Sync Info
     private func updateInfo() async {
         do {
-            var page = Pagination(skip: 0, limit: 100, total: 0)
-            var hasNext = true
+            var page = dialogsRepo.initialPagination
             var syncIds: Set<String> = []
             repeat {
                 try Task.checkCancellation()
                 let result = try await dialogsRepo.getDialogsFromRemote(for: page)
-                let usersIds = Set(result.usersIds).subtracting(syncIds)
                 try Task.checkCancellation()
-                try await sync(participants: Array(usersIds))
+                let usersIds = Set(result.usersIds)
                 syncIds.formUnion(usersIds)
                 for dialog in result.dialogs {
                     try Task.checkCancellation()
-                    if dialog.type == .public { continue }
+                    if dialog.type == .public {
+                        continue
+                    }
                     try await dialogsRepo.save(dialogToLocal: dialog)
+    
                     let duration = UInt64(0.01 * 1_000_000_000)
                     try await Task.sleep(nanoseconds: duration)
                 }
                 
-                var next = result.page
-                next.skip += result.dialogs.count
-                page = next
-                hasNext = result.dialogs.count == page.limit
-            } while hasNext
+                page = result.page
+                page.next()
+            } while page.hasNext
+            
+            try await sync(participants: Array(syncIds))
             
             stateSubject.send(.synced)
         } catch let exeption as RepositoryException {
@@ -431,7 +433,18 @@ where Pagination == DialogsRepo.PaginationItem {
     
     func sync(participants ids: [String]) async throws {
         if ids.isEmpty { return }
-        let users = try await usersRepo.get(usersFromRemote: ids)
-        try await usersRepo.save(usersToLocal: users)
+        var page = usersRepo.initialPagination
+        repeat {
+            try Task.checkCancellation()
+            
+            let result = try await usersRepo.get(usersFromRemote: ids,
+                                                 pagination: page)
+            if result.users.isEmpty == false {
+                try? await usersRepo.save(usersToLocal: result.users)
+            }
+            
+            page = result.pagination
+            page.next()
+        } while page.hasNext
     }
 }

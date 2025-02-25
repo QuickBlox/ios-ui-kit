@@ -11,6 +11,13 @@ public protocol MessagesRepositoryProtocol {
     associatedtype MessageEntityItem: MessageEntity
     associatedtype PaginationItem: PaginationProtocol
     
+    /// The initial pagination state used when fetching messages.
+    ///
+    /// This property provides the default pagination settings, typically starting from the first page
+    /// (e.g., `skip = 0`) with a predefined `limit`. It serves as a reference for loading the first set
+    /// of items in a paginated request.
+    var initialPagination: PaginationItem { get }
+    
     /// Send a new message to the remote server.
     /// - Parameter entity: ``MessageEntity`` item.
     ///
