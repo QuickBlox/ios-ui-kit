@@ -54,7 +54,7 @@ public struct RemoveMembersView<ViewModel: MembersDialogProtocol>: View {
             }, onAppearItem: { itemId in
                 // action On Appear Item
             }, onNext: {
-                // action On Next Page of Users
+                viewModel.getNextUsers()
             }).blur(radius: isAlertPresented ? settings.blurRadius : 0.0)
         }
         

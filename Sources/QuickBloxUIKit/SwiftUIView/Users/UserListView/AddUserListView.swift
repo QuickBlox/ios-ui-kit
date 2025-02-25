@@ -18,6 +18,8 @@ public struct AddUserListView<UserItem: UserEntity> where UserItem: Hashable {
     
     private var items: [UserItem]
     private var isSynced: Bool
+    private var isAdding: Bool = false
+    
     @Binding private var searchText: String
     
     // Actions
@@ -29,12 +31,14 @@ public struct AddUserListView<UserItem: UserEntity> where UserItem: Hashable {
     
     public init(items: [UserItem],
                 isSynced: Bool,
+                isAdding: Bool,
                 searchText: Binding<String> = Binding.constant(""),
                 onSelect: @escaping (UserItem) -> Void,
                 onAppearItem: @escaping (String) -> Void,
                 onNext: @escaping () -> Void) {
         self.items = items
         self.isSynced = isSynced
+        self.isAdding = isAdding
         self._searchText = searchText
         self.onSelect = onSelect
         self.onAppearItem = onAppearItem
@@ -61,40 +65,52 @@ extension AddUserListView: View {
                     
                 }
                 Spacer()
-            } else  if isSynced == false {
+            } else if isSynced == false {
                 VStack {
                     HStack(spacing: 12) {
                         ProgressView()
                     }.padding(.top)
                     Spacer()
                 }
-            }else {
-                List(items) { item in
-                    ZStack {
-                        UserRowBuilder.create(row: .add,
-                                              wiht: item,
-                                              selected: false) { user in
-                            onSelect(user)
+            } else {
+                List {
+                    ForEach(items) { item in
+                        ZStack {
+                            UserRowBuilder.create(row: .add,
+                                                  wiht: item,
+                                                  selected: false) { user in
+                                onSelect(user)
+                            }
+                            Separator(isLastRow: items.last?.id == item.id)
                         }
-                        Separator(isLastRow: items.last?.id == item.id)
+                        .onAppear {
+                            if visibleRows.contains(item.id) == false {
+                                self.visibleRows.insert(item.id)
+                                onAppearItem(item.id)
+                            }
+                            
+                            if items.last?.id == item.id {
+                                onNext()
+                            }
+                        }
+                        .listRowBackground(settings.backgroundColor)
+                        .listRowInsets(EdgeInsets())
+                        .listRowSeparator(.hidden)
                     }
-                    .onAppear {
-                        if visibleRows.contains(item.id) == false {
-                            self.visibleRows.insert(item.id)
-                            onAppearItem(item.id)
+                    
+                    if isAdding {
+                        VStack {
+                            ProgressView()
+                                .padding(.vertical, 12)
                         }
-                        
-                        if items.last?.id == item.id {
-                            onNext()
-                        }
+                        .frame(maxWidth: .infinity)
+                        .listRowBackground(Color.clear)
                     }
-                    .listRowBackground(settings.backgroundColor)
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
-                }.listStyle(.plain)
+                }
+                .listStyle(.plain)
             }
         }
-        .searchable(text: $searchText, prompt: "Search").autocorrectionDisabled(true)
+        .searchable(text: $searchText, prompt: "Search")
         .onChange(of: isSearching, perform: { newValue in
             if newValue == false {
                 searchText = ""

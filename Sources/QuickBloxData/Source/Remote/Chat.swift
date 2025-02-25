@@ -119,7 +119,7 @@ private actor Chat {
 private extension QBChatDialog {
     func joinAsync() async throws {
         return try await withCheckedThrowingContinuation { continuation in
-            if type == .private || isJoined() == true {
+            if type == .private || type == .publicGroup || isJoined() == true {
                 continuation.resume()
             } else {
                 join { error in

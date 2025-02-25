@@ -14,6 +14,13 @@ public protocol DialogsRepositoryProtocol {
     associatedtype UsersEntityItem: UserEntity
     associatedtype PaginationItem: PaginationProtocol
     
+    /// The initial pagination state used when fetching messages.
+    ///
+    /// This property provides the default pagination settings, typically starting from the first page
+    /// (e.g., `skip = 0`) with a predefined `limit`. It serves as a reference for loading the first set
+    /// of items in a paginated request.
+    var initialPagination: PaginationItem { get }
+    
     /// Create a new dialog on the remote server.
     /// - Parameter dialog: ``DialogEntity`` item that will be created remotely.
     ///

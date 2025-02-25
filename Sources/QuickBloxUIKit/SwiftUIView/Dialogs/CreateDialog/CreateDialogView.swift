@@ -49,9 +49,12 @@ where DialogItem == ViewModel.DialogItem, UserItem == ViewModel.UserItem {
         ZStack {
             settings.backgroundColor.ignoresSafeArea()
             
-            UserListView(viewModel: viewModel) { item, isSelected, onSelect in
+            UserListView(viewModel: viewModel,
+                         content: { item, isSelected, onSelect in
                 UserRow(item, isSelected: isSelected, onTap: onSelect)
-            }
+            }, onNext: {
+                viewModel.getNextUsers()
+            })
         }
         
         .disabled(viewModel.isProcessing == true)

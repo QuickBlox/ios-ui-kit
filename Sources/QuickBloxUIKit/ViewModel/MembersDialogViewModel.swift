@@ -22,6 +22,7 @@ public protocol MembersDialogProtocol: QuickBloxUIKitViewModel {
     var isProcessing: Bool { get set }
     
     func removeUserFromDialog()
+    func getNextUsers()
 }
 
 final class MembersDialogViewModel: MembersDialogProtocol {
@@ -39,6 +40,8 @@ final class MembersDialogViewModel: MembersDialogProtocol {
     public var cancellables = Set<AnyCancellable>()
     public var tasks = Set<Task<Void, Never>>()
     private var taskUpdate: Task<Void, Never>?
+    
+    private var pagination: Pagination = Pagination(skip: 0)
     
     init(dialog: Dialog,
          usersRepo: UsersRepository = Repository.users,
@@ -61,6 +64,51 @@ final class MembersDialogViewModel: MembersDialogProtocol {
         }
     }
     
+    private func update(with newUsers: GetUsers<User, Pagination, UsersRepository>,
+                        filterIds: [String] = [],
+                        force: Bool) {
+        Task { [weak self] in
+            do {
+                let result = try await newUsers.execute()
+                try Task.checkCancellation()
+                
+                let filtered = result.users.filter { filterIds.contains($0.id) == false }
+                let page = result.pagination
+                
+                await MainActor.run { [weak self, filtered, page, force] in
+                    guard let self = self else { return }
+                    self.pagination = page
+                    self.isProcessing = false
+                    if force {
+                        self.displayed = filtered
+                    } else {
+                        self.displayed.append(contentsOf: filtered)
+                    }
+                }
+            } catch {
+                prettyLog(error)
+                await MainActor.run { [weak self] in
+                    self?.isProcessing = false
+                }
+            }
+        }
+    }
+    
+    public func getNextUsers() {
+        if pagination.hasNext == false {
+            return
+        }
+        
+        pagination.next()
+        
+        let getUsers = GetUsers(ids: dialog.participantsIds,
+                                pagination: pagination,
+                                repo: Repository.users)
+        let ids: [String] = displayed.map { $0.id }
+        
+        update(with: getUsers, filterIds: ids, force: false)
+    }
+    
     public func getDialog() {
         let getDialog = GetDialog(dialogId: self.dialog.id,
                                   dialogsRepo: self.dialogsRepo)
@@ -69,18 +117,16 @@ final class MembersDialogViewModel: MembersDialogProtocol {
             do {
                 let dialog = try await getDialog.execute()
                 
-                guard let repo = self?.usersRepo else { return }
-                let getUsers: GetUsers<UserItem, UsersRepository>
-                = GetUsers(ids: dialog.participantsIds,
-                           repo: repo)
-                let users = try await getUsers.execute()
-                
-                await MainActor.run { [weak self, users] in
-                    guard let self = self else { return }
-                    self.dialog = dialog
-                    self.displayed = users
-                    self.isProcessing = false
+                await MainActor.run { [weak self, dialog] in
+                    self?.dialog = dialog
                 }
+                
+                guard let repo = self?.usersRepo else { return }
+
+                let getUsers = GetUsers(ids: dialog.participantsIds,
+                                        pagination: Pagination(skip: 0),
+                                        repo: repo)
+                self?.update(with: getUsers, force: true)
             } catch {
                 prettyLog(error)
                 await MainActor.run { [weak self] in

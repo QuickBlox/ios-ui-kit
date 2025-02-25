@@ -21,11 +21,13 @@ public protocol CreateDialogProtocol: ObservableObject {
     var selected: Set<UserItem> { get set }
     var isProcessing: Bool { get set }
     var isSynced: Bool { get set }
+    var isAdding: Bool { get set }
     var modeldDialog: DialogItem { get }
     
     func syncUsers()
     func handleOnSelect(_ item: UserItem)
     func createDialog()
+    func getNextUsers()
 }
 
 final class CreateDialogViewModel: CreateDialogProtocol {
@@ -36,6 +38,7 @@ final class CreateDialogViewModel: CreateDialogProtocol {
     @Published public var selected: Set<User> = []
     @Published public var  isProcessing: Bool = false
     @Published public var  isSynced: Bool = false
+    @Published public var isAdding: Bool = false
     
     public var modeldDialog: Dialog
     
@@ -45,6 +48,8 @@ final class CreateDialogViewModel: CreateDialogProtocol {
 
     public var tasks = Set<Task<Void, Never>>()
     private var createTask: Task<Void, Never>?
+    
+    private var pagination: Pagination = Pagination(skip: 0)
     
     // use for PreviewProvider
     public init(modeldDialog: Dialog) {
@@ -63,6 +68,66 @@ final class CreateDialogViewModel: CreateDialogProtocol {
             .store(in: &cancellables)
     }
     
+    private func update(with newUsers: GetUsers<User, Pagination, UsersRepository>,
+                        fileterIds: [String],
+                        force: Bool) {
+        taskUsers?.cancel()
+        taskUsers = Task { [weak self] in
+            do {
+                let result = try await newUsers.execute()
+                try Task.checkCancellation()
+                
+                let filtered = result.users.filter { fileterIds.contains($0.id) == false
+                    && $0.isCurrent == false}
+                let paginaiton = result.pagination
+                
+                await MainActor.run { [weak self, filtered, paginaiton, force] in
+                    guard let self = self else { return }
+                    self.pagination = paginaiton
+                    self.isSynced = true
+                    self.isAdding = false
+                    if force {
+                        var toDisplay: [User] = Array(self.selected)
+                        toDisplay.append(contentsOf: filtered)
+                        self.displayed = toDisplay
+                    } else {
+                        self.displayed.append(contentsOf: filtered)
+                    }
+                }
+                
+            } catch {
+                prettyLog(error)
+                if error is RepositoryException {
+                    await MainActor.run { [weak self] in
+                        guard let self = self else { return }
+                        self.isSynced = true
+                        self.isAdding = false
+                    }
+                }
+            }
+            
+            self?.taskUsers = nil
+        }
+    }
+    
+    public func getNextUsers() {
+        if pagination.hasNext == false {
+            return
+        }
+        pagination.next()
+        
+        self.isAdding = true
+        
+        let text = search.count > 2 ? search : ""
+        
+        let getUsers = GetUsers(name: text,
+                                pagination: pagination,
+                                repo: Repository.users)
+        let ids: [String] = displayed.map { $0.id }
+        
+        update(with: getUsers, fileterIds: ids, force: false)
+    }
+    
     private func displayMembers(by text: String = "") {
         if isProcessing == true {
             return
@@ -71,38 +136,12 @@ final class CreateDialogViewModel: CreateDialogProtocol {
         if text.isEmpty || text.count > 2 {
             isSynced = false
             
-            let getUsers = GetUsers(name: text, repo: Repository.users)
+            let getUsers = GetUsers(name: text,
+                                    pagination: Pagination(skip: 0),
+                                    repo: Repository.users)
+            let ids: [String] = selected.map { $0.id }
             
-            taskUsers?.cancel()
-            taskUsers = Task { [weak self] in
-                do {
-                    let users = try await getUsers.execute()
-                    try Task.checkCancellation()
-                    
-                    await MainActor.run { [weak self, users] in
-                        guard let self = self else { return }
-                        var toDisplay: [User] = []
-                        for user in self.selected {
-                            toDisplay.append(user)
-                        }
-                        let filtered = users.filter {
-                            self.selected.contains($0) == false
-                            && $0.isCurrent == false
-                        }
-                        toDisplay.append(contentsOf: filtered)
-                        self.displayed = toDisplay
-                        self.isSynced = true
-                    }
-                } catch {
-                    prettyLog(error)
-                    if error is RepositoryException {
-                        await MainActor.run { [weak self] in
-                            self?.isSynced = true
-                        }
-                    }
-                }
-                self?.taskUsers = nil
-            }
+            update(with: getUsers, fileterIds: ids, force: true)
         }
     }
     

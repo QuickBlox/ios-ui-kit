@@ -63,6 +63,10 @@ extension LocalUserDTO {
 }
 
 extension UsersRepository: UsersRepositoryProtocol {
+    public var initialPagination: Pagination {
+        Pagination()
+    }
+    
     public func save(userToLocal entity: User) async throws {
         do {
             try await local.save(user: LocalUserDTO(entity))
@@ -99,27 +103,24 @@ extension UsersRepository: UsersRepositoryProtocol {
         }
     }
     
-    public func get(usersFromRemote usersIds: [String]) async throws -> [User] {
-        var pagination = Pagination(skip: 0, limit: usersIds.count)
-        if usersIds.isEmpty {
-            pagination = Pagination(skip: 0, limit: 30)
-        } 
+    public func get(usersFromRemote usersIds: [String], pagination: Pagination? = nil) async throws -> (users: [User], pagination: Pagination) {
+        let pagination = pagination ?? Pagination(skip: 0)
         do {
             let withIds = RemoteUsersDTO(ids: usersIds,
                                          pagination: pagination)
             let data = try await remote.get(users: withIds)
-            return data.users.map { User($0) }
+            return (users: data.users.map { User($0) }, pagination: data.pagination)
         } catch {
             throw try error.repositoryException
         }
     }
     
-    public func get(usersFromRemote fullName: String) async throws -> [User] {
+    public func get(usersFromRemote fullName: String, pagination: Pagination? = nil) async throws -> (users: [User], pagination: Pagination) {
         do {
-            let pagination = Pagination(skip: 0, limit: 100)
+            let pagination = pagination ?? Pagination(skip: 0)
             let withFullName = RemoteUsersDTO(name:fullName, pagination: pagination)
             let data = try await remote.get(users: withFullName)
-            return data.users.map { User($0) }
+            return (users: data.users.map { User($0) }, pagination: data.pagination)
         } catch {
             throw try error.repositoryException
         }

@@ -42,7 +42,10 @@ public struct AddMembersDialogView<ViewModel: AddMembersDialogProtocol>: View {
         ZStack {
             settings.backgroundColor.ignoresSafeArea()
             
-            AddUserListView(items: viewModel.displayed, isSynced: viewModel.isSynced, searchText: $viewModel.search,
+            AddUserListView(items: viewModel.displayed,
+                            isSynced: viewModel.isSynced,
+                            isAdding: viewModel.isAdding,
+                            searchText: $viewModel.search,
                             onSelect: { item in
                 viewModel.selected = item
                 isPresented.toggle()
@@ -50,6 +53,7 @@ public struct AddMembersDialogView<ViewModel: AddMembersDialogProtocol>: View {
                 // action On Appear Item
             }, onNext: {
                 // action On Next Page of Users
+                viewModel.getNextUsers()
             }).blur(radius: isPresented ?settings.blurRadius : 0.0)
                 .addUserAlert(isPresented: $isPresented,
                               name: viewModel.selected?.name ?? "",

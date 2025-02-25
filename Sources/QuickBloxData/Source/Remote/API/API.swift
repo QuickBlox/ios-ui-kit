@@ -21,6 +21,7 @@ extension Pagination {
         self.init(page: Int(page.currentPage),
                   perPage: Int(page.perPage),
                   total: Int(page.totalEntries))
+        self.hasNext = self.total > self.skip + self.limit
     }
 }
 
@@ -29,13 +30,15 @@ extension Pagination {
         self.init(skip: page.skip,
                   limit: page.limit,
                   total: Int(page.totalEntries))
+        self.hasNext = self.total > self.skip + self.limit
     }
 }
 
 extension QBGeneralResponsePage {
     convenience init(_ pagination: Pagination) {
         self.init(currentPage: UInt(pagination.currentPage + 1),
-                  perPage: UInt(pagination.limit))
+                  perPage: UInt(pagination.limit),
+                  totalEntries: 0)
     }
 }
 

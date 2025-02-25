@@ -9,34 +9,44 @@
 import QuickBloxLog
 
 
-public class GetUsers<User: UserEntity , Repo: UsersRepositoryProtocol>
-where User == Repo.UserEntityItem {
+public class GetUsers<User: UserEntity, Pagination: PaginationProtocol, Repo: UsersRepositoryProtocol>
+where User == Repo.UserEntityItem, Pagination == Repo.PaginationItem {
     private var name: String = ""
     private var ids: [String] = []
+    private let pagination: Pagination
     private let repo: Repo
     
-    public init(ids: [String] = [], name: String = "", repo: Repo) {
+    public init(ids: [String] = [], name: String = "",
+                pagination: Pagination,
+                repo: Repo) {
         self.ids = ids
         self.name = name
+        self.pagination = pagination
         self.repo = repo
     }
     
-    public func execute() async throws -> [User] {
-        var users: [User]
+    public func execute() async throws -> (users: [User], pagination: Pagination) {
+        var result: (users: [User], pagination: Pagination) = ([], pagination)
         if name.isEmpty == false {
-            users = try await repo.get(usersFromRemote: name)
+            result = try await repo.get(usersFromRemote: name, pagination: pagination)
         } else {
             if ids.isEmpty == true {
-                users = try await repo.get(usersFromRemote: [])
+                result = try await repo.get(usersFromRemote: [], pagination: pagination)
             } else {
-                users = try await repo.get(usersFromLocal: ids)
+                let users = try await repo.get(usersFromLocal: ids)
                 let userIds = users.map { $0.id }
                 let usersForUpdate = Set(ids).subtracting(Set(userIds))
                 if usersForUpdate.isEmpty == false {
-                    users = try await repo.get(usersFromRemote: Array(usersForUpdate))
+                    result = try await repo.get(usersFromRemote: ids,
+                                                pagination: pagination)
+                } else {
+                    return (users: users,
+                            pagination: Pagination(skip: 0,
+                                                   limit: users.count,
+                                                   total: users.count))
                 }
             }
         }
-        return users
+        return result
     }
 }
